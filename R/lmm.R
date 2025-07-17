@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 20 2024 (16:45) 
+## Last-Updated: jul 17 2025 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 3144
+##     Update #: 3171
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,8 +18,9 @@
 ## * lmm (documentation)
 ##' @title Fit Linear Mixed Model
 ##' @description Fit a linear mixed model defined by a mean and a covariance structure.
+##' @name lmm.formula
 ##'
-##' @param formula [formula] Specify the model for the mean.
+##' @param object [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
 ##' E.g. Y ~ Gender + Gene.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
@@ -71,6 +72,10 @@
 ##' @return an object of class \code{lmm} containing the estimated parameter values, the residuals, and relevant derivatives of the likelihood.
 ##'
 ##' @keywords models
+##' @export
+`lmm` <-
+    function(object, data, repetition, structure, weights, 
+             method.fit, df, type.information, trace, control) UseMethod("lmm")
 
 ## * lmm (examples)
 ##' @examples
@@ -153,10 +158,11 @@
 ##' }
 ##' 
 
-## * lmm (code)
+## * lmm.formula (code)
+##' @rdname lmm.formula
 ##' @export
-lmm <- function(formula, data, repetition, structure, weights = NULL, 
-                method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
+lmm.formula <- function(object, data, repetition, structure, weights = NULL, 
+                        method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
     name.out <- c("args", "call", "cluster", "df", "d2Omega", "data", "data.original", 
                   "design", "dOmega", "dVcov", "fitted", "formula", "information", 
@@ -192,7 +198,7 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
 
     ## *** Check all arguments, initialize all arguments but data and structure
     if(trace>=2){cat("\n- normalize argument")}
-    outArgs <- .lmmNormalizeArgs(formula = formula, repetition = repetition, structure = structure, data = data, weights = weights, 
+    outArgs <- .lmmNormalizeArgs(formula = object, repetition = repetition, structure = structure, data = data, weights = weights, 
                                  method.fit = method.fit, df = df, type.information = type.information, trace = trace, control = control,
                                  options = options)    
     var.outcome <- outArgs$var.outcome
@@ -355,11 +361,11 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
         if(out$args$control$trace>1){cat("\n")}
     }
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
-    outEstimate <- .estimate(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
-                             transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                             precompute.moments = precompute.moments, 
-                             optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
-                             tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
+    outEstimate <- .optim(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+                          transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
+                          precompute.moments = precompute.moments, 
+                          optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
+                          tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
     param.value <- outEstimate$estimate
     out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
     if((trace==0 && out$args$control$trace>0)){
@@ -388,6 +394,51 @@ lmm <- function(formula, data, repetition, structure, weights = NULL,
     class(out) <- "lmm"
     return(out)
 }
+
+## * lmm.Wald_lmm (code)
+##' @export
+lmm.Wald_lmm <- function(object, data, repetition, structure, weights, 
+                         method.fit, df, type.information, trace, control){
+
+    if(is.null(object$model)){
+        out <- try(eval(object$call[["object"]]), silent = TRUE)
+        if(inherits(out,"try-error")){
+            cat("Could not retrieve the lmm object. \n",
+                "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
+                "Original error message: ",out)
+        }
+    }else{
+        out <- object$model
+    }
+    
+    ## ** export
+    return(out)
+}
+
+## * lmm.rbindWald_lmm (code)
+##' @export
+lmm.rbindWald_lmm <- function(object, data, repetition, structure, weights, 
+                              method.fit, df, type.information, trace, control){
+
+    if(is.null(object$model)){
+        out <- try(lapply(object$call[setdiff(names(object$call),"rbind")], function(iO){eval(iO[["object"]])}), silent = TRUE)
+        if(inherits(out,"try-error")){
+            cat("Could not retrieve the lmm object. \n",
+                "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
+                "Original error message: ",out)
+        }
+    }else{
+        out <- object$model
+    }
+    
+    ## ** export
+    return(out)
+}
+
+## * lmm.mlmm (code)
+##' @export
+lmm.mlmm <- lmm.rbindWald_lmm
+
 
 ## * .lmmNormalizeArgs 
 ##' @description Normalize all arguments for lmm

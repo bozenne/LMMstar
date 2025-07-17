@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 10 2025 (09:11) 
+## Last-Updated: jul 17 2025 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 221
+##     Update #: 223
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -231,9 +231,8 @@ test_that("Nested random intercept model (2 levels)",{
     eNRI2.lmm0 <- lmm(extro ~ (1|school/class), data = df.red, df = FALSE)
     ## eNRI2.lmm <- lmm(extro ~ (1|school/class), data = df.red, df = FALSE, control = list(init = "lmer"))
 
-        ## ** iteration
-    expect_equal(eNRI2.lmm0$opt$n.iter,9)
-    ## expect_equal(eNRI2.lmm$opt$n.iter,3)
+    ## ** iteration
+    expect_equal(eNRI2.lmm0$opt$n.iter,8)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eNRI2.lmer)), as.double(logLik(eNRI2.lmm0)), tol = 1e-6)
@@ -296,8 +295,7 @@ test_that("Nested random intercept model (2 levels)",{
     ## eNRI3.lmm <- lmm(value ~ session + (1|patient/day/session), data = dfL.NRI3, df = FALSE, control = list(init = "lmer"))
     
     ## ** iteration
-    expect_equal(eNRI3.lmm0$opt$n.iter,4)
-    ## expect_true(eNRI3.lmm$opt$n.iter<=2)
+    expect_equal(eNRI3.lmm0$opt$n.iter,2)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eNRI3.lmer)), as.double(logLik(eNRI3.lmm0)), tol = 1e-6)

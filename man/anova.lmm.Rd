@@ -8,10 +8,12 @@
   object,
   effects = NULL,
   rhs = NULL,
+  type.information = NULL,
   robust = NULL,
   df = NULL,
   univariate = TRUE,
   multivariate = TRUE,
+  p = NULL,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -30,6 +32,8 @@ Can also be use to specify linear combinations of coefficients or a contrast mat
 
 \item{rhs}{[numeric vector] the right hand side of the hypothesis. Only used when the argument \code{effects} is a matrix.}
 
+\item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
+
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
@@ -41,22 +45,23 @@ Other chi-squared distribution and normal distribution are used.}
 
 \item{multivariate}{[logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?}
 
+\item{p}{[numeric vector] value of the model coefficients at which to evaluate the variance-covariance matrix. Only relevant if differs from the fitted values.}
+
 \item{transform.sigma, transform.k, transform.rho}{are passed to the \code{vcov} method. See details section in \code{\link{coef.lmm}}.}
 
-\item{simplify}{[logical] should only the estimates, variance-covariance with its gradient, and degrees-of-freedom relative to the parameters involved in the Wald test be stored (TRUE)
-or relative to all model parameters (0.5) along with their iid decomposition (FALSE).}
+\item{simplify}{[logical] when \code{FALSE} the lmm object is stored in the output.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
 A data.frame (LRT) or a list of containing the following elements (Wald):\itemize{
+\item \code{args}: list containing argument values from the function call.
 \item \code{multivariate}: data.frame containing the multivariate Wald test.
 The column \code{df.num} refers to the degrees-of-freedom for the numerator (i.e. number of hypotheses)
 wherease the column \code{df.denum} refers to the degrees-of-freedom for the denominator (i.e. Satterthwaite approximation).
 \item \code{univariate}: data.frame containing each univariate Wald test.
 \item \code{glht}: used internally to call functions from the multcomp package.
-\item \code{object}: list containing key information about the linear mixed model.
-\item \code{args}: list containing argument values from the function call.
+\item \code{model} (optional): linear mixed model used to generate the Wald tests.
 }
 }
 \description{

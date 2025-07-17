@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: okt 20 2024 (17:14) 
+## Last-Updated: jul 17 2025 (14:20) 
 ##           By: Brice Ozenne
-##     Update #: 586
+##     Update #: 594
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -270,6 +270,7 @@
 
     ## ** combine all residuals and all design matrices
     M.prodres <- do.call(rbind,lapply(1:length(object$cor$Xpattern), function(iPattern){ ## iPattern <- 1
+        
         X.iPattern <- object$cor$Xpattern[[iPattern]]
         if(is.null(X.iPattern)){return(NULL)}
         ## index of the residuals belonging to each individual
@@ -301,20 +302,22 @@
             iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
                 iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
                                           col = residuals.studentized[iRow[iPair[,"col"]]],
+                                          row.df = residuals.df[iRow[iPair[,"row"]]],
+                                          col.df = residuals.df[iRow[iPair[,"col"]]],
                                           param = iPair[,"param"]),
                                iPair[,"param"])
                 iOut <- lapply(iLSDF, function(iiDF){
                     data.frame(index = paste0("(t1=",attr(X.iPattern,"index.time")[iPair[,"row"]],",t2=",attr(X.iPattern,"index.time")[iPair[,"col"]],")"),
                                pattern = iPattern,
-                               prod = sum(iiDF[,1]*iiDF[,2]),
-                               sum1 = sum(iiDF[,1]),
-                               sum2 = sum(iiDF[,2]),
-                               sums1 = sum(iiDF[,1]^2),
-                               sums2 = sum(iiDF[,2]^2),
+                               prod = sum(iiDF[,"row"]*iiDF[,"col"]),
+                               sum1 = sum(iiDF[,"row"]),
+                               sum2 = sum(iiDF[,"col"]),
+                               sums1 = sum(iiDF[,"row"]^2),
+                               sums2 = sum(iiDF[,"col"]^2),
                                n=NROW(iiDF),
-                               df1 = sum(residuals.df[,1]),
-                               df2 = sum(residuals.df[,2]),
-                               param = iParam[iiDF[1,3]])})
+                               df1 = sum(iiDF[,"row.df"]),
+                               df2 = sum(iiDF[,"col.df"]),
+                               param = iParam[iiDF[1,"param"]])})
                 return(do.call(rbind,iOut))
             }, simplify = FALSE)
         }
@@ -331,7 +334,7 @@
         if(init.cor==1){ 
             ## *** method 1: average time-specific correlations (exact formula for ML when no missing values)
             iRho <- iDF$prod/sqrt((iDF$n-iDF$df1)*(iDF$n-iDF$df2))
-         
+            
             iMeanRho.pattern <- tapply(iRho, iDF$pattern, mean)
             iNobs.pattern <- tapply(iDF$n, iDF$pattern, sum)
             iHeterochedastic.pattern <- (tapply(iDF$sums1, iDF$pattern, sum)+tapply(iDF$sums2, iDF$pattern, sum))/(2*iNobs.pattern)

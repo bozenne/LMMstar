@@ -6,33 +6,45 @@
 \usage{
 \method{model.tables}{mlmm}(
   x,
-  parm = NULL,
+  effects = "Wald",
   level = 0.95,
-  method = NULL,
   df = NULL,
+  method = NULL,
   columns = NULL,
+  ordering = NULL,
   backtransform = NULL,
-  ordering = "parameter",
+  transform.names = TRUE,
+  simplify = TRUE,
   ...
 )
 }
 \arguments{
 \item{x}{a \code{mlmm} object.}
 
-\item{method}{[character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
-Only relevant when \code{effects = "Wald"}.}
+\item{effects}{[character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+the contrast matrix (\code{"contrast"}),
+or the name/value/type of the underlying mixed model parameters (\code{"param"})?}
 
-\item{...}{arguments to be passed to \code{\link{confint.lmm}}.}
+\item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
-\item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
-or only for variance coefficients (\code{"variance"}),
-or only for correlation coefficients (\code{"correlation"}).
-Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).}
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.}
 
-\item{simplify}{[logical] omit from the output the backtransform attribute.
-Not relevant when the argument \code{effects="param"},}
+\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"})?}
+
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"quantile"}, \code{"lower"}, \code{"upper"}, \code{"statistic"}, \code{"null"}, \code{"p.value"}.}
+
+\item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
+
+\item{backtransform}{[logical] should the estimates, standard errors, and confidence intervals be backtransformed?}
+
+\item{transform.names}{[logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+Only relevant when \code{effects="contrast"}.}
+
+\item{simplify}{[logical] with argument \code{effects="Wald"}, omit from the output attributes containing additional information (e.g. approximation error made when adjusting p-values).
+with argument \code{effects="contrast"} the output will be converted into a matrix (instead of a list of matrix) whenever possible.}
+
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
 A \code{data.frame} object.
@@ -40,8 +52,5 @@ A \code{data.frame} object.
 \description{
 Combine estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from group-specific linear mixed models
 or a table describing each parameter (type, associated sigma or k parameter, ...).
-}
-\details{
-When \code{effects} is not \code{"param"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
 }
 \keyword{methods}

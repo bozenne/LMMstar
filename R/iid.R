@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 11 2025 (18:54) 
+## Last-Updated: jul 16 2025 (17:26) 
 ##           By: Brice Ozenne
-##     Update #: 361
+##     Update #: 414
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,8 +176,9 @@ iid.lmm <- function(x,
     }
 
     ## *** p and transform
-    init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
+    init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
+                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
     transform.rho <- init$transform.rho
@@ -279,145 +280,87 @@ iid.lmm <- function(x,
     return(out)
 }
 
-## * iid.lmm (documentation)
-##' @title Extract the Influence Function From Multiple Linear Mixed Models
-##' @description Extract the influence function for ML or REML estimators of parameters from group-specific linear mixed models.
+## * iid.Wald_lmm (documentation)
+##' @title Extract the Influence Function From Wald Tests
+##' @description Extract the influence function of linear contrasts involved in Wald tests.
+##'
+##' @param object a \code{Wald_lmm} object.
+##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' or for the linear mixed model parameters (\code{"all"})?
+##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Only relevant when \code{effects="all"}.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @keywords methods
+##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
 
-## * iid.mlmm (code)
+## * iid.Wald_lmm (code)
 ##' @export
-iid.mlmm <- function(x, effects = "contrast", p = NULL, ordering = "by", simplify = TRUE, ...){
+iid.Wald_lmm <- function(x, effects = "Wald", transform.names = TRUE, ...){
 
-    ## ** normalize use input
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- NULL
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(x$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+    if(x$args$p.null){
+        p <- NULL
+    }else{
+        table.param <- stats::model.tables(x, effects = "param")
+        p <- stats::setNames(table.param$value, table.param$name)
+    }
 
     ## *** effects
     if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character vector")
+        stop("Argument \'effects\' must be a character. \n")
     }
-    valid.effects <- c("contrast","mean","fixed","variance","correlation","all")
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Wald","all")
     if(any(effects %in% valid.effects == FALSE)){
         stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
              "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }    
-    if("contrast" %in% effects){
-        if(length(effects)>1){
-            stop("Argument \'effects\' must have length 1 when containing the element \'effects\'. \n")
-        }
-        if(!is.null(x$univariate) & all(x$univariate$type=="mu")){
-            effects2 <- "mean"
-        }else{
-            effects2 <- "all"
-        }
-    }else{
-        effects2 <- effects
-    }
-    if("all" %in% effects && length(effects)>1){
-        stop("Argument \'effects\' must have length 1 when containing the element \'all\'. \n")
     }
 
-    ## *** p
-    if(!is.null(p)){
-        if(!is.list(p)){
-            stop("Argument \'p\' should either be NULL or a list. \n")
-        }
-        if(is.null(names(p))){
-            stop("Argument \'p\' should either be NULL or a named list. \n")
-        }
-        if(any(names(p) %in% names(x$model) == FALSE)){
-            stop("Incorrect names for argument \'p\': \"",paste(setdiff(names(p),names(x$model)), collapse = "\", \""),"\". \n", 
-                 "Should be among \"",paste(names(x$model), collapse = "\", \""),"\". \n")
-        }
-    }
-
-    ## *** ordering    
-    ordering <- match.arg(ordering, c("by","parameter"))
-        
     ## ** extract iid
-    cluster <- x$object$cluster
-    n.cluster <- length(cluster)
+    x.iid <- iid(lmm(x), effects = "all", p = p,
+                 robust = x$args$robust, type.information = x$args$type.information,
+                 transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
+                 transform.names = transform.names)
 
-    if(all(effects=="contrast")){
-        ls.contrast <- stats::coef(x, type = "ls.contrast") ## extract linear combination from each model
-        contrast <- stats::coef(x, type = "contrast") ## contrast combinations across models
-        ls.iid <- lapply(names(x$model), function(iBy){
-            lava::iid(x$model[[iBy]], effects = effects2, p = p[[iBy]], ...)
-        })
-        ls.out <- mapply(iIID = ls.iid, iC = ls.contrast, FUN = function(iIID,iC){ ## iIID <- ls.iid[[1]] ; iC <- ls.contrast[[1]]
-            iOut <- matrix(0, nrow = n.cluster, ncol = NROW(iC), dimnames = list(cluster, rownames(iC)))
-            iOut[rownames(iIID),] <- iIID %*% t(iC[,colnames(iIID), drop = FALSE])
-            return(iOut)
-        }, SIMPLIFY = FALSE)
-        out <- (do.call("cbind",ls.out) %*% t(contrast))        
-    }else{
-        cluster <- x$object$cluster
-        n.cluster <- length(cluster)
-
-        ls.out <- lapply(names(x$model), function(iBy){
-            iO <- x$model[[iBy]]
-            iIID <- lava::iid(iO, p = p[[iBy]], effects = effects, ...)
-
-            if(simplify){
-                iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, paste0(iBy,": ", colnames(iIID))))
-                attr(iOut,"name") <- colnames(iIID)
-                attr(iOut,"by") <- rep(iBy, NCOL(iIID))                
-            }else{
-                iOut <- matrix(0, nrow = n.cluster, ncol = NCOL(iIID), dimnames = list(cluster, colnames(iIID)))
-            }
-            iOut[rownames(iIID),] <- iIID
-            attr(iOut,"message") <- attr(iIID,"message")
-            return(iOut)
-        })
-        names(ls.out) <- names(x$model)
-        indiv <- is.matrix(ls.out[[1]])
-    }
-
-    ## ** re-order
-    if(all(effects=="contrast")){
-        name.order <- names(stats::coef(x, effects = "contrast", ordering = ordering))        
-        out <- out[,name.order,drop=FALSE]
-        attr(out,"message") <- unique(unlist(lapply(ls.iid,attr,"message")))
-    }else if(simplify){
-        out <- do.call("cbind",unname(ls.out))
-        attr(out,"original.name") <- unname(unlist(lapply(ls.out,attr,"name")))
-        attr(out,"by") <- unname(unlist(lapply(ls.out,attr,"by")))
-        attr(out,"message") <- unname(unique(unlist(lapply(ls.out,attr,"message"))))
-
-        if(ordering == "parameter"){
-            reorder <- order(factor(attr(out,"original.name"),levels = unique(attr(out,"original.name"))))
-            out.save <- out
-            out <- out.save[,reorder,drop=FALSE]
-            attr(out, "original.name") <- attr(out.save, "original.name")[reorder]
-            attr(out, "by") <- attr(out.save, "by")[reorder]
-            attr(out, "message") <- attr(out.save, "message")
-        }
-
-    }else if(ordering == "by"){
-
-        out <- ls.out
-
-    }else if(ordering == "parameter"){
-
-        ## unique parameters
-        Uname <- unique(unlist(lapply(ls.out,colnames)))
-
-        ## combine iid
-        out <- stats::setNames(lapply(Uname, function(iName){ ## iName <- "X1"
-            iOut <- do.call(cbind,lapply(ls.out, function(iOut){ iOut[,iName]}))
-            colnames(iOut) <- names(ls.out)
-            attr(iOut,"message") <- unname(unique(unlist(lapply(ls.out, attr, "message"))))
-            return(iOut)
-        }), Uname)
-        
+    if(effects == "all"){
+        out <- x.iid
+    }else if(effects == "Wald"){        
+        contrast <- model.tables(x, effects = "contrast")
+        out <- x.iid[,colnames(contrast),drop=TRUE] %*% t(contrast)
+        attr(out,"message") <- attr(x.iid,"message")
     }
 
     ## ** export
     return(out)
 }
 
+
+
 ## * iid.rbindWald_lmm (code)
 ##' @title Extract the Influence Function From Wald Tests
 ##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from a linear mixed model.
 ##'
-##' @param object a \code{Wald_lmm} object.
+##' @param object a \code{rbindWald_lmm} object.
 ##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or for the linear mixed model parameters (\code{"all"})?
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
@@ -465,157 +408,56 @@ iid.rbindWald_lmm <- function(x, effects = "Wald", ordering = NULL, transform.na
     ## *** ordering
     if(!is.null(ordering)){
         ordering <- match.arg(ordering, c("contrast","model"))
+        table.param.order <- object$param[order(object$param[[switch(ordering, "model" = "model", "contrast" = "name")]]),,drop=FALSE]
     }
-
+    
     ## ** extract lmm
-    ls.lmm <- lapply(attr(x,"call")$anova, function(iCall){ 
-        eval(iCall[["object"]])
-    })
+    ls.model <- lmm(x)
 
     ## ** extract cluster
-    ls.cluster <- lapply(ls.lmm, function(iO){iO$cluster$level}) ## prefer [[ to $ to avoid partial matching (i.e. not output cluster.var if cluster is missing)
-    seq.cluster <- unique(unlist(ls.cluster))
-    n.cluster <- length(seq.cluster)
+    seq.cluster <- .rbind.cluster(ls.model)
 
     ## ** extract iid
+    all.iid <- .rbind.iid(ls.model, robust = x$args$robust, type.information = x$args$type.information,
+                          transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho, 
+                          seq.cluster = seq.cluster, n.cluster = length(seq.cluster),
+                          all.table.param = x$param, all.coefUnames = x$param$trans.Uname, all.coefUnamesO = x$param$Uname, options = options)
+
+    ## ** process variance-covariance matrix
     if(effects == "all"){
-        effects.iid <- "all"
-    }else{
-        effects.iid <- ifelse(all(x$univariate$type=="mu"),"mu","all")
-    }
-
-    ls.iid <- lapply(ls.lmm, function(iLMM){ 
-        iid(iLMM, effects = effects.iid, 
-            robust = x$args$robust, type.information = x$args$type.information,
-            transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho, transform.names = transform.names)
-    })
-
-    ## ** extract cluster
-    
-
-    if(effects == "all"){        
-        
-        out <- do.call(cbind, ls.iid)
         if(transform.names){
-            colnames(out) <- object$param$trans.Uname
+            out <- all.iid[,x$param$Uname,drop=FALSE]
+            dimnames(out) <- list(rownames(out), x$param$trans.Uname)            
         }else{
-            colnames(out) <- object$param$Uname
+            out <- all.iid
         }
         if(!is.null(ordering)){
-            table.param <- stats::model.tables(object, effects = "param")
-            table.param.order <- table.param[order(table.param[[switch(ordering, "model" = "model", "contrast" = "name")]]),,drop=FALSE]
             if(transform.names){
-                out <- out[table.param.order$trans.Uname,table.param.order$trans.Uname,drop=FALSE]
+                out <- out[,table.param.order$trans.Uname,drop=FALSE]
             }else{
-                out <- out[table.param.order$Uname,table.param.order$Uname,drop=FALSE]
+                out <- out[,table.param.order$Uname,drop=FALSE]                
             }
         }
-
-        out <- iid(eval(attr(x,"call")[["object"]]), effects = effects, 
-                   robust = x$args$robust, type.information = x$args$type.information,
-                   transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
-                   transform.names = transform.names)
-
     }else{
-
-        if(!is.null(x$glht[[1]]$iid)){
-            out <- x$glht[[1]]$iid
-        }else{
-            contrast <- model.tables(x, effects = "contrast")
-            type <- ifelse(all(x$univariate$type=="mu"), "mean","all")
-            x.iid <- iid(eval(attr(x,"call")[["object"]]), effects = type, 
-                         robust = x$args$robust, type.information = x$args$type.information,
-                         transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
-                         transform.names = transform.names)
-            out <- x.iid[,colnames(contrast)] %*% t(contrast)
-            attr(out,"message") <- attr(x.iid,"message")
-        }
-
-    }
-
+        contrast <- model.tables(x, effects = "contrast")
+        out <- all.iid[,colnames(contrast)] %*% t(contrast)
+    }    
+    attr(out,"message") <- attr(all.iid,"message")
+    
     ## ** export
     return(out)
 }
 
-## * iid.Wald_lmm (documentation)
-##' @title Extract the Influence Function From Combined Wald Tests
-##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from a linear mixed model.
+
+## * iid.mlmm
+##' @title Extract the Influence Function for Multiple Linear Mixed Models
+##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from group-specific linear mixed models.
 ##'
-##' @param object a \code{Wald_lmm} object.
-##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-##' or for the linear mixed model parameters (\code{"all"})?
-##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
-##' Only relevant when \code{effects="all"}.
-##' @param ... Not used. For compatibility with the generic method.
+##' @param object an \code{mlmm} object.
+##' @inheritParams iid.rbindWald_lmm
 ##' 
-##' @return A matrix with one row per observation and one column per parameter (\code{effects="Wald"} or \code{effects="all"}) or a logical value (\code{effects="test"}).
-
-## * iid.Wald_lmm (code)
 ##' @export
-iid.Wald_lmm <- function(x, effects = "Wald", transform.names = TRUE, ...){
-
-    ## ** normalize user input
-    ## *** dots
-    dots <- list(...)
-    if("options" %in% names(dots) && !is.null(dots$options)){
-        options <- dots$options
-    }else{
-        options <- NULL
-    }
-    dots$options <- NULL
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## *** object
-    if(x$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
-        return(invisible(NULL))
-    }
-
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character. \n")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Wald","all")
-    if(any(effects %in% valid.effects == FALSE)){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
-
-    ## ** extract iid
-    if(effects == "all"){        
-
-        out <- iid(eval(attr(x,"call")[["object"]]), effects = effects, 
-                   robust = x$args$robust, type.information = x$args$type.information,
-                   transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
-                   transform.names = transform.names)
-
-    }else{
-
-        if(!is.null(x$glht[[1]]$iid)){
-            out <- x$glht[[1]]$iid
-        }else{
-            contrast <- model.tables(x, effects = "contrast")
-            type <- ifelse(all(x$univariate$type=="mu"), "mean","all")
-            x.iid <- iid(eval(attr(x,"call")[["object"]]), effects = type, 
-                         robust = x$args$robust, type.information = x$args$type.information,
-                         transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
-                         transform.names = transform.names)
-            out <- x.iid[,colnames(contrast)] %*% t(contrast)
-            attr(out,"message") <- attr(x.iid,"message")
-        }
-
-    }
-
-    ## ** export
-    return(out)
-}
-
-
+iid.mlmm <- iid.rbindWald_lmm
 
 ##----------------------------------------------------------------------
 ### iid.R ends here

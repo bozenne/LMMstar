@@ -2,7 +2,7 @@
 % Please edit documentation in R/confint.R
 \name{confint.rbindWald_lmm}
 \alias{confint.rbindWald_lmm}
-\title{Confidence Intervals From Combined Wald Tests Applied to Linear Mixed Models}
+\title{Confidence Intervals From Combined Wald Tests}
 \usage{
 \method{confint}{rbindWald_lmm}(
   object,
@@ -40,15 +40,4 @@ Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \
 \description{
 Combine pointwise or simultaneous confidence intervals relative to linear contrasts of parameters from different linear mixed models. 
  Can also output p-values (corresponding to pointwise confidence intervals) or adjusted p-values (corresponding to simultaneous confidence intervals).
-}
-\details{
-Argument \bold{method}: the following pooling are available:
-\itemize{
- \item \code{"average"}: average estimates
- \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. 
- \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, the Moore–Penrose inverse is used which correspond to truncate the spectral decomposition for eigenvalues below \eqn{10^{-12}}. 
- \item \code{"pool.gls1"}: similar to \code{"pool.gls"} with weights shrinked toward the average whenever they exceed 1 in absolute value.
- \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999). Validity requires the congeniality condition of Meng (1994).
- \item \code{"p.rejection"}: proportion of null hypotheses where there is evidence for an effect. By default the critical quantile (defining the level of evidence required) is evaluated using a \code{"single-step"} method but this can be changed by adding adjustment method in the argument \code{method}, e.g. \code{effects=c("bonferronin","p.rejection")}.
-}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/model.tables.R
 \name{model.tables.Wald_lmm}
 \alias{model.tables.Wald_lmm}
-\title{Statistical Inference for Wald tests Applied to a Linear Mixed Model}
+\title{Statistical Inference for Wald tests}
 \usage{
 \method{model.tables}{Wald_lmm}(
   x,
@@ -45,6 +45,9 @@ with argument \code{effects="contrast"} the output will be converted into a matr
 }
 \description{
 Export estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
-relative to linear contrasts of parameters from a linear mixed model.
+relative to linear contrasts involved in Wald tests.
+}
+\details{
+When \code{effects} is \code{"Wald"}, this function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
 }
 \keyword{methods}

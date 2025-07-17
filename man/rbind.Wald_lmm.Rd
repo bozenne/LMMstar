@@ -17,34 +17,52 @@
 )
 }
 \arguments{
-\item{model}{a \code{Wald_lmm} object (output of \code{anova} applied to a \code{lmm} object)}
+\item{model}{a \code{Wald_lmm} object (output of \code{anova}
+applied to a \code{lmm} object)}
 
 \item{...}{possibly other \code{Wald_lmm} objects}
 
-\item{effects}{[character or numeric matrix] how to combine the left-hand side of the hypotheses.
-By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or  \code{"Sequen"} (see function \code{multcomp::contrMat} from the multcomp package).}
+\item{effects}{[character or numeric matrix] how to combine the
+left-hand side of the hypotheses.  By default identity matrix
+but can also be \code{"Dunnett"}, \code{"Tukey"}, or
+\code{"Sequen"} (see function \code{multcomp::contrMat} from
+the multcomp package).}
 
-\item{rhs}{[numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.}
+\item{rhs}{[numeric vector] the right hand side of the
+hypothesis. Should have the same length as the number of row
+of argument \code{effects}.}
 
-\item{univariate}{[logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?}
+\item{univariate}{[logical] Should an estimate, standard error,
+confidence interval, and p-value be output for each
+hypothesis?}
 
-\item{multivariate}{[logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?}
+\item{multivariate}{[logical] Should all hypotheses be
+simultaneously tested using a multivariate Wald test?}
 
-\item{name}{[character vector or NULL] character used to identify each model in the output.
-By default, use the name of the outcome of the model.}
+\item{name}{[character vector or NULL] character used to identify
+each model in the output.  By default, use the name of the
+outcome of the model.}
 
-\item{name.short}{[logical] use short names for the output coefficients, e.g., omit the regression variable name when the same regression variable is used in all models.}
+\item{name.short}{[logical] use short names for the output
+coefficients, e.g., omit the regression variable name when the
+same regression variable is used in all models.}
 
-\item{sep}{[character] character used to separate the name/outcome and the covariate when identifying the linear hypotheses.}
+\item{sep}{[character] character used to separate the name/outcome
+and the covariate when identifying the linear hypotheses.}
 }
 \description{
 Combine linear hypothesis tests from possibly different linear mixed models.
 }
 \details{
-In presence of measurements from the same cluster across several models,
-the influence function is used to estimate the covariance between the model parameters.
-This is why the (robust) standard errors may not match the (model-based) standard error from the linear mixed
-Setting the argument \code{robust} to \code{FALSE} when calling \code{anova.lmm} will rescale the (robust) standard errors to mimic the original model-based standard errors.
+In presence of measurements from the same cluster across
+    several models, the influence function is used to estimate the
+    correlation between the model parameters.  By default the
+    covariance is obtained by rescaling the estimated correlation
+    by the (model-based) standard errors to mimic the original
+    model-based standard errors. Nevertheless the 'rbind' standard
+    errors may not exactly match the 'lmm' standard error, unless
+    robust standard errors are considered by setting the argument
+    \code{robust} is set to \code{TRUE} in both.
 }
 \examples{
 ## simulate data

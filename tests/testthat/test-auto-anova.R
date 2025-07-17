@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:21) 
+## Last-Updated: jul 17 2025 (17:20) 
 ##           By: Brice Ozenne
-##     Update #: 54
+##     Update #: 68
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,21 +41,20 @@ test_that("LRT", {
     ## remove variance factor
     e0 <- anova(lmm(Y ~ X1 + X2, data = dL),
                 lmm(Y ~ X1 + X2, repetition = ~visit, structure = "IND", data = dL))
-    expect_equal(list(e0[,c("null")], e0[,c("df")], e0[,c("statistic")], e0[,c("p.value")]),
-                 list("k.2==1\n                   k.3==1", 2, 0.1421563, 0.9313891), tol = 1e-4)
+    expect_equal(list(gsub(" ","",e0$null), e0$df, e0$statistic, e0$p.value),
+                 list("k.2==1\nk.3==1", 2, 0.1421563, 0.9313891), tol = 1e-4)
 
     dL$id2 <- 1:NROW(dL)
     dL$time2 <- 1
     e00 <- anova(lmm(Y ~ X1 + X2, data = dL),
                  lmm(Y ~ X1 + X2, repetition = ~time2|id2, structure = ID(visit~1), data = dL, control = list(optimizer = "FS")))
-    expect_equal(list(e00[,c("null")], e00[,c("df")], e00[,c("statistic")], e00[,c("p.value")]),
+    expect_equal(list(gsub(" ","",e00$null), e00$df, e00$statistic, e00$p.value),
                  list("sigma:2==sigma:3==sigma:1", 2, 0.1421563, 0.9313891), tol = 1e-4)
 
     ## remove mean factor
     e1 <- anova(lmm(Y ~ X1 + X2, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML"),
                 lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML"))
-
-    expect_equal(list(e1[,c("null")], e1[,c("df")], e1[,c("statistic")], e1[,c("p.value")]),
+    expect_equal(list(gsub(" ","",e1$null), e1$df, e1$statistic, e1$p.value),
                  list("X5==0", 1, 0.4686210, 0.4936222), tol = 1e-4)
 
     ## swap mean factor
@@ -67,15 +66,15 @@ test_that("LRT", {
     e2 <- anova(lmm(Y ~ X1:X2 + X5, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML"),
                 lmm(Y ~ X1*X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML"))
 
-    expect_equal(list(e2[,c("null")], e2[,c("df")], e2[,c("statistic")], e2[,c("p.value")]),
-                 list("k.2==1\n                   k.3==1\n                   rho(1,2)==rho(1,3)==rho(2,3)", 4, 29.66939, 5.714571e-06), tol = 1e-4)
+    expect_equal(list(gsub(" ","",e2$null), e2$df, e2$statistic, e2$p.value),
+                 list("k.2==1\nk.3==1\nrho(1,2)==rho(1,3)==rho(2,3)", 4, 29.66939, 5.714571e-06), tol = 1e-4)
 
     ## via strata
     e3 <- anova(lmm(Y ~ X1 + X5, repetition = ~visit|id, structure = "UN", data = dL, method.fit = "ML", control = list(optimizer = "FS")),
                 lmm(Y ~ X1 + X5, repetition = X2~visit|id, structure = "UN", data = dL, method.fit = "ML", control = list(optimizer = "FS")))
 
-    expect_equal(list(e3[,c("null")], e3[,c("df")], e3[,c("statistic")], e3[,c("p.value")]),
-                 list("sigma:1==sigma:0\n                   k.2:1==k.2:0\n                   k.3:1==k.3:0\n                   rho(1,2):1==rho(1,2):0\n                   rho(1,3):1==rho(1,3):0\n                   rho(2,3):1==rho(2,3):0", 6, 0.5038597, 0.9977912), tol = 1e-4)
+    expect_equal(list(gsub(" ","",e3$null), e3$df, e3$statistic, e3$p.value),
+                 list("sigma:1==sigma:0\nk.2:1==k.2:0\nk.3:1==k.3:0\nrho(1,2):1==rho(1,2):0\nrho(1,3):1==rho(1,3):0\nrho(2,3):1==rho(2,3):0", 6, 0.5038597, 0.9977912), tol = 1e-4)
 
     ## both (does not work for now)
     ## anova(lmm(Y ~ X1 + X5, repetition = ~visit|id, structure = "CS", data = dL, method.fit = "ML", control = list(optimizer = "FS")),
@@ -94,7 +93,6 @@ e.lmm2 <- lmm(Y2 ~ X1+X2+X3, repetition = ~visit|id, data = dL2,
               structure = "UN", df = FALSE)
 
 ## ** back-transform
-
 test_that("anova_lmm vs. confint", {
 
     ## anova(e.lmm1, effects = "X11=0")
@@ -102,15 +100,15 @@ test_that("anova_lmm vs. confint", {
     ## check back-transform is working like confint
     GS <- model.tables(e.lmm1, effects = "all")
     test1 <- model.tables(anova(e.lmm1, effects = "all"), method = "none")
-    expect_equal(test1, GS[rownames(test1),], tol = 1e-5)
+    expect_equivalent(test1, GS[sapply(strsplit(rownames(test1), split = "="),"[[",1),], tol = 1e-5)
 
-    test2 <- model.tables(anova(e.lmm1, effects = c("k.2=0","X11=0")), method = "none")
-    expect_equal(test2, GS[rownames(test2),], tol = 1e-5)
+    test2 <- model.tables(anova(e.lmm1, effects = c("k.2=1","X11=0")), method = "none")
+    expect_equivalent(test2, GS[c("k.2","X11"),], tol = 1e-5)
 
     ## default no back
     test1.bis <- model.tables(anova(e.lmm1, effects = "all"), backtransform = FALSE, method = "none")
     expect_equal(test1$p.value, test1.bis$p.value, tol = 1e-5)
-    expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all", transform.names = FALSE)[rownames(test1.bis),"estimate"],
+    expect_equal(confint(e.lmm1, backtransform = FALSE, effects = "all", transform.names = FALSE)[sapply(strsplit(rownames(test1), split = "="),"[[",1),"estimate"],
                  unname(test1.bis$estimate), tol = 1e-5)
 
 })
@@ -132,25 +130,30 @@ test_that("pooling anova_lmm ", {
                  as.double(test.average2[,c("estimate","se","df")]), tol = 1e-4)
 
     ## pool.se
-    test.se <- model.tables(e.anova, method = "pool.fixse")
+    test.se <- model.tables(e.anova, method = "pool.se")
     test.se2 <- estimate(e.lmm3, function(p){
-        weighted.mean(p[2:5], 1/diag(vcov(e.lmm3))[2:5])
+        weighted.mean(p[2:5], 1/diag(vcov(e.lmm3, p = p))[2:5])
     })
-    GS.se <- anova(e.lmm3, effects = c("pool.se" = "0.163520470*X11 + 0.013263174*X21 + 0.816759181*X5 + 0.006457176*X11:X21=0"))
-    ## diag(1/vcov(e.lmm3))[-1]/sum(1/diag(vcov(e.lmm3))[-1])
+    expect_equivalent(c(0.163520459587233, 0.0132631732100504, 0.816759191973988, 0.00645717522872792),
+                      weights(e.anova, method = "pool.se")[1,], tol = 1e-6) ## diag(1/vcov(e.lmm3))[-1]/sum(1/diag(vcov(e.lmm3))[-1])
+    ## pool.fixse (no uncertainty about the weights)
+    GS.fixse <- anova(e.lmm3, effects = c("pool.se" = "0.163520470*X11 + 0.013263174*X21 + 0.816759181*X5 + 0.006457176*X11:X21=0"))
 
     ## no uncertainty about the weights
-    expect_equal(as.double(model.tables(GS.se)), as.double(test.se), tol = 1e-6)
-    expect_equal(as.double(model.tables(GS.se)$estimate), as.double(test.se2$estimate), tol = 1e-6)
-    expect_equal(as.double(test.se2), c(0.2862191, 0.2762587, 90.2378692, -0.2625972, 0.8350354, 0.3029450), tol = 1e-3)
+    expect_equal(test.se2$estimate, test.se$estimate, tol = 1e-6) ## same
+    expect_equal(test.se2$se, test.se$se, tol = 1e-5) ## small difference (1st order approximation of the delta method)
+    expect_equal(test.se2$df, test.se$df, tol = 1) ## not too big difference (1st order approximation of the delta method)
     
+    expect_equal(model.tables(GS.fixse)$estimate, test.se$estimate, tol = 1e-6)
+    expect_true(test.se$se > model.tables(GS.fixse)$se) ## too low variance when ignoring the variability of the weights (small difference in practice)
+  
     ## pool.gls
     test.gls <- model.tables(e.anova, method = "pool.gls")    
-    expect_equal(as.double(test.gls), c(0.2432747, 0.2586498, 90.4081859, -0.2705465, 0.7570960,  0.3494384), tol = 1e-3)
+    expect_equal(as.double(test.gls), c(0.24327505, 0.25866845, 90.40240892, -0.2705838, 0.7571339, 0.34947263), tol = 1e-3)
+    ## estimate(e.anova, function(object){coef(object, method = "pool.gls")})
 
     test.rubin <- model.tables(e.anova, method = "pool.rubin")
     expect_equal(test.rubin$estimate,test.average$estimate, tol = 1e-6)
-
 })
 
 
@@ -158,30 +161,30 @@ test_that("pooling anova_lmm ", {
 
 test_that("rbind.anova_lmm", {
 
-    ## same clusters
-    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0"))
-    A2 <- anova(e.lmm1, ci = TRUE, effect = c("X21=0"))
-    A3 <- anova(e.lmm1, ci = TRUE, effect = c("X3=0"))
-    A123.bis <- rbind(A1,A2,A3)
-    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"), robust = TRUE)
+    ## same clusters - model-based
+    A123.bis <- rbind(anova(e.lmm1, effect = c("X11=0")),
+                      anova(e.lmm1, effect = c("X21=0")),
+                      anova(e.lmm1, effect = c("X3=0")))
+    A123 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
 
     expect_equal(coef(A123), coef(A123.bis), tol = 1e-5)
-    expect_equal(vcov(A123), vcov(A123.bis), tol = 1e-5)
+    expect_equal(diag(vcov(A123)), diag(vcov(A123.bis)), tol = 1e-5)
+    ## extra-diagonal elements differ as some are model-based and other are robust-based
 
-    ## sqrt(diag(vcov(A123)))
-    ## sqrt(diag(vcov(A123.bis)))
-    ## A123.bis$univariate ## rbind.Wald_lmm(A1,A2,A3)
-    GS <- model.tables(A123)
-    test <- model.tables(A123.bis)
-    expect_equal(A123.bis$univariate[,c("estimate","se","statistic")],
-                 A123$univariate[,c("estimate","se","statistic")],
-                 tol = 1e-5)
+    ## same clusters - robust
+    A123.bis_robust <- rbind(anova(e.lmm1, effect = c("X11=0"), robust = TRUE),
+                      anova(e.lmm1, effect = c("X21=0"), robust = TRUE),
+                      anova(e.lmm1, effect = c("X3=0"), robust = TRUE))
+    A123_robust <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"), robust = TRUE)
+
+    expect_equal(coef(A123_robust), coef(A123.bis_robust), tol = 1e-5)
+    expect_equal(vcov(A123_robust), vcov(A123.bis_robust), tol = 1e-5)
 
     ## different clusters
-    A1 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
-    A2 <- anova(e.lmm2, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
+    A1 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
+    A2 <- anova(e.lmm2, effect = c("X11=0","X21=0","X3=0"))
     A12.ter <- rbind(A1,A2)
-    A123 <- anova(e.lmm1, ci = TRUE, effect = c("X11=0","X21=0","X3=0"))
+    A123 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
 
     expect_equal(unname(rep(coef(A123),2)), unname(coef(A12.ter)), tol = 1e-5)
     expect_equal(unname(as.matrix(bdiag(vcov(A123),vcov(A123)))), unname(vcov(A12.ter)), tol = 1e-5)
@@ -201,9 +204,10 @@ test_that("Rubin's rule", {
 
     ## lmm
     df.NNA <- complete(df.NA, action = "long")
-    e.lmm <- mlmm(chl~bmi, by = ".imp", data = df.NNA,
-                  effects = "bmi=0", trace = FALSE)
-    test <- model.tables(e.lmm, method = "pool.rubin")
+    e.mlmm <- mlmm(chl~bmi, by = ".imp", repetition = ~1|.id, data = df.NNA, effects = "bmi=0", trace = FALSE)
+    ## coef(e.mlmm)
+    ## vcov(e.mlmm)
+    test <- model.tables(e.mlmm, method = "pool.rubin")
 
     expect_equal(as.double(GS[GS$term=="bmi",c("estimate","std.error")]),
                  as.double(test[,c("estimate","se")]), tol = 1e-6)

@@ -23,7 +23,7 @@
 \item{x}{a \code{lmm} object.}
 
 \item{f}{[function] function taking as input \code{p}, the linear mixed model parameters, which outputs the parameter(s) of interest.
-Can accept extra-arguments.}
+Can accept extra-arguments, such as \code{object} representing the linear mixed model.}
 
 \item{df}{[logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.}

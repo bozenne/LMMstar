@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul  9 2025 (16:24) 
+## Last-Updated: jul 17 2025 (15:47) 
 ##           By: Brice Ozenne
-##     Update #: 342
+##     Update #: 347
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,7 +292,7 @@ equation2contrast <- function(object, name.coef, X,
         }
 
         ## standardize equation
-        equationStd.lhs <- sapply(equationComplex, FUN = function(iEq){ ## iEq <- equationComplex[1]
+        equationStd.lhs <- sapply(names(equationComplex), FUN = function(iEq){ ## iEq <- equationComplex[1]
             iCoef.all <- names(which(Mcoef.test[,iEq]))
             iCoef.all.order <- iCoef.all[order(nchar(iCoef.all), decreasing = TRUE)] ## substitute longer string first to avoid confusion, e.g. between sigma.12 and sigma.1
             iEq.lhs <- equationComplex.lhs[iEq]
@@ -300,7 +300,7 @@ equation2contrast <- function(object, name.coef, X,
                 iEq.lhs <- gsub(pattern = iCoef, replacement = stdname.coef[iCoef], x = iEq.lhs, fixed = TRUE)
             }
             return(iEq.lhs)
-        })
+        }, USE.NAMES = FALSE)
 
         ## **** option 1: via multcomp
         ## object.contrast[equationComplex] <- lapply(1:n.equationComplex, function(iE){ ## iE <- 1
@@ -316,7 +316,7 @@ equation2contrast <- function(object, name.coef, X,
         ## futher standardize equation ... + ... + ...
         equationStd2.lhs <- sapply(1:n.equationComplex, function(iE){ ## iE <- 1
             iEq <- equationStd.lhs[iE]
-            iCoef.all <- names(which(Mcoef.test[,equationComplex[iE]]))
+            iCoef.all <- names(which(Mcoef.test[,names(equationComplex)[iE]]))
             ## add missing 1*
             for(iCoef in iCoef.all){ ## iCoef <- "paramBD"
                 ## if leading without multiplier add *1, e.g. age+... -> 1*age+... or age-... -> 1*age+-...
@@ -343,7 +343,7 @@ equation2contrast <- function(object, name.coef, X,
             ## identify sign (TRUE -, FALSE +)
             iMinus.split <- sapply(iEq.split,grepl, pattern = "-")
             ## identify coefficient
-            iCoef.all <- names(which(Mcoef.test[,equationComplex[iE]]))
+            iCoef.all <- names(which(Mcoef.test[,names(equationComplex)[iE]]))
             iLs.termcoef <- lapply(iEq.split, function(iEq){
                 iCoef.all[sapply(stdname.coef[iCoef.all], grepl, x = iEq, fixed = TRUE)]
             })

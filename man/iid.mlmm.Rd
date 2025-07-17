@@ -2,10 +2,23 @@
 % Please edit documentation in R/iid.R
 \name{iid.mlmm}
 \alias{iid.mlmm}
-\title{Extract the Influence Function From Multiple Linear Mixed Models}
+\title{Extract the Influence Function for Multiple Linear Mixed Models}
 \usage{
-\method{iid}{mlmm}(x, effects = "contrast", p = NULL, ordering = "by", simplify = TRUE, ...)
+\method{iid}{mlmm}(x, effects = "Wald", ordering = NULL, transform.names = TRUE, ...)
+}
+\arguments{
+\item{effects}{[character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+or for the linear mixed model parameters (\code{"all"})?}
+
+\item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
+
+\item{transform.names}{[logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+Only relevant when \code{effects="all"}.}
+
+\item{...}{Not used. For compatibility with the generic method.}
+
+\item{object}{an \code{mlmm} object.}
 }
 \description{
-Extract the influence function for ML or REML estimators of parameters from group-specific linear mixed models.
+Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from group-specific linear mixed models.
 }

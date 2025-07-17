@@ -2,9 +2,18 @@
 % Please edit documentation in R/vcov.R
 \name{vcov.Wald_lmm}
 \alias{vcov.Wald_lmm}
-\title{Extract the Variance-Covariance Matrix From Wald Tests For Linear Mixed Model}
+\title{Extract the Variance-Covariance Matrix From Wald Tests}
 \usage{
-\method{vcov}{Wald_lmm}(object, effects = "Wald", df = FALSE, transform.names = TRUE, ...)
+\method{vcov}{Wald_lmm}(
+  object,
+  effects = "Wald",
+  df = FALSE,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
+  transform.names = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{Wald_lmm} object.}
@@ -13,7 +22,9 @@
 or of the linear mixed model parameters (\code{"all"})?
 Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.}
 
-\item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output?}
+\item{df}{[logical] Should degrees-of-freedom be output?}
+
+\item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
 
@@ -26,5 +37,5 @@ A matrix with one column and column per parameter. \itemize{
 }
 }
 \description{
-Extract the variance-covariance matrix of the linear contrasts involved in the Wald test.
+Extract the variance-covariance matrix of the linear contrasts involved in Wald tests.
 }

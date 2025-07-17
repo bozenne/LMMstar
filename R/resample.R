@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: okt 20 2024 (17:03) 
+## Last-Updated: jul 17 2025 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 810
+##     Update #: 811
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -291,7 +291,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         names(index.cluster[[iCluster]]) <- rep(iCluster, length(index.cluster[[iCluster]]))
     }
     precompute.moments <- !is.null(object$design$precompute.XX)
-  
+    
     var.all <- stats::variable.names(object, effects = "all")
     var.mean <- stats::variable.names(object, effects = "mean")
     XX.all <- c("XXindexXX", "XXclusterXX", "XXcluster.indexXX", "XXtimeXX", "XXtime.indexXX", "XXstrataXX", "XXstrata.indexXX")
@@ -342,7 +342,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     if(!is.null(seed)){
 
         if(length(seed)!=1 && length(seed) != n.sample){
-         
+            
             stop("Incorrect length for argument \'seed\': should either have length 1 or the number of simulations (here ",n.sample,"). \n",
                  "Current length: ",length(seed),". \n")
 
@@ -369,7 +369,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }else{
             on.exit(rm(.Random.seed, envir=.GlobalEnv))
         }
-            
+        
     }else{
         test.seed <- FALSE
         seqSeed <- NULL
@@ -385,7 +385,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iPerm <- sample(n.cluster, replace = FALSE)
             iData <- data
             iData[unlist(index.cluster),effects] <- unlist(mapply(x = index.cluster, y = Uvar[iPerm], FUN = function(x,y){rep(y,length(x))}))
-                        
+            
             ## permute X-values between individuals with same missing data pattern
             ## iData <- data
             ## for(iPattern in 1:n.patterns){ ## iPattern <- 1
@@ -488,22 +488,22 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
 
         ## *** re-estimate
-        iEstimate <- try(.estimate(design = iDesign,
-                                   time = object$time,
-                                   method.fit = object$args$method.fit,
-                                   type.information = object$args$type.information,
-                                   transform.sigma = object$reparametrize$transform.sigma,
-                                   transform.k = object$reparametrize$transform.k,
-                                   transform.rho = object$reparametrize$transform.rho,
-                                   precompute.moments = precompute.moments, 
-                                   optimizer = object$args$control$optimizer,
-                                   init = param.init,
-                                   n.iter = object$opt$control[["n.iter"]],
-                                   tol.score = object$opt$control[["tol.score"]],
-                                   tol.param = object$opt$control[["tol.param"]],
-                                   n.backtracking = object$opt$control[["n.backtracking"]],
-                                   init.cor = object$opt$control[["init.cor"]],
-                                   trace = FALSE), silent = TRUE)
+        iEstimate <- try(.optim(design = iDesign,
+                                time = object$time,
+                                method.fit = object$args$method.fit,
+                                type.information = object$args$type.information,
+                                transform.sigma = object$reparametrize$transform.sigma,
+                                transform.k = object$reparametrize$transform.k,
+                                transform.rho = object$reparametrize$transform.rho,
+                                precompute.moments = precompute.moments, 
+                                optimizer = object$args$control$optimizer,
+                                init = param.init,
+                                n.iter = object$opt$control[["n.iter"]],
+                                tol.score = object$opt$control[["tol.score"]],
+                                tol.param = object$opt$control[["tol.param"]],
+                                n.backtracking = object$opt$control[["n.backtracking"]],
+                                init.cor = object$opt$control[["init.cor"]],
+                                trace = FALSE), silent = TRUE)
 
         if(!inherits(iEstimate,"try-error") && studentized){
             iVcov <- .moments.lmm(value = iEstimate$estimate,
@@ -634,18 +634,18 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                                     .packages = c("LMMstar","nlme"),
                                                     .options.snow = opts), {
 
-                                                       iOut <- lapply(split.resampling[[iBlock]], function(iSplit){
-                                                           if(!is.null(seed)){set.seed(seqSeed[iSplit])}
-                                                           iOut <- warperResample(iSplit)                                                       
-                                                           if(!is.null(seed) && !inherits(iOut,"try-error")){
-                                                               return(c(sample = iSplit, seed = seqSeed[iSplit],iOut))
-                                                           }else{
-                                                               return(c(sample = iSplit, iOut))
-                                                           }
-                                                       })
-                                                       return(iOut)
+                                                        iOut <- lapply(split.resampling[[iBlock]], function(iSplit){
+                                                            if(!is.null(seed)){set.seed(seqSeed[iSplit])}
+                                                            iOut <- warperResample(iSplit)                                                       
+                                                            if(!is.null(seed) && !inherits(iOut,"try-error")){
+                                                                return(c(sample = iSplit, seed = seqSeed[iSplit],iOut))
+                                                            }else{
+                                                                return(c(sample = iSplit, iOut))
+                                                            }
+                                                        })
+                                                        return(iOut)
 
-                                                   })
+                                                    })
         if(trace>0){close(pb)}
         parallel::stopCluster(cl)
 

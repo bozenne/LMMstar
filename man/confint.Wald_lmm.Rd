@@ -2,7 +2,7 @@
 % Please edit documentation in R/confint.R
 \name{confint.Wald_lmm}
 \alias{confint.Wald_lmm}
-\title{Confidence Intervals From Wald Tests Applied to a Linear Mixed Model}
+\title{Confidence Intervals From Wald Tests}
 \usage{
 \method{confint}{Wald_lmm}(
   object,
@@ -24,29 +24,44 @@
 
 \item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.}
 
-\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"})?}
+\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}) and/or confidence intervals for pooled linear contrast estimates (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?}
 
 \item{columns}{[character vector] Columns to be output.
 Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
 
-\item{backtransform}{[logical] should the estimates, standard errors, and confidence intervals be backtransformed?}
+\item{backtransform}{[logical] should the estimates, standard errors, and confidence intervals be backtransformed? Ignored when pooling estimates.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
-Compute pointwise or simultaneous confidence intervals relative to linear contrasts of parameters from a linear mixed model.
-Pointwise confidence intervals have nominal coverage w.r.t. a single contrast whereas simultaneous confidence intervals have nominal coverage w.r.t. to all contrasts.
-Can also output p-values (corresponding to pointwise confidence intervals) or adjusted p-values  (corresponding to simultaneous confidence intervals).
+Compute pointwise or simultaneous confidence
+    intervals of linear contrasts involved in Wald tests, along
+    with corresponding p-values. Pointwise confidence intervals
+    have nominal coverage w.r.t. a single contrast whereas
+    simultaneous confidence intervals have nominal coverage
+    w.r.t. to all contrasts.  Can also be used to pool estimates.
 }
 \details{
-Available \bold{methods} are:
+\bold{Multiple testing methods}:
 \itemize{
- \item \code{"none"}, \code{"bonferroni"}, \code{"single-step2"}
- \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: adjustment performed by [stats::p.adjust()], no confidence interval is computed.
- \item \code{"single-step"}, \code{"free"}, \code{"Westfall"}, \code{"Shaffer"}: adjustment performed by [multcomp::glht()],  for all but the first method no confidence interval is computed.
+ \item \code{"none"}: no adjustment
+ \item \code{"bonferroni"}: bonferroni adjustment
+ \item \code{"single-step"}: max-test adjustment performed by \code{multcomp::glht()} finding equicoordinate quantiles of the multivariate Student's t-distribution over all tests, instead of the univariate quantiles. It assumes equal degrees-of-freedom in the marginal and is described in section 7.1 of Dmitrienko et al. (2013) under the name single-step Dunnett procedure. The name \code{"single-step"} is borrowed from the multcomp package. In the book Bretz et al. (2010) written by the authors of the package, the procedure is refered to as max-t tests which is the terminology adopted in the LMMstar package.
+ \item \code{"single-step2"}: max-test adjustment performed using Monte Carlo integration. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees-of-freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
+ \item \code{"holm"}, \code{"hochberg"}, \code{"hommel"}, \code{"BH"}, \code{"BY"}, \code{"fdr"}: other adjustments performed by \code{stats::p.adjust()}. No confidence interval is computed.
+ \item \code{"free"}, \code{"Westfall"}, \code{"Shaffer"}: other adjustments performed by \code{multcomp::glht()}. No confidence interval is computed.
 }
-Note: method \code{"single-step"} adjusts for multiple comparisons using equicoordinate quantiles of the multivariate Student's t-distribution over all tests, instead of the univariate quantiles. It assumes equal degrees-of-freedom in the marginal and is described in section 7.1 of Dmitrienko et al. (2013) under the name single-step Dunnett procedure. The name \code{"single-step"} is borrowed from the multcomp package. In the book Bretz et al. (2010) written by the authors of the package, the procedure is refered to as max-t tests which is the terminology adopted in the LMMstar package.  \cr
-When degrees-of-freedom differs between individual hypotheses, method \code{"single-step2"} is recommended. It simulates data using copula whose marginal distributions are Student's t-distribution (with possibly different degrees-of-freedom) and elliptical copula with parameters the estimated correlation between the test statistics (via the copula package). It then computes the frequency at which the simulated maximum exceed the observed maximum and appropriate quantile of simulated maximum for the confidence interval.
+When degrees-of-freedom differs between individual hypotheses, \code{"single-step2"} is recommended over \code{"single-step"}. \cr \cr
+
+\bold{Pooling methods}:
+\itemize{
+ \item \code{"average"}: average estimates
+ \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. 
+ \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, the Moore–Penrose inverse is used which correspond to truncate the spectral decomposition for eigenvalues below \eqn{10^{-12}}. 
+ \item \code{"pool.gls1"}: similar to \code{"pool.gls"} with weights shrinked toward the average whenever they exceed 1 in absolute value.
+ \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999). Validity requires the congeniality condition of Meng (1994).
+ \item \code{"p.rejection"}: proportion of null hypotheses where there is evidence for an effect. By default the critical quantile (defining the level of evidence required) is evaluated using a \code{"single-step"} method but this can be changed by adding adjustment method in the argument \code{method}, e.g. \code{effects=c("bonferronin","p.rejection")}.
+}
 }
 \references{
 Barnard and Rubin, \bold{Small-sample degrees of freedom with multiple imputation}. \emph{Biometrika} (1999), 86(4):948-955. \cr

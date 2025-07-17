@@ -1,11 +1,11 @@
-### pool.R --- 
+### aggregate.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: jul 11 2025 (18:41) 
+## Last-Updated: jul 17 2025 (17:04) 
 ##           By: Brice Ozenne
-##     Update #: 341
+##     Update #: 401
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,8 +15,9 @@
 ## 
 ### Code:
 
-## * pool
+## * aggregate
 ##' @description Pool estimates
+##' @noRd
 ##' 
 ##' @param method [character] method(s) used to pool the estimates
 ##' @param columns [character] column(s) to be exported
@@ -27,13 +28,12 @@
 ##' @param tol [numeric, >0] threshold below which a pseudo-inverse is used when inverted a matrix, i.e., the eigen-values are truncated.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
-##' @noRd
-`pool` <-
-  function(object, ...) UseMethod("pool")
+##' @keywords internal
+##' 
 
 
-## * pool.lmm
-pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
+## * aggregate.lmm
+aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
 
     ## ** normalize user input
     ## *** dots
@@ -57,18 +57,27 @@ pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.9
     if(is.null(names(method))){
         names(method) <- method
     }
-    
+
     ## *** columns
-    if(is.null(columns)){
-        columns <- c("estimate", "se", "df", "lower", "upper", "p.value")
-    }else{
-        valid.columns <-  c("estimate", "se", "df", "lower", "upper", "quantile", "null", "statistic", "p.value",
-                            "type", "n.param", "transformed", "tobacktransform", "model", "name", "term", "method")
+    valid.columns <-  c("estimate", "se", "df", "lower", "upper", "quantile", "null", "statistic", "p.value",
+                        "type", "n.param", "transformed", "tobacktransform", "model", "name", "term", "method")
+    save.columns <- columns
+    if(identical(columns,"all")){
+        columns <- valid.columns
+    }else if(!is.null(columns)){
+        columns <- tolower(columns)
         if(any(columns %in% valid.columns == FALSE)){
             stop("Incorrect value(s) \"",paste(columns[columns %in% valid.columns == FALSE], collapse = "\" \""),"\" for argument \'columns\'. \n",
                  "Valid values: \"",paste(setdiff(valid.columns, columns), collapse = "\" \""),"\"\n")
         }
-
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            columns <- union(setdiff(options$columns.anova,""), unname(columns))
+        }
+        if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            columns <- setdiff(setdiff(options$columns.anova,""), unname(columns))
+        }
+    }else{
+        columns <- setdiff(options$columns.anova,"")
     }
 
     ## *** level
@@ -83,6 +92,12 @@ pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.9
         df <- object$args$df
     }
 
+    ## *** null
+    ## can either be the null hypotheses to be tested or logical: conformity to this requirement is tests in .aggregate()
+    if(is.null(rhs)){
+        rhs <- any(c("null","statistic","p.value") %in% columns)
+    }
+
     ## ** extract information from object
 
     ## *** estimates
@@ -91,8 +106,13 @@ pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.9
                                     options = options)
 
     ## *** variance
-    if(any(method %in% c("pool.se","pool.gls","pool.gls1")) || ((!is.na(level) || null) && "p.rejection" %in% method)){
-        Wald.Sigma <- stats::vcov(object, effects = list("Wald",c("Wald","gradient"))[[(is.null(level)||!is.na(level))+1]], transform.names = FALSE, options = options)
+    if(any(method %in% c("pool.se","pool.gls","pool.gls1","pool.rubin")) || ((!is.na(level) || identical(as.logical(rhs),TRUE)) && "p.rejection" %in% method)){
+        if(any(method %in% c("pool.se","pool.gls","pool.gls1","p.rejection")) && !is.na(level)){
+            args.effects <- c("Wald","gradient")
+        }else{
+            args.effects <- "Wald"
+        }
+        Wald.Sigma <- stats::vcov(object, effects = args.effects, transform.names = FALSE, options = options)
         Wald.dSigma <- attr(Wald.Sigma,"gradient")
         attr(Wald.dSigma,"gradient") <- NULL        
     }else{
@@ -138,10 +158,10 @@ pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.9
 
     ## ** pool
     ## null argument for method="p.rejection": evaluating the null and the p-value can be time consuming (done by simulation)
-    outPool <- .pool(table = tableUni, contrast = contrast, null = any(c("null","statistic","p.value") %in% columns), level = level, df = df, threshold = critical.threshold, method = method,
-                     Wald.Sigma = Wald.Sigma, Wald.dSigma = Wald.dSigma,
-                     All.Sigma = All.Sigma, All.dSigma = All.dSigma,
-                     tol = tol, options = options)
+    outPool <- .aggregate(table = tableUni, contrast = contrast, null = rhs, level = level, df = df, threshold = critical.threshold, method = method,
+                          Wald.Sigma = Wald.Sigma, Wald.dSigma = Wald.dSigma,
+                          All.Sigma = All.Sigma, All.dSigma = All.dSigma,
+                          tol = tol, options = options)
     pool.contrast <- attr(outPool,"contrast")
     pool.gradient <- attr(outPool,"gradient")
     
@@ -153,13 +173,16 @@ pool.Wald_lmm <- function(object, method, columns = NULL, qt = NULL, level = 0.9
 
 }
 
-## * pool.rbindWald_lmm
-pool.rbindWald_lmm <- pool.Wald_lmm
+## * aggregate.rbindWald_lmm
+aggregate.rbindWald_lmm <- aggregate.Wald_lmm
+
+## * aggregate.rbindWald_lmm
+aggregate.mlmm <- aggregate.Wald_lmm
 
 ## * .pool
-.pool <- function(table, contrast, null, level, df, threshold, method,
-                  Wald.Sigma, Wald.dSigma, All.Sigma, All.dSigma,
-                  tol, options){
+.aggregate <- function(table, contrast, null, level, df, threshold, method,
+                       Wald.Sigma, Wald.dSigma, All.Sigma, All.dSigma,
+                       tol, options){
 
     ## ** normalize user input
     pool.method <- options$pool.method
@@ -167,12 +190,16 @@ pool.rbindWald_lmm <- pool.Wald_lmm
     n.sample <- options$n.sampleCopula
 
     ## *** null
-    if(!is.null(null) & any(!is.na(null))){
-        if(length(null) %in% c(1,NROW(table))){
-            table$null <- null
-        }else{
-            stop("Incorrect length for argument \'null\': should have length 1 or ",NROW(table)," (number of tests). \n")
-        }
+    ## evaluate or not the null hypothesis, test statistic, and
+    if(length(null)==1 && is.logical(null)){
+        hypo.test <- null
+    }else if(is.null(null) || all(is.na(null))){
+        hypo.test <- FALSE
+    }else if(length(null) %in% c(1,NROW(table))){
+        hypo.test <- TRUE
+        table$null <- null ## update the null hypothesis
+    }else{
+        stop("Incorrect length for argument \'null\': should have length 1 or ",NROW(table)," (number of tests). \n")
     }
     
     ## *** level
@@ -221,7 +248,7 @@ pool.rbindWald_lmm <- pool.Wald_lmm
             if(is.invertible(Wald.Sigma, cov2cor = FALSE)){
                 Wald.SigmaM1 <- solve(Wald.Sigma)
                 gls.contrast  <- rowSums(Wald.SigmaM1)/sum(Wald.SigmaM1)
-             }else{ ## use generalized inverse, same as MASS::ginv
+            }else{ ## use generalized inverse, same as MASS::ginv
                 Wald.Sigma.eigen <- eigen(Wald.Sigma, symmetric = TRUE)
                 index.subset <- which(abs(Wald.Sigma.eigen$values) > tol)
 
@@ -244,7 +271,7 @@ pool.rbindWald_lmm <- pool.Wald_lmm
                     Wald.SigmaM1 <- q.kj %*% diag(1/lambda.k) %*% t(q.kj)
                     gls.contrast  <- rowSums(Wald.SigmaM1)/sum(Wald.SigmaM1)
                 }
-             }
+            }
 
             if("pool.gls" %in% method){
                 pool.contrast["pool.gls",] <- gls.contrast
@@ -325,7 +352,7 @@ pool.rbindWald_lmm <- pool.Wald_lmm
 
                     grad.pool["pool.gls1",] <- grad.pool.gls1A[1,] + grad.pool.gls1B[1,] + grad.pool.gls1C                
                 }else{
-                    grad.pool["pool.gls1",] <- grad.pool.gls1A[1,]
+                    grad.pool["pool.gls1",] <- grad.pool.gls
                 }
             }
         }
@@ -340,7 +367,7 @@ pool.rbindWald_lmm <- pool.Wald_lmm
     }
 
     ## ** null hypothesis
-    if("p.rejection" %in% method && null){
+    if("p.rejection" %in% method && hypo.test){
         rho.linfct <- stats::cov2cor(Wald.Sigma)
         
         myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
@@ -355,7 +382,7 @@ pool.rbindWald_lmm <- pool.Wald_lmm
         out[pool.name["p.rejection"],"null"] <- mean(null.rejection)
         out[pool.name["p.rejection"],"p.value"] <- mean(null.rejection>out[pool.name["p.rejection"],"estimate"])
     }
-    if(any(method != "p.rejection") && null){
+    if(any(method != "p.rejection") && hypo.test){
         out[setdiff(pool.name, pool.name["p.rejection"]),"null"] <- (pool.contrast %*% table$null)[,1]
     }
 
@@ -395,4 +422,4 @@ pool.rbindWald_lmm <- pool.Wald_lmm
 
 
 ##----------------------------------------------------------------------
-### pool.R ends here
+### aggregate.R ends here

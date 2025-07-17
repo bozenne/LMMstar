@@ -8,12 +8,11 @@
   object,
   effects = "Wald",
   method = "none",
-  p = NULL,
-  ordering = "model",
+  ordering = NULL,
   backtransform = object$args$backtransform,
-  transform.sigma = "none",
-  transform.k = "none",
-  transform.rho = "none",
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
   transform.names = TRUE,
   simplify = TRUE,
   ...
@@ -23,40 +22,30 @@
 \item{object}{a \code{mlmm} object.}
 
 \item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"Wald"}).
-But can also output all model coefficients (\code{"all"}),
-or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
-or only coefficients relative to the variance structure (\code{"variance"}),
-or only coefficients relative to the correlation structure (\code{"correlation"}).}
+But can also output all model coefficients (\code{"all"}),}
 
 \item{method}{[character vector] should the estimated value for the linear contrasts be output (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"})
 and/or pooled linear contrast estimate(s) (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
 Only relevant when \code{effects = "Wald"}.}
-
-\item{p}{[list of numeric vector] values for the model parameters to be used to evaluate the estimates relative to the hypotheses being tested.
-Only relevant if differs from the fitted values.}
 
 \item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
 
 \item{backtransform}{[logical] should the estimate be back-transformed?
 Only relevant when \code{effects="Wald"}.}
 
-\item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
-Ignored when \code{effects="Wald"}.}
-
-\item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"}.
-Ignored when \code{effects="Wald"}.}
-
-\item{transform.rho}{[character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"}.
-Ignored when \code{effects="Wald"}.}
+\item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 Ignored when \code{effects="Wald"}.}
 
-\item{simplify}{[logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).
-Only relevant when argument \code{method} refers to multiple comparisons and not to a pooling method.}
+\item{simplify}{[logical] omit from the output an attribute containing the parameter type/model or contrast term.}
 
 \item{...}{Not used. For compatibility with the generic method.}
+}
+\value{
+A numeric vector
 }
 \description{
 Combine estimated parameters or linear contrasts applied on parameters from group-specific linear mixed models.
 }
+\keyword{methods}

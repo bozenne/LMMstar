@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 11 2025 (17:33) 
+## Last-Updated: jul 17 2025 (10:16) 
 ##           By: Brice Ozenne
-##     Update #: 355
+##     Update #: 398
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,62 +15,6 @@
 ## 
 ### Code:
 
-## * model.tables.effect_lmm
-##' @export
-model.tables.effect_lmm <- function(x, effects = "Wald", columns, ...){
-
-    ## ** normalize user input
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character. \n")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Wald","contrast","param")
-    if(effects %in% valid.effects == FALSE){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
-    if(effects %in% c("contrast","param")){
-        return(model.tables.Wald_lmm(x, ...))
-    }
-    
-    ## ** usual model.tables
-    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
-
-    newcolumns <- c("estimate","se","df","lower","upper")
-    if(x$args$effect[[1]][1]=="difference"){
-        newcolumns <- c(newcolumns,"p.value")
-    }
-
-    if(!missing(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(c(newcolumns, extra.var), unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(c(newcolumns, extra.var), unname(columns))
-        }else{
-            newcolumns <- c(newcolumns, extra.var)
-        }
-        if(any(newcolumns %in% extra.var)){
-            add <- x$univariate[intersect(newcolumns,extra.var)]
-            newcolumns <- setdiff(newcolumns,extra.var)
-        }else{
-            add <- NULL
-        }
-    }else{
-        add <- x$univariate[extra.var]
-    }
-
-    out <- cbind(add, stats::confint(x, ..., columns = newcolumns))
-    attr(out, "backtransform") <- NULL
-    attr(out, "error") <- NULL
-    attr(out, "level") <- NULL
-    attr(out, "method") <- NULL
-    class(out) <- "data.frame"
-
-    return(out)
-}
 ## * model.tables.lmm
 ##' @title Statistical Inference and parametrization of a Linear Mixed Model
 ##' @description Export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model
@@ -214,246 +158,10 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
     return(out)
 }
 
-## * model.tables.mlmm
-##' @title Statistical Inference and parametrization of Multiple Linear Mixed Model
-##' @description Combine estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from group-specific linear mixed models
-##' or a table describing each parameter (type, associated sigma or k parameter, ...).
-##'
-##' @param x a \code{mlmm} object.
-##' @param effects [character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-##' or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
-##' or only for variance coefficients (\code{"variance"}),
-##' or only for correlation coefficients (\code{"correlation"}).
-##' Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).
-##' @param method [character] type of adjustment for multiple comparisons, one of \code{"none"}, \code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}.
-##' and/or method(s) to pool the estimates, one of \code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}.
-##' Only relevant when \code{effects = "Wald"}.
-##' @param simplify [logical] omit from the output the backtransform attribute.
-##' Not relevant when the argument \code{effects="param"}, 
-##' @param ... arguments to be passed to \code{\link{confint.lmm}}.
-##' 
-##' @details When \code{effects} is not \code{"param"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
-##' 
-##' @keywords methods
-##' 
-##' @return A \code{data.frame} object.
-##' 
-##' @export
-model.tables.mlmm <- function(x, parm = NULL, level = 0.95, method = NULL, df = NULL,
-                              columns = NULL,
-                              backtransform = NULL,
-                              ordering = "parameter", ...){
-
-    options <- LMMstar.options()
-    pool.method <- options$pool.method
-
-    if(!is.null(method) && all(method %in% pool.method)){
-        newcolumns <- c("estimate","se","df","lower","upper","p.value")
-        rm.rownames <- FALSE
-    }else{
-        newcolumns <- c("by","parameter","estimate","se","df","lower","upper","p.value")
-        rm.rownames <- TRUE
-    }
-
-    if(!missing(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(newcolumns, unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(newcolumns, unname(columns))
-        }else{
-            newcolumns <- columns
-        }
-    }
-
-    out <- stats::confint(x, method = method, ..., columns = newcolumns)
-    attr(out, "backtransform") <- NULL
-    class(out) <- "data.frame"
-    if(rm.rownames){
-        out$parameter <- rownames(out)
-        rownames(out) <- NULL
-    }
-    return(out)
-}
-
-## * model.tables.resample
-##' @export
-model.tables.resample <- function(x, columns, ...){
-
-    newcolumns <- c("estimate","sample.estimate","se","sample.se","lower","upper","p.value")
-
-    if(!missing(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(newcolumns, unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(newcolumns, unname(columns))
-        }else{
-            newcolumns <- columns
-        }
-    }
-
-    out <- stats::confint(x, ..., columns = newcolumns)
-    class(out) <- "data.frame"
-    return(out)
-}
-
-## * model.tables.rbindWald_lmm
-##' @title Statistical Inference From Combined Wald Tests
-##' @description Combine estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
-##' relative to linear contrasts of parameters from different linear mixed models. 
-##'
-##' @param x a \code{mlmm} object.
-##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
-##' the contrast matrix (\code{"contrast"}),
-##' or the name/value/type of the underlying mixed model parameters (\code{"param"})?
-##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
-##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.
-##' @param method [character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"})? 
-##' @param columns [character vector] Columns to be output.
-##' Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"quantile"}, \code{"lower"}, \code{"upper"}, \code{"statistic"}, \code{"null"}, \code{"p.value"}.
-##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
-##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?
-##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
-##' Only relevant when \code{effects="contrast"}.
-##' @param simplify [logical] with argument \code{effects="Wald"}, omit from the output attributes containing additional information (e.g. approximation error made when adjusting p-values).
-##' with argument \code{effects="contrast"} the output will be converted into a matrix (instead of a list of matrix) whenever possible.
-##' @param ... Not used. For compatibility with the generic method.
-##' 
-##' @keywords methods
-##'
-##' @export
-model.tables.rbindWald_lmm <- function(x, effects = "Wald",
-                                       level = 0.95, df = NULL, method = NULL, columns = NULL, ordering = NULL, backtransform = NULL,
-                                       transform.names = TRUE, simplify = TRUE, ...){
-
-    ## ** normalize user input
-
-    ## *** dots
-    dots <- list(...)
-    if("options" %in% names(dots) && !is.null(dots$options)){
-        options <- dots$options
-    }else{
-        options <- NULL
-    }
-    dots$options <- NULL
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## *** object
-    if(x$args$univariate == FALSE){
-        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
-        return(invisible(NULL))
-    }
-
-    ## *** effects
-    if(!is.character(effects) || !is.vector(effects)){
-        stop("Argument \'effects\' must be a character. \n")
-    }
-    if(length(effects)!=1){
-        stop("Argument \'effects\' must have length 1. \n")
-    }
-    valid.effects <- c("Wald","contrast","param")
-    if(effects %in% valid.effects == FALSE){
-        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
-             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
-    }
-
-    ## *** columns
-    newcolumns <- c("estimate","se","df","lower","upper","p.value")
-
-    if(!missing(columns)){
-        if(!is.null(names(columns)) && all(names(columns)=="add")){
-            newcolumns <- union(newcolumns, unname(columns))
-        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
-            newcolumns <- setdiff(newcolumns, unname(columns))
-        }else{
-            newcolumns <- columns
-        }
-    }
-
-    ## *** ordering
-    table.param <- x$param
-    if(!is.null(ordering)){
-        ordering <- match.arg(ordering, c("contrast","model"))
-        ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
-        table.param.order <- table.param[order(table.param[[ordering.var]]),,drop=FALSE]            
-    }
-    
-    ## *** simplify
-    if(!is.numeric(simplify) && !is.logical(simplify)){
-        stop("Argument \'simplify\' must be numeric or logical. \n")
-    }
-    if(length(simplify)!=1){
-        stop("Argument \'simplify\' must have length 1. \n")
-    }
-    if(simplify %in% c(0,1) == FALSE){
-        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
-    }
-
-    ## ** extract from object
-    if(effects == "param"){
-
-        if(is.null(ordering)){
-            out <- table.param
-        }else{
-            out <- table.param.order
-        }
-
-        
-    }else if(effects == "contrast"){
-        glht.linfct <- x$glht[[1]]$linfct ## by design single glht when rbindWald object
-
-        if(simplify){ ## remove columns with only 0
-            if(transform.names){
-                colnames(glht.linfct) <- table.param[match(colnames(glht.linfct), table.param$Uname),"trans.Uname"]
-            }
-            out <- glht.linfct[,colSums(value.out!=0)>0,drop=FALSE]
-        }else{
-            out <- matrix(0, nrow =  NROW(glht.linfct), ncol = NROW(table.param),
-                          dimnames = list(rownames(glht.linfct),table.param$Uname))
-            out[,colnames(glht.linfct)] <- glht.linfct
-            if(transform.names){
-                colnames(out) <- table.param$trans.Uname
-            }
-        }
-
-        if(!is.null(ordering)){
-            ordering.var2 <- switch(ordering, "model" = "model", "contrast" = "term")
-            ordering.row <- rownames(x$univariate)[order(x$univariate[[ordering.var2]])]
-            if(transform.names){                
-                out <- out[ordering.row,intersect(table.param.order$trans.Uname,colnames(out)),drop=FALSE]
-            }else{
-                out <- out[ordering.row,intersect(table.param.order$Uname,colnames(out))]
-            }
-        }
-
-        if(!simplify){
-            out <- list(user = out)
-        }
-
-
-    }else if(effects == "Wald"){
-
-        out <- stats::confint(x, level = level, df = df, method = method, columns = newcolumns, ordering = ordering, backtransform = backtransform, options = options)
-        if(simplify){
-            attr(out, "backtransform") <- NULL
-            attr(out, "error") <- NULL
-            attr(out, "level") <- NULL
-            attr(out, "method") <- NULL
-        }
-        class(out) <- "data.frame"
-
-    }
-
-    ## ** export
-    
-    return(out)
-}
-
 ## * model.tables.Wald_lmm
 ##' @title Statistical Inference for Wald tests
 ##' @description Export estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
-##' relative to linear contrasts of parameters from a linear mixed model. 
+##' relative to linear contrasts involved in Wald tests.
 ##'
 ##' @param x a \code{Wald_lmm} object.
 ##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
@@ -470,6 +178,8 @@ model.tables.rbindWald_lmm <- function(x, effects = "Wald",
 ##' @param simplify [logical] with argument \code{effects="Wald"}, omit from the output attributes containing additional information (e.g. approximation error made when adjusting p-values).
 ##' with argument \code{effects="contrast"} the output will be converted into a matrix (instead of a list of matrix) whenever possible.
 ##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @details When \code{effects} is \code{"Wald"}, this function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
 ##' 
 ##' @keywords methods
 ##'
@@ -586,6 +296,255 @@ model.tables.Wald_lmm <- function(x, effects = "Wald",
     return(out)
 }
 
+## * model.tables.rbindWald_lmm
+##' @title Statistical Inference From Combined Wald Tests
+##' @description Combine estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
+##' relative to linear contrasts of parameters from different linear mixed models. 
+##'
+##' @param x a \code{mlmm} object.
+##' @param effects [character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+##' the contrast matrix (\code{"contrast"}),
+##' or the name/value/type of the underlying mixed model parameters (\code{"param"})?
+##' @param level [numeric, 0-1] nominal coverage of the confidence intervals.
+##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.
+##' @param method [character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"})? 
+##' @param columns [character vector] Columns to be output.
+##' Can be any of \code{"estimate"}, \code{"se"}, \code{"df"}, \code{"quantile"}, \code{"lower"}, \code{"upper"}, \code{"statistic"}, \code{"null"}, \code{"p.value"}.
+##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
+##' @param backtransform [logical] should the estimates, standard errors, and confidence intervals be backtransformed?
+##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
+##' Only relevant when \code{effects="contrast"}.
+##' @param simplify [logical] with argument \code{effects="Wald"}, omit from the output attributes containing additional information (e.g. approximation error made when adjusting p-values).
+##' with argument \code{effects="contrast"} the output will be converted into a matrix (instead of a list of matrix) whenever possible.
+##' @param ... Not used. For compatibility with the generic method.
+##' 
+##' @details When \code{effects} is \code{"Wald"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
+##' 
+##' @keywords methods
+##' @return A \code{data.frame} object.
+##'
+##' @export
+model.tables.rbindWald_lmm <- function(x, effects = "Wald",
+                                       level = 0.95, df = NULL, method = NULL, columns = NULL, ordering = NULL, backtransform = NULL,
+                                       transform.names = TRUE, simplify = TRUE, ...){
+
+    ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- NULL
+    }
+    dots$options <- NULL
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## *** object
+    if(x$args$univariate == FALSE){
+        message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
+        return(invisible(NULL))
+    }
+
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Wald","contrast","param")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+
+    ## *** columns
+    if(effects == "Wald"){
+        newcolumns <- c("estimate","se","df","lower","upper","p.value")
+        if(!is.null(columns)){
+            if(!is.null(names(columns)) && all(names(columns)=="add")){
+                newcolumns <- union(newcolumns, unname(columns))
+            }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+                newcolumns <- setdiff(newcolumns, unname(columns))
+            }else{
+                newcolumns <- columns
+            }
+        }
+    }
+
+    ## *** ordering
+    table.param <- x$param
+    if(!is.null(ordering)){
+        ordering <- match.arg(ordering, c("contrast","model"))
+        ordering.var <- switch(ordering, "model" = "model", "contrast" = "name")
+        ## make sure that (Intercept) weight sigma is not ordered (Intercept) sigma weight 
+        table.param.order <- table.param[order(factor(table.param[[ordering.var]], levels = unique(table.param[[ordering.var]]))),,drop=FALSE]
+    }
+    
+    ## *** simplify
+    if(!is.numeric(simplify) && !is.logical(simplify)){
+        stop("Argument \'simplify\' must be numeric or logical. \n")
+    }
+    if(length(simplify)!=1){
+        stop("Argument \'simplify\' must have length 1. \n")
+    }
+    if(simplify %in% c(0,1) == FALSE){
+        stop("Argument \'simplify\' must be TRUE/1 or FALSE/0. \n")
+    }
+
+    ## ** extract from object
+    if(effects == "param"){
+
+        if(is.null(ordering)){
+            out <- table.param
+        }else{
+            out <- table.param.order
+        }
+
+        
+    }else if(effects == "contrast"){
+        glht.linfct <- x$glht[[1]]$linfct ## by design single glht when rbindWald object
+
+        if(simplify){ ## remove columns with only 0
+            if(transform.names){
+                colnames(glht.linfct) <- table.param[match(colnames(glht.linfct), table.param$Uname),"trans.Uname"]
+            }
+            out <- glht.linfct[,colSums(glht.linfct!=0)>0,drop=FALSE]
+        }else{
+            out <- matrix(0, nrow =  NROW(glht.linfct), ncol = NROW(table.param),
+                          dimnames = list(rownames(glht.linfct),table.param$Uname))
+            out[,colnames(glht.linfct)] <- glht.linfct
+            if(transform.names){
+                colnames(out) <- table.param$trans.Uname
+            }
+        }
+
+        if(!is.null(ordering)){
+            ordering.var2 <- switch(ordering, "model" = "model", "contrast" = "term")
+            ordering.row <- rownames(x$univariate)[order(x$univariate[[ordering.var2]])]
+            if(transform.names){                
+                out <- out[ordering.row,intersect(table.param.order$trans.Uname,colnames(out)),drop=FALSE]
+            }else{
+                out <- out[ordering.row,intersect(table.param.order$Uname,colnames(out))]
+            }
+        }
+
+        if(!simplify){
+            out <- list(user = out)
+        }
+
+
+    }else if(effects == "Wald"){
+
+        out <- stats::confint(x, level = level, df = df, method = method, columns = newcolumns, ordering = ordering, backtransform = backtransform, options = options)
+        if(simplify){
+            attr(out, "backtransform") <- NULL
+            attr(out, "error") <- NULL
+            attr(out, "level") <- NULL
+            attr(out, "method") <- NULL
+        }
+        class(out) <- "data.frame"
+
+    }
+
+    ## ** export
+    
+    return(out)
+}
+
+## * model.tables.mlmm
+##' @title Statistical Inference and parametrization of Multiple Linear Mixed Model
+##' @description Combine estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from group-specific linear mixed models
+##' or a table describing each parameter (type, associated sigma or k parameter, ...).
+##'
+##' @param x a \code{mlmm} object.
+##' @inheritParams model.tables.rbindWald_lmm
+##' 
+##' @keywords methods
+##' @return A \code{data.frame} object.
+##' 
+##' @export
+model.tables.mlmm <- model.tables.rbindWald_lmm
+
+## * model.tables.effect_lmm
+##' @export
+model.tables.effect_lmm <- function(x, effects = "Wald", columns, ...){
+
+    ## ** normalize user input
+    ## *** effects
+    if(!is.character(effects) || !is.vector(effects)){
+        stop("Argument \'effects\' must be a character. \n")
+    }
+    if(length(effects)!=1){
+        stop("Argument \'effects\' must have length 1. \n")
+    }
+    valid.effects <- c("Wald","contrast","param")
+    if(effects %in% valid.effects == FALSE){
+        stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
+             "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+    }
+    if(effects %in% c("contrast","param")){
+        return(model.tables.Wald_lmm(x, ...))
+    }
+    
+    ## ** usual model.tables
+    extra.var <- c(x$args$variable,unlist(x$args$time),x$args$strata)
+
+    newcolumns <- c("estimate","se","df","lower","upper")
+    if(x$args$effect[[1]][1]=="difference"){
+        newcolumns <- c(newcolumns,"p.value")
+    }
+
+    if(!missing(columns)){
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            newcolumns <- union(c(newcolumns, extra.var), unname(columns))
+        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            newcolumns <- setdiff(c(newcolumns, extra.var), unname(columns))
+        }else{
+            newcolumns <- c(newcolumns, extra.var)
+        }
+        if(any(newcolumns %in% extra.var)){
+            add <- x$univariate[intersect(newcolumns,extra.var)]
+            newcolumns <- setdiff(newcolumns,extra.var)
+        }else{
+            add <- NULL
+        }
+    }else{
+        add <- x$univariate[extra.var]
+    }
+
+    out <- cbind(add, stats::confint(x, ..., columns = newcolumns))
+    attr(out, "backtransform") <- NULL
+    attr(out, "error") <- NULL
+    attr(out, "level") <- NULL
+    attr(out, "method") <- NULL
+    class(out) <- "data.frame"
+
+    return(out)
+}
+
+## * model.tables.resample
+##' @export
+model.tables.resample <- function(x, columns, ...){
+
+    newcolumns <- c("estimate","sample.estimate","se","sample.se","lower","upper","p.value")
+
+    if(!missing(columns)){
+        if(!is.null(names(columns)) && all(names(columns)=="add")){
+            newcolumns <- union(newcolumns, unname(columns))
+        }else if(!is.null(names(columns)) && all(names(columns)=="remove")){
+            newcolumns <- setdiff(newcolumns, unname(columns))
+        }else{
+            newcolumns <- columns
+        }
+    }
+
+    out <- stats::confint(x, ..., columns = newcolumns)
+    class(out) <- "data.frame"
+    return(out)
+}
 
 ##----------------------------------------------------------------------
 ### model.tables.R ends here

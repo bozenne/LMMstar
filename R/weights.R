@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: jul 10 2025 (14:40) 
+## Last-Updated: jul 17 2025 (16:42) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 67
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -93,7 +93,7 @@ weights.Wald_lmm <- function(object, method, effects = "Wald", transform.names =
 
     
     ## ** Extract contrast
-    object.confint <- pool(object, method = method, columns = "estimate", df = FALSE, options = options)
+    object.confint <- aggregate(object, method = method, columns = "estimate", df = FALSE, options = options)
     out <- attr(object.confint,"contrast")
     if(effects == "all"){
         out <- out %*% model.tables(object, effects = "contrast", simplify = FALSE)[[1]]

@@ -9,7 +9,6 @@
   effects = NULL,
   robust = FALSE,
   df = FALSE,
-  strata = NULL,
   newdata = NULL,
   p = NULL,
   type.information = NULL,
@@ -33,8 +32,6 @@ Can also contain \code{"gradient"} to also output the gradient of the Variance-C
 Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
 
 \item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output.}
-
-\item{strata}{[character vector] When not \code{NULL}, only output the variance-covariance matrix for the estimated parameters relative to specific levels of the variable used to stratify the mean and covariance structure.}
 
 \item{newdata}{[data.frame] dataset relative to which the information should be computed. Only relevant if differs from the dataset used to fit the model.}
 

@@ -6,13 +6,13 @@
 \usage{
 \method{confint}{mlmm}(
   object,
-  parm = NULL,
+  parm,
   level = 0.95,
-  method = NULL,
   df = NULL,
+  method = NULL,
   columns = NULL,
+  ordering = NULL,
   backtransform = NULL,
-  ordering = "parameter",
   ...
 )
 }
@@ -21,32 +21,23 @@
 
 \item{parm}{Not used. For compatibility with the generic method.}
 
-\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+\item{level}{[numeric, 0-1] nominal coverage of the confidence intervals.}
 
-\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}) and/or confidence intervals for pooled linear contrast estimates (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?}
+\item{df}{[logical] Should a Student's t-distribution be used to model the distribution of the Wald statistic. Otherwise a normal distribution is used.}
 
-\item{ordering}{[character] should the output be ordered by type of parameter (\code{parameter}) or by model (\code{by}).
-Only relevant for \code{mlmm} objects.n}
+\item{method}{[character] Should pointwise confidence intervals be output (\code{"none"}) or simultaneous confidence intervals (\code{"bonferroni"}, ..., \code{"fdr"}, \code{"single-step"}, \code{"single-step2"}) and/or confidence intervals for pooled linear contrast estimates (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
+Only relevant when \code{effects = "Wald"}.}
 
-\item{...}{other arguments are passed to \code{\link{confint.Wald_lmm}}.}
+\item{columns}{[character vector] Columns to be output.
+Can be any of \code{"estimate"}, \code{"se"}, \code{"statistic"}, \code{"df"}, \code{"null"}, \code{"lower"}, \code{"upper"}, \code{"p.value"}.}
+
+\item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
+
+\item{backtransform}{[logical] should the estimates be back-transformed?}
+
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
 Compute pointwise or simultaneous confidence intervals relative to parameter or linear contrasts of parameters from group-specific linear mixed models.
 Can also output p-values (corresponding to pointwise confidence intervals) or adjusted p-values (corresponding to simultaneous confidence intervals).
 }
-\details{
-Statistical inference following pooling is performed according to Rubin's rule whose validity requires the congeniality condition of Meng (1994).
- \bold{Pooling estimates}: available methods are:
-\itemize{
- \item \code{"average"}: average estimates
- \item \code{"pool.fixse"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is neglected.
- \item \code{"pool.se"}: weighted average of the estimates, with weights being the inverse of the squared standard error. The uncertainty about the weights is computed under independence of the variance parameters between models. 
- \item \code{"pool.gls"}: weighted average of the estimates, with weights being based on the variance-covariance matrix of the estimates. When this matrix is singular, its spectral decomposition is truncated when the correspodning eigenvalues are below \eqn{10^{-12}}. The uncertainty about the weights is neglected. 
- \item \code{"pool.gls1"}: similar to \code{"pool.gls"} but ensure that the weights are at most 1 in absolute value by shrinking toward the average.
- \item \code{"pool.rubin"}: average of the estimates and compute the uncertainty according to Rubin's rule (Barnard et al. 1999).
-}
-}
-\references{
-Meng X. L.(1994). Multiple-imputation inferences with uncongenial sources of input. Statist. Sci.9, 538–58.
-}
-\keyword{methods}

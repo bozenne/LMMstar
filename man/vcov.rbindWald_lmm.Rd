@@ -2,16 +2,16 @@
 % Please edit documentation in R/vcov.R
 \name{vcov.rbindWald_lmm}
 \alias{vcov.rbindWald_lmm}
-\title{Extract the Variance-Covariance From Wald Tests For Linear Mixed Models}
+\title{Extract the Variance-Covariance Matrix From Combined Wald Tests}
 \usage{
 \method{vcov}{rbindWald_lmm}(
   object,
   effects = "Wald",
-  method = "none",
-  df = FALSE,
   ordering = NULL,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
   transform.names = TRUE,
-  simplify = TRUE,
   ...
 )
 }
@@ -22,23 +22,21 @@
 or the value of the linear mixed model parameters (\code{"all"})?
 Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.}
 
-\item{method}{[character vector] type of adjustment for multiple comparisons across the linear contrasts (one of \code{"none"}, \code{"bonferroni"}, ..., \code{"single-step2"}).
-Only relevant when \code{effects = "Wald"}.}
-
-\item{df}{[logical] Should degrees-of-freedom, computed using Satterthwaite approximation, for the model parameters be output?}
-
 \item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
+
+\item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 Only relevant when \code{effects="all"}.}
 
-\item{simplify}{[logical] should the output be a vector or a list with one element specific to each possible ordering (i.e. contrast or model).}
-
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A matrix with one column and column per parameter.
+A matrix with one column and column per parameter.  \itemize{
+\item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+}
 }
 \description{
 Extract the variance-covariance matrix from Wald tests applied to a linear mixed models.
 }
+\keyword{methods}

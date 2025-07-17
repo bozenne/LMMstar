@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 27 2023 (17:33) 
 ## Version: 
-## Last-Updated: aug  8 2024 (10:04) 
+## Last-Updated: jul 17 2025 (10:29) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 187
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -150,7 +150,7 @@ lmmCC.formula <- function(object, repetition, data,
     }
         
     ## ** fit LMM
-    out <- lmm(formula = object, repetition = repetition, data = data.NNA,
+    out <- lmm(object, repetition = repetition, data = data.NNA,
                structure = "UN", method.fit = "REML", df = df, type.information = "observed",
                trace = trace-1, control = control)
 

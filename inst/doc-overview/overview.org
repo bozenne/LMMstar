@@ -3708,6 +3708,72 @@ bibliographystyle:apalike
 \setcounter{equation}{0}    
 #+END_EXPORT
 
+* S3 methods
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+vec.class <- c("lmm","Wald_lmm","rbindWald_lmm","mlmm","effect_lmm","confint_lmm")
+ls.method <- setNames(lapply(vec.class, function(iClass){
+  as.character(gsub(x = methods(class = iClass), pattern = paste0(".",iClass,"$"), replacement = ""))
+}), vec.class)
+
+Umethod <- sort(unique(unlist(ls.method)))
+M.class2method <- matrix("", nrow = length(Umethod), ncol = length(vec.class),
+                         dimnames = list(Umethod,vec.class))
+for(iClass in vec.class){ ## iClass <- "lmm" 
+  M.class2method[ls.method[[iClass]],iClass] <- "x"
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+print(M.class2method, quote = FALSE)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+               lmm Wald_lmm rbindWald_lmm mlmm effect_lmm confint_lmm
+anova          x                          x                          
+autoplot       x   x                      x                          
+coef           x   x        x             x                          
+confint        x   x        x             x    x                     
+df.residual    x                          x                          
+dummy.coef     x                                                     
+effects        x                                                     
+estimate       x                          x                          
+fitted         x                          x                          
+formula        x                                                     
+iid            x   x        x             x                          
+influence      x   x        x             x                          
+information    x                                                     
+levels         x                                                     
+lmm                x        x                                        
+logLik         x                          x                          
+model.frame    x                                                     
+model.matrix   x                                                     
+model.tables   x   x        x             x    x                     
+moments        x                                                     
+nobs           x                          x                          
+partialCor     x                                                     
+plot           x   x                      x                          
+pool               x        x                                        
+predict        x                          x                          
+print          x   x                      x    x          x          
+profile        x                                                     
+ranef          x                          x                          
+rbind              x        x                                        
+resample       x                          x                          
+residuals      x                          x                          
+score          x                          x                          
+sigma          x                                                     
+summary        x   x                      x    x                     
+terms          x                                                     
+variable.names x                          x                          
+vcov           x   x        x             x                          
+weights            x
+#+end_example
+					
+
 * Likelihood in a linear mixed model
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood

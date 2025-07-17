@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 15 2024 (11:57) 
 ## Version: 
-## Last-Updated: mar  5 2025 (14:17) 
+## Last-Updated: jul 17 2025 (14:44) 
 ##           By: Brice Ozenne
-##     Update #: 153
+##     Update #: 159
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,11 +50,11 @@
     ## ** extract parameters
     table.paramH0 <- stats::model.tables(objectH0, effects = "param")
     table.paramH1 <- stats::model.tables(objectH1, effects = "param")
-    
-    name.paramH0 <- table.paramH0$trans.name
-    name.paramH1 <- table.paramH1$trans.name
-    type.paramH0 <- table.paramH0$type
-    type.paramH1 <- table.paramH1$type
+
+    name.paramH0 <- table.paramH0$name
+    name.paramH1 <- table.paramH1$name
+    type.paramH0 <- stats::setNames(table.paramH0$type, table.paramH0$name)
+    type.paramH1 <- stats::setNames(table.paramH1$type, table.paramH1$name)
     if(any(table(factor(type.paramH1, levels = c("mu","sigma","k","rho"))) < table(factor(type.paramH0, levels = c("mu","sigma","k","rho"))))){
         ## table check
         tableType.paramH0 <- table(factor(type.paramH0, levels = c("mu","sigma","k","rho")))
@@ -111,7 +111,7 @@
 
     ## ** variance-covariance structure
     structure.H0 <- objectH0$design$vcov$class
-    structure.H1 <- objectH0$design$vcov$class
+    structure.H1 <- objectH1$design$vcov$class
     test.sameStructure <- (structure.H0 == structure.H1) || (structure.H0 %in% c("ID","IND","CS","UN") && structure.H1 %in% c("ID","IND","CS","UN"))
 
     strata.H0 <- stats::na.omit(objectH0$design$vcov$name$strata)
@@ -170,7 +170,7 @@
             }else if(identical(sort(var.H1),sort(var.H0))){
                 ## stratified structure
                 n.strata <- objectH1$strata$n
-                sigmak.strataH1 <- stats::setNames(objectH1$design$param$index.strata,objectH1$design$param$name)[sigmak.paramH1]
+                sigmak.strataH1 <- stats::setNames(table.paramH1$index.strata,table.paramH1$name)[sigmak.paramH1]
                 rhs.var <- stats::setNames(rep(NA, sum(sigmak.strataH1!=1)),sigmak.paramH1[sigmak.strataH1!=1])
                 if(sum(sigmak.strataH1==1)*(n.strata-1) == sum(sigmak.strataH1!=1)){
                     rhs.var[] <- rep(sigmak.paramH1[sigmak.strataH1==1], n.strata-1)
@@ -261,7 +261,7 @@
             if(identical(sort(cor.H1),sort(cor.H0))){
                 ## stratified structure
                 n.strata <- objectH1$strata$n
-                rho.strataH1 <- stats::setNames(objectH1$design$param$index.strata,objectH1$design$param$name)[rho.paramH1]
+                rho.strataH1 <- stats::setNames(table.paramH1$index.strata,table.paramH1$name)[rho.paramH1]
                 rhs.rho <- stats::setNames(rep(NA, times = sum(rho.strataH1!=1)),rho.paramH1[rho.strataH1!=1])
                 if(sum(rho.strataH1==1)*(n.strata-1) == sum(rho.strataH1!=1)){
                     rhs.rho[] <- rep(rho.paramH1[rho.strataH1==1], n.strata-1)

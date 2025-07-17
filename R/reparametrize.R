@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 25 2021 (11:22) 
 ## Version: 
-## Last-Updated: okt  3 2024 (16:43) 
+## Last-Updated: jul 17 2025 (10:18) 
 ##           By: Brice Ozenne
-##     Update #: 838
+##     Update #: 885
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -189,17 +189,16 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
     if(dJacobian>0){
         out$dJacobian <- array(0, dim = rep(n.p, 3), dimnames = list(name.p,name.p,name.p))
     }
-    
- 
+
     ## *** sigma (or k with log/square/logsquare)
     if(length(index.sigma)>0){
 
-        transform.sigma <- switch(transform.sigma,
-                                  "none" = .reparametrize.none,
-                                  "one" = .reparametrize.one,
-                                  "log" = .reparametrize.log,
-                                  "square" = .reparametrize.square,
-                                  "logsquare" = .reparametrize.logsquare)
+        transformFCT.sigma <- switch(transform.sigma,
+                                     "none" = .reparametrize.none,
+                                     "one" = .reparametrize.one,
+                                     "log" = .reparametrize.log,
+                                     "square" = .reparametrize.square,
+                                     "logsquare" = .reparametrize.logsquare)
 
         if(!transform.names){
             level.sigma <- NULL
@@ -214,55 +213,55 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
                 })
             }
         }
-        out <- transform.sigma(p = p, out = out,
-                               index = index.sigma,
-                               level = level.sigma, type = "sigma",
-                               inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
-               
+        out <- transformFCT.sigma(p = p, out = out,
+                                  index = index.sigma,
+                                  level = level.sigma, type = "sigma",
+                                  inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
+        
     }
 
     ## *** k
     if(length(index.k)>0){
 
-        transform.k <- switch(transform.k,
-                              "none" = .reparametrize.none,
-                              "log" = .reparametrize.log,
-                              "square" = .reparametrize.square,
-                              "logsquare" = .reparametrize.logsquare,
-                              "sd" = .reparametrize.sd,
-                              "logsd" = .reparametrize.logsd,
-                              "var" = .reparametrize.var,
-                              "logvar" = .reparametrize.logvar)
+        transformFCT.k <- switch(transform.k,
+                                 "none" = .reparametrize.none,
+                                 "log" = .reparametrize.log,
+                                 "square" = .reparametrize.square,
+                                 "logsquare" = .reparametrize.logsquare,
+                                 "sd" = .reparametrize.sd,
+                                 "logsd" = .reparametrize.logsd,
+                                 "var" = .reparametrize.var,
+                                 "logvar" = .reparametrize.logvar)
 
         if(!transform.names){
             level.k <- NULL
         }else{
             level.k <- sapply(level,"[[",1)
         }
-        out <- transform.k(p = p, out = out,
-                           index = index.k, indexSigma = match(sigma[index.k], name.p),
-                           level = level.k, type = "k",
-                           inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
-               
+        out <- transformFCT.k(p = p, out = out,
+                              index = index.k, indexSigma = match(sigma[index.k], name.p),
+                              level = level.k, type = "k",
+                              inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
+        
 
     }
 
     ## *** rho
     if(length(index.rho)>0){
-        transform.rho <- switch(transform.rho,
-                                "none" = .reparametrize.none,
-                                "atanh" = .reparametrize.atanh,
-                                "cov" = .reparametrize.cov)
+        transformFCT.rho <- switch(transform.rho,
+                                   "none" = .reparametrize.none,
+                                   "atanh" = .reparametrize.atanh,
+                                   "cov" = .reparametrize.cov)
 
         if(!transform.names){
             level.rho <- NULL
         }else{
             level.rho <- sapply(level,"[[",1)
         }
-        out <- transform.rho(p = p, out = out,
-                             index = index.rho, indexSigma = match(sigma[index.rho], name.p), indexKx = match(k.x[index.rho], name.p), indexKy = match(k.y[index.rho], name.p),
-                             level = level.rho, type = "rho",
-                             inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
+        out <- transformFCT.rho(p = p, out = out,
+                                index = index.rho, indexSigma = match(sigma[index.rho], name.p), indexKx = match(k.x[index.rho], name.p), indexKy = match(k.y[index.rho], name.p),
+                                level = level.rho, type = "rho",
+                                inverse = inverse, transform.names = transform.names, Jacobian = Jacobian, dJacobian = dJacobian)
     }     
 
     ## ** export
@@ -999,7 +998,14 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             transform.rho <- x.transform.rho
         }
     }else{
-        transform.rho <- match.arg(transform.rho, c("none","atanh", "cov"))
+        valid.rho <- c("none","atanh", "cov")
+        index.rho <- pmatch(transform.rho, valid.rho)
+        if(is.na(index.rho)){
+            stop("Incorrect value for argument \'transform.rho\': \"",transform.rho,"\". \n",
+                 "Valid values: \"",paste(valid.rho, collapse="\", \""),"\".")
+        }else{
+            transform.rho <- valid.rho[index.rho]
+        }
         if(simplify == FALSE){
             attr(transform.rho,"arg") <- transform.rho.save
         }
@@ -1014,7 +1020,14 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             transform.k <- x.transform.k
         }
     }else{
-        transform.k <- match.arg(transform.k, c("none","log","square","logsquare","sd","logsd","var","logvar"))
+        valid.k <- c("none","log","square","logsquare","sd","logsd","var","logvar")
+        index.k <- pmatch(transform.k, valid.k)
+        if(is.na(index.k)){
+            stop("Incorrect value for argument \'transform.k\': \"",transform.k,"\". \n",
+                 "Valid values: \"",paste(valid.k, collapse="\", \""),"\".")
+        }else{
+            transform.k <- valid.k[index.k]
+        }
         if(simplify == FALSE){
             attr(transform.k,"arg") <- transform.k.save
         }
@@ -1032,8 +1045,15 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
         }else{
             transform.sigma <- x.transform.sigma
         }
-    }else{
-        transform.sigma <- match.arg(transform.sigma, c("none","one","log","square","logsquare"))
+    }else{        
+        valid.sigma <- c("none","one","log","square","logsquare")
+        index.sigma <- pmatch(transform.sigma, valid.sigma)
+        if(is.na(index.sigma)){
+            stop("Incorrect value for argument \'transform.sigma\': \"",transform.sigma,"\". \n",
+                 "Valid values: \"",paste(valid.sigma, collapse="\", \""),"\".")
+        }else{
+            transform.sigma <- valid.sigma[index.sigma]
+        }
         if(simplify == FALSE){
             attr(transform.sigma,"arg") <- transform.sigma.save
         }
@@ -1076,7 +1096,7 @@ reparametrize <- function(p, type, level, sigma, k.x, k.y,
             p <- p[param.name]
         }        
     }
-    
+
     ## ** export
     out <- list(p = p,
                 transform.sigma = transform.sigma,

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:21) 
+## Last-Updated: jul 17 2025 (17:43) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 86
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -124,6 +124,7 @@ test_that("delta method for association based on residual variance", {
     expect_equal(as.double(unlist(test)), as.double(unlist(e.deltaANCOVA2)), tol = 1e-3)
 })
 
+
 ## * Association between the changes
 e.lm <- lm(dY~dX, data = d)
 summary(e.lm)$coef["dX",]
@@ -191,6 +192,58 @@ test_that("delta method for association based on residual variance", {
                        "p.value" = c(0.34781928))
     expect_equal(as.double(unlist(e.delta4)), as.double(unlist(test)), tol = 1e-3)
 
+})
+
+## * Mediation analysis
+set.seed(10)
+dL <- sampleRem(1e2, n.times = 1, format = "long")
+
+test_that("estimate for rbind.anova",{
+
+    m.lvm <- lvm(Y ~ X5 + X1, X5 ~ X1)
+    e.lvm <- estimate(m.lvm, data = dL)
+    GS <- effects(e.lvm, Y~X1)
+    GS.robust <- estimate(e.lvm, f = function(p){
+        DE <- as.double(p["Y~X1"])
+        IE <- as.double(p["Y~X5"]*p["X5~X1"])
+        out <- c(direct = DE,
+                 indirect = IE,
+                 total = DE + IE,
+                 proportion = 1/(1 + DE/IE))
+    }, robust = TRUE)
+
+    e.lmm1 <- lmm(Y ~ X5 + X1, repetition = ~visit|id, data = dL, method = "ML")
+    e.aov1 <- anova(e.lmm1, effects = c("X1=0","X5=0"), simplify = FALSE)
+    e.aov1.robust <- anova(e.lmm1, effects = c("X1=0","X5=0"), simplify = FALSE, robust = TRUE)
+    e.lmm2 <- lmm(X5 ~ X1, repetition = ~visit|id, data = dL, method = "ML")
+    e.aov2 <- anova(e.lmm2, effects = "X1=0", simplify = FALSE)
+    e.aov2.robust <- anova(e.lmm2, effects = "X1=0", simplify = FALSE, robust = TRUE)
+    e.maov <- rbind(e.aov1, e.aov2, name = c("Y","X5"))
+    e.maov.robust <- rbind(e.aov1.robust, e.aov2.robust, name = c("Y","X5"))
+
+    expect_equivalent(diag(vcov(e.lvm)[c("Y~X1","Y~X5","X5~X1"),c("Y~X1","Y~X5","X5~X1")]),diag(vcov(e.maov)), tol = 1e-6)
+    expect_equivalent(crossprod(iid(e.lvm))[c("Y~X1","Y~X5","X5~X1"),c("Y~X1","Y~X5","X5~X1")], vcov(e.maov.robust), tol = 1e-6)
+
+    test <- estimate(e.maov.robust, f = function(object){
+        p <- coef(object)
+        DE <- as.double(p["Y: X1=0"])
+        IE <- as.double(p["Y: X5=0"]*p["X5: X1=0"])
+        out <- c(direct = DE,
+                 indirect = IE,
+                 total = DE + IE,
+                 proportion = 1/(1 + DE/IE))
+    })
+    test.robust <- estimate(e.maov.robust, f = function(object){
+        p <- coef(object)
+        DE <- as.double(p["Y: X1=0"])
+        IE <- as.double(p["Y: X5=0"]*p["X5: X1=0"])
+        out <- c(direct = DE,
+                 indirect = IE,
+                 total = DE + IE,
+                 proportion = 1/(1 + DE/IE))
+    }, df = FALSE)
+    expect_equal(as.double(GS$coef)[1:3], as.double(test.robust$estimate)[c(3,1,2)], tol = 1e-5)
+    expect_equivalent(as.data.frame(GS.robust$coefmat), test.robust[,c("estimate","se","lower","upper","p.value")], tol = 1e-5)
 })
 
 ## * Random effects

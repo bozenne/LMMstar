@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 11 2025 (13:27) 
+## Last-Updated: jul 17 2025 (12:51) 
 ##           By: Brice Ozenne
-##     Update #: 513
+##     Update #: 581
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,7 +89,7 @@
 
 ## * mlmm (code)
 ##' @export
-mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, 
+mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = FALSE, df = NULL, p = NULL,
                  name.short = TRUE, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, trace = TRUE){
 
     options <- LMMstar.options()
@@ -116,6 +116,9 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(by %in% names(data)){
             stop("Argument \'data\' should not contain a column named \"",by,"\" as this name is used internally by the mlmm function. \n")
         }
+        if(any(duplicated(by.keep))){
+            stop("Argument \'by\' should not contain duplicated values. \n")
+        }
         data[[by]] <- nlme::collapse(data[by.keep], sep=",", as.factor = TRUE)
     }else{
         by.keep <- by
@@ -124,13 +127,19 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         }
     }
 
-    ## *** name.short
-
     ## *** df
     if(is.null(df)){
         df <- options$df
     }
     
+    ## *** p
+    if(!is.null(p) && !is.list(p)){
+        stop("Argument \'p\' should either be NULL or a list with the parameter values for each model. \n")
+    }
+    if(!is.null(p) && is.null(names(p))){
+        stop("Argument \'p\' should either be NULL or a named list with the parameter values for each model. \n")
+    }
+
     ## ** fit mixed models
     repetition <- list(...)$repetition
     if(is.null(repetition)){
@@ -178,12 +187,19 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     n.lmm <- length(name.lmm)
     variable.lmm <- stats::variable.names(ls.lmm[[1]])
 
+    if(!is.null(p) && length(p) != n.lmm){
+        stop("If not NULL, the argument \'p\' should be a list whose length equal the number of strata (here ",n.lmm,"). \n")
+    }
+    if(!is.null(p) && any(sort(names(p) != name.lmm))){
+        stop("If not NULL, invalid names in argument \'p\': \"",paste(setdiff(names(p),name.lmm), collapse ="\", \""),"\"\n",
+             "Example of valid names: \"",paste(setdiff(name.lmm,names(p)), collapse ="\", \""),"\"\n")
+    }
+
     ## ** test linear combinations
     if(trace>0){
         cat("\nHypothesis test:\n")
     }
     ls.name.allCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = "param")$trans.name})
-    ls.Cmat <- lapply(ls.name.allCoef, function(iName){matrix(0, nrow = length(iName), ncol = length(iName), dimnames = list(iName,iName))})
 
     ## *** identify contrast
     if(trace>0.5){
@@ -205,22 +221,22 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         }
     }
 
-    if(is.null(effects)){
+    if(is.null(effects)){ ## Case 1: no user-input so export all coefficients, each in a separate test
 
-        name.contrastCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = c("param",options$effects))$trans.name})
+        ls.contrast <- lapply(ls.name.allCoef, function(iName){matrix(0, nrow = length(iName), ncol = length(iName), dimnames = list(iName,iName))})
 
-        for(iName in name.lmm){
-            iNameCoef <- name.contrastCoef[[iName]]
+        for(iName in name.lmm){## iName <- name.lmm[[1]]
+            iNameCoef <- stats::model.tables(ls.lmm[[iName]], effects = c("param",options$effects))$trans.name
             if(length(iNameCoef)==1){
-                ls.Cmat[[iName]][iNameCoef,iNameCoef] <- 1
+                ls.contrast[[iName]][iNameCoef,iNameCoef] <- 1
             }else{
-                diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
+                diag(ls.contrast[[iName]][iNameCoef,iNameCoef]) <- 1
             }
-            ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(abs(ls.Cmat[[iName]]))!=0,,drop=FALSE] ## remove lines with only 0
+            ls.contrast[[iName]] <- ls.contrast[[iName]][rowSums(abs(ls.contrast[[iName]]))!=0,,drop=FALSE] ## remove lines with only 0
         }
-        rhs <- NULL
+        ls.rhs <- NULL
 
-    }else if(is.matrix(effects)){
+    }else{
 
         if(length(unique(lengths(ls.name.allCoef)))>1){
             stop("Cannot use matrix interface for argument \'effects\' when the number of model parameters varies over splits. \n")
@@ -228,68 +244,21 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(any(sapply(ls.name.allCoef[-1],identical,ls.name.allCoef[[1]])==FALSE)){
             stop("Cannot use matrix interface for argument \'effects\' when the model parameters varies over splits. \n")
         }
-        if(NCOL(effects) != length(ls.name.allCoef[[1]])){
-            stop("Incorrect value for argument \'effects\'. \n",
-                 "If a matrix, it should have as many columns as model parameters (",length(ls.name.allCoef[[1]]),")\n")
-        }
-        if(!is.null(colnames(effects))){
-            if(!identical(sort(colnames(effects),sort(ls.name.allCoef[[1]])))){
-                stop("Incorrect value for argument \'effects\'. \n",
-                     "If a matrix, its column name should match the model parameters. \n",
-                     "Model parameters: \"",paste(ls.name.allCoef[[1]], collapse="\" \""),"\".\n")
-            }
-            effects <- effects[,ls.name.allCoef[[1]],drop=FALSE]
-        }else{
-            colnames(effects) <- ls.name.allCoef[[1]]
-        }
-        ls.Cmat <- stats::setNames(lapply(1:n.lmm, function(iI){effects}), name.lmm)
+        ls.e2c <- effects2contrast(ls.lmm[[1]], effects = effects, rhs = attr(effects,"rhs"), options = options)
         
-        if(!is.null(attr(effects,"rhs"))){
-            rhs <- stats::setNames(lapply(1:n.lmm, function(iI){rhs}), name.lmm)
-        }else{
-            rhs <- NULL
-        }
-
-    }else if(all(is.character(effects))){
-
-        valid.effects <- c("mean","fixed","variance","correlation","all")
-
-        if(all(grepl("=",effects,fixed=TRUE))){
-            ls.Cmat <- stats::setNames(lapply(1:n.lmm, function(iI){effects}), name.lmm)
-            rhs <- NULL
-        }else if(all(effects %in% valid.effects== FALSE)){
-            
-            name.contrastCoef <- lapply(ls.lmm, function(iLMM){stats::model.tables(iLMM, effects = c("param",effects))$trans.name})
-
-            for(iName in name.lmm){
-                iNameCoef <- name.contrastCoef[[iName]]
-                if(length(iNameCoef)==1){
-                    ls.Cmat[[iName]][iNameCoef,iNameCoef] <- 1
-                }else{
-                    diag(ls.Cmat[[iName]][iNameCoef,iNameCoef]) <- 1
-                }
-                ls.Cmat[[iName]] <- ls.Cmat[[iName]][rowSums(ls.Cmat[[iName]]!=0)>0,,drop=FALSE] 
-            }
+        ls.contrast <- stats::setNames(lapply(1:n.lmm, function(iI){ls.e2c$contrast$user$user}), name.lmm)
+        ls.rhs <- stats::setNames(lapply(1:n.lmm, function(iI){ls.e2c$null$user$user}), name.lmm)
         
-            rhs <- NULL
-        }else{
-            stop("Incorrect value for argument \'effects\'. \n",
-                 "When a character should either be a contrast like \"",stats::model.tables(ls.lmm[[1]], effects = "param")$name[1],"=0\", \n",
-                 "Or be among: \"",paste(valid.effects,collapse="\" \""),"\"\n")
-        }
-    }else{
-        stop("Unknown value for argument \'effects\'. \n",
-             "Can be a matrix, or a character encoding the contrast like \"",stats::model.tables(ls.lmm[[1]], effects = "param")$name[1],"=0\", or \"mean\", \"variance\", \"correlation\", \"all\".\n")
     }
+
     ## *** run
     if(trace>0.5){
         cat(" - univariate test\n")
     }
 
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
-
-        iWald <- stats::anova(ls.lmm[[iName]], effects = ls.Cmat[[iName]], rhs = rhs[[iName]], robust = robust, df = df,
-                              univariate = TRUE, multivariate = FALSE,
+        iWald <- stats::anova(ls.lmm[[iName]], effects = ls.contrast[[iName]], rhs = ls.rhs[[iName]], robust = robust, df = df,
+                              univariate = TRUE, multivariate = FALSE, p = p[[iName]],
                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                               simplify = FALSE)
 
@@ -326,37 +295,24 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         rhs.by <- NULL
         sep <- ": "
     }
-
-    out <- do.call("rbind.Wald_lmm",
-                   args = c(list(model = ls.anova[[1]], effects = contrast.rbind, rhs = rhs.by, name = name.model, sep = sep), unname(ls.anova[-1]))
-                   )
-    out$model <- ls.lmm
+    out <- rbind.Wald_lmm(model = ls.anova, effects = contrast.rbind, rhs = rhs.by, name = name.model, name.short = name.short, sep = sep)
     names(out$univariate)[names(out$univariate)=="model"] <- "by"
-
-    ## *** re-order cluster (order may be lost when spliting the dataset per by)
-    if(is.null(repetition)){
-        var.cluster <- "XXclusterXX"
-    }
-    if(is.factor(data[[var.cluster]])){
-        level.cluster <- levels(data[[var.cluster]])
-    }else{
-        level.cluster <- sort(unique(data[[var.cluster]]))
-    }
-    out$object$cluster <- out$object$cluster[order(factor(out$object$cluster, levels = level.cluster))]
 
     ## *** add covariate values
     if(is.null(contrast.rbind)){
         keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){iData[1,by.keep,drop=FALSE]}))
-        rownames(keep.by.level) <- name.model
-        out$univariate[colnames(keep.by.level)] <- keep.by.level[unlist(out$univariate$by),,drop=FALSE]
+        keep.rownames <- rownames(out$univariate)
+        out$univariate <- merge(x = out$univariate, y = cbind(by = name.model, keep.by.level), by = "by", all.x = TRUE)
+        rownames(out$univariate) <- keep.rownames
     }
 
     ## ** export
     if(trace>0){
         cat("\n")
     }
-    out$object$by <- by.keep
-    attr(out,"call") <- match.call()
+    out$args$by <- NA ## deal with the case of multiple by
+    out$args$by <- list(by.keep)
+    out$call <- match.call()
     class(out) <- append("mlmm", class(out))
     return(out)
 }

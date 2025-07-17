@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 10 2025 (14:55) 
+## Last-Updated: jul 17 2025 (14:29) 
 ##           By: Brice Ozenne
-##     Update #: 1801
+##     Update #: 1813
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -169,7 +169,7 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
     }else{
         options <- LMMstar.options()
     }
-        dots$options <- NULL
+    dots$options <- NULL
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
@@ -247,7 +247,11 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
             cat("  - ", nobs["obs"], " observations \n",  sep = "")
         }
         if(length(unique(nobsByCluster))==1){
-            cat("  - ", nobsByCluster[1], " observations per cluster \n", sep = "")
+            if(nobsByCluster[1]==1){
+                cat("  - ", nobsByCluster[1], " observation per cluster \n", sep = "")
+            }else{
+                cat("  - ", nobsByCluster[1], " observations per cluster \n", sep = "")
+            }
         }else{
             cat("  - between ", min(nobsByCluster), " and ",max(nobsByCluster)," observations per cluster \n", sep = "")
         }
@@ -275,11 +279,11 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
         }
         cat("  - log-likelihood :", as.double(logLik), "\n",sep="")
         cat("  - parameters: mean = ",length(param.mu),", variance = ",length(c(param.sigma,param.k)),", correlation = ",length(param.rho),"\n", sep = "")
-            abs.score <- abs(object$score)
-            abs.diff <- abs(object$opt$previous.estimate-object$param)
-            name.score <- names(which.max(abs.score))[1]
-            name.diff <- names(which.max(abs.diff))[1]
-            
+        abs.score <- abs(object$score)
+        abs.diff <- abs(object$opt$previous.estimate-object$param)
+        name.score <- names(which.max(abs.score))[1]
+        name.diff <- names(which.max(abs.diff))[1]
+        
         cat("  - convergence: ",object$opt$cv>0," (",object$opt$n.iter," iterations) \n",
             "    largest |score| = ",max(abs.score)," for ",name.score,"\n",
             if(!is.null(name.diff)){paste0("            |change|= ",max(abs.diff)," for ",name.diff,"\n")},
@@ -528,14 +532,13 @@ summary.LRT_lmm <- function(object, digits = 3, digits.df = 1, digits.p.value = 
     name1 <- deparse(attr(object,"call")$object)
     name2 <- deparse(attr(object,"call")$effects)
     if(attr(object,"type")=="1-2"){
-        cat("\t\t(",name1," vs. ",name2,")\n\n",sep="")
+        cat("\t",name1,"\n \t\t vs. \n\t",name2,")\n\n",sep="")
     }else if(attr(object,"type")=="2-1"){
-        cat("\t\t(",name2," vs. ",name1,")\n\n",sep="")
+        cat("\t",name2,"\n \t\t vs. \n\t",name1,")\n\n",sep="")
     }
     table <- as.data.frame(object)
     if("null" %in% columns){
-        table$null
-        cat("  ","Null hypothesis: ",table$null,"\n\n",sep="")
+        cat("   ","Null hypothesis: ",table$null,"\n\n",sep="")
     }
 
     table[names(table)[names(table) %in% setdiff(columns,"null") == FALSE]] <- NULL
@@ -599,7 +602,7 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
 
     ## ** extract models
     ls.model <- object$model
-    method.fit <- object$object$method.fit
+    method.fit <- object$args$method.fit
     optimizer <- ls.model[[1]]$args$control$optimizer
     logLik <- sapply(ls.model, logLik)
     cv <- sapply(ls.model, function(iM){iM$opt$cv})
@@ -612,22 +615,19 @@ summary.mlmm <- function(object, digits = 3, method = NULL, print = NULL, hide.d
     nparam.rho  <- sapply(ls.model, function(iM){sum(iM$design$param$type=="rho")})
 
     M.nobs <- stats::nobs(object)
-    object.call <- attr(object,"call")
-
+    
     ## ** welcome message
     if(any(print>0)){
         if("rho" %in% do.call(rbind,lapply(ls.model, model.tables, effects = "param"))$type){
-            cat("	Linear Mixed Models stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
+            cat("	Linear Mixed Models stratified according to \"",paste(object$args$by[[1]], collapse =  "\", \""),"\" \n\n",sep="")
         }else{
-            cat("	Linear regressions stratified according to \"",eval(object.call$by),"\" \n\n",sep="")
+            cat("	Linear regressions stratified according to \"",paste(object$args$by[[1]], collapse = "\", \""),"\" \n\n",sep="")
         }
     }
 
     ## ** data message    
     if(!hide.data){
-        if(inherits(object.call$data,"call")){
-            cat("Dataset:", deparse(object.call$data), "\n")
-        }
+        cat("Dataset:", deparse(object$call$data), "\n")
         cat("Strata : \"",paste(names(ls.model),collapse = "\", \""),"\"\n\n",sep="")
         if(any(M.nobs[,"missing.obs"]>0)){
             if(any(M.nobs[,"missing.cluster"])){

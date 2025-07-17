@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 11 2025 (18:49) 
+## Last-Updated: jul 17 2025 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 1245
+##     Update #: 1365
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,22 +19,41 @@
 ##' @title Combine Wald Tests From Linear Mixed Models
 ##' @description Combine linear hypothesis tests from possibly different linear mixed models.
 ##'
-##' @param model a \code{Wald_lmm} object (output of \code{anova} applied to a \code{lmm} object)
+##' @param model a \code{Wald_lmm} object (output of \code{anova}
+##'     applied to a \code{lmm} object)
 ##' @param ...  possibly other \code{Wald_lmm} objects
-##' @param effects [character or numeric matrix] how to combine the left-hand side of the hypotheses.
-##' By default identity matrix but can also be \code{"Dunnett"},  \code{"Tukey"}, or  \code{"Sequen"} (see function \code{multcomp::contrMat} from the multcomp package).
-##' @param rhs [numeric vector] the right hand side of the hypothesis. Should have the same length as the number of row of argument \code{effects}.
-##' @param univariate [logical] Should an estimate, standard error, confidence interval, and p-value be output for each hypothesis?
-##' @param multivariate [logical] Should all hypotheses be simultaneously tested using a multivariate Wald test?
-##' @param name [character vector or NULL] character used to identify each model in the output.
-##' By default, use the name of the outcome of the model.
-##' @param name.short [logical] use short names for the output coefficients, e.g., omit the regression variable name when the same regression variable is used in all models.
-##' @param sep [character] character used to separate the name/outcome and the covariate when identifying the linear hypotheses.
+##' @param effects [character or numeric matrix] how to combine the
+##'     left-hand side of the hypotheses.  By default identity matrix
+##'     but can also be \code{"Dunnett"}, \code{"Tukey"}, or
+##'     \code{"Sequen"} (see function \code{multcomp::contrMat} from
+##'     the multcomp package).
+##' @param rhs [numeric vector] the right hand side of the
+##'     hypothesis. Should have the same length as the number of row
+##'     of argument \code{effects}.
+##' @param univariate [logical] Should an estimate, standard error,
+##'     confidence interval, and p-value be output for each
+##'     hypothesis?
+##' @param multivariate [logical] Should all hypotheses be
+##'     simultaneously tested using a multivariate Wald test?
+##' @param name [character vector or NULL] character used to identify
+##'     each model in the output.  By default, use the name of the
+##'     outcome of the model.
+##' @param name.short [logical] use short names for the output
+##'     coefficients, e.g., omit the regression variable name when the
+##'     same regression variable is used in all models.
+##' @param sep [character] character used to separate the name/outcome
+##'     and the covariate when identifying the linear hypotheses.
 ##'
-##' @details In presence of measurements from the same cluster across several models,
-##' the influence function is used to estimate the covariance between the model parameters.
-##' This is why the (robust) standard errors may not match the (model-based) standard error from the linear mixed
-##' Setting the argument \code{robust} to \code{FALSE} when calling \code{anova.lmm} will rescale the (robust) standard errors to mimic the original model-based standard errors.
+##' @details In presence of measurements from the same cluster across
+##'     several models, the influence function is used to estimate the
+##'     correlation between the model parameters.  By default the
+##'     covariance is obtained by rescaling the estimated correlation
+##'     by the (model-based) standard errors to mimic the original
+##'     model-based standard errors. Nevertheless the 'rbind' standard
+##'     errors may not exactly match the 'lmm' standard error, unless
+##'     robust standard errors are considered by setting the argument
+##'     \code{robust} is set to \code{TRUE} in both.
+##' 
 ##' @keywords methods
 ##' 
 ##' @examples
@@ -85,6 +104,26 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }
     dots$options <- NULL
     
+    ## *** model
+    if(inherits(model,"rbindWald_lmm")){
+        stop("Cannot use rbind on the output of rbind.Wald_lmm. \n")
+    }else if(inherits(model,"mlmm")){
+        stop("Cannot use rbind on the output of mlmm. \n")
+    }
+    if(!inherits(model,"Wald_lmm")){ ## used by estimate to provide the models as a list
+        if(!is.list(model)){
+            stop("Argument \'model\' should be a Wald_lmm object or a list of Wald_lmm objects. \n")
+        }
+        if(any(sapply(model,inherits,"Wald_lmm")==FALSE)){
+            stop("Argument \'model\' should be a Wald_lmm object or a list of Wald_lmm objects. \n")
+        }
+        name.model <- names(model)
+        dots <- model[-1]
+        model <- model[[1]]        
+    }else{
+        name.model <- NULL
+    }
+    
     ## special case of single lmm
     if(length(dots)==0){
         if(model$args$univariate==FALSE){
@@ -110,16 +149,23 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         return(model) 
     }else if(any(sapply(dots,inherits,"Wald_lmm")==FALSE)){
         stop("Extra arguments should inherit from Wald_lmm. \n")
+    }else if(any(sapply(dots,inherits,"rbindWald_lmm"))){
+        stop("Extra arguments should not inherit from rbindWald_lmm. \n")
+    }else if(any(sapply(dots,inherits,"mlmm"))){
+        stop("Extra arguments should not inherit from mlmm. \n")
     }else{
+
         ## combine input
-        ls.object <- c(list(model),dots)
+        if(is.null(model)){
+            ls.object <- dots
+        }else{
+            ls.object <- c(list(model),dots)
+        }
         n.object <- length(ls.object)
-        ls.model <- lapply(ls.object,function(iO){eval(attr(iO,"call")[["object"]])})
+        ls.model <- lapply(ls.object,lmm)
 
         table.args <- cbind(do.call(rbind,lapply(ls.object,"[[","args")),
-                            do.call(rbind,lapply(ls.model, function(iM){
-                                c(outcome = iM$outcome$var, cluster = iM$cluster$var, method.fit = iM$args$method.fit)
-                            })))
+                            do.call(rbind,lapply(ls.model, function(iM){c(outcome = iM$outcome$var, cluster = iM$cluster$var)})))
         
         table.args$alternative <- unique(sapply(ls.object, function(iO){iO$glht[[1]]$alternative}))
 
@@ -157,6 +203,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         stop("Cluster variable differs between objects. \n")
     }
     cluster.var <- ls.model[[1]]$cluster$var
+    if(all(table.args$p.null)){
+        p <- NULL
+    }else{
+        p <- by(all.table.param, all.table.param$model, function(iTable){
+            return(stats::setNames(iTable$value, iTable$name))
+        }, simplify = FALSE)
+    }
 
     ## *** name (object)
     if(is.null(name)){
@@ -175,16 +228,21 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         }else if(any(name=="all")){
             stop("Argument \'name\' should not contain the value \"all\". \n")
         }
+        attr(name,"original") <- name
     }
     all.coefUnames <- paste(name[all.table.param$model], all.table.param$trans.name, sep = sep) ## no more duplicates if same param in different models (e.g. (Intercept), age, or sigma)
     all.coefUnamesO <- paste(name[all.table.param$model], all.table.param$name, sep = sep) ## same but without transformation in the name
-    
-    if(name.short && all(duplicated(Wald.table.param$name)==FALSE)){  
-        hypo.name <- Wald.table.param$name
-    }else if(name.short && all(duplicated(name[Wald.table.param$model])==FALSE)){
-        hypo.name <- name[Wald.table.param$model]
+
+    if(name.short){
+        if(all(duplicated(Wald.table.param$name)==FALSE)){
+            hypo.name <- Wald.table.param$name ## name according to the coefficient only
+        }else if(!is.null(attr(name,"original")) && all(duplicated(name[Wald.table.param$model])==FALSE)){
+            hypo.name <- name[Wald.table.param$model] ## name according to the outcome only
+        }else{
+            hypo.name <- paste(name[Wald.table.param$model], Wald.table.param$name, sep = sep) ## name according to both
+        }        
     }else{
-        hypo.name <- paste(name[Wald.table.param$model], Wald.table.param$name, sep = sep)
+        hypo.name <- paste(name[Wald.table.param$model], Wald.table.param$name, sep = sep) ## name according to both
     }
 
     ## *** effects
@@ -298,7 +356,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     colnames(all.contrast)  <- all.coefUnamesO
 
     ## *** vcov
-    all.vcov <- .rbind.vcov(ls.model, robust = table.args$robust[1], type.information = table.args$type.information[1], keep.grad = table.args$df[1],
+    all.vcov <- .rbind.vcov(ls.model, robust = table.args$robust[1], type.information = table.args$type.information[1], keep.grad = table.args$df[1], p = p,
                             transform.sigma = table.args$transform.sigma[1], transform.k = table.args$transform.k[1], transform.rho = table.args$transform.rho[1], 
                             seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence,
                             all.table.param = all.table.param, all.coefUnames = all.coefUnames, all.coefUnamesO = all.coefUnamesO, options = options)
@@ -307,13 +365,11 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     attr(all.vcov,"gradient") <- NULL
     attr(all.vcov,"iid") <- NULL
 
-
     ## ** Combine elements
     out <- .anova_Wald(param = all.coefvalues,
                        param.notrans = all.coefvaluesO,
                        vcov.param = all.vcov,
                        dVcov.param = all.dVcov,
-                       iid.param = NULL,
                        type.param = stats::setNames(all.table.param$type, all.coefUnamesO),
                        contrast = list(user = list(user = all.contrast)),
                        null = list(user = list(user = rhs)),
@@ -342,7 +398,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         if(length(iOut)>1){
             return("all")
         }else{
-            return(as.character(iOut))
+            return(name[iOut])
         }
     })
 
@@ -350,13 +406,22 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## ** add extra information to object, e.g. to retrieve the original contrast matrix
     out$args$independence <- independence
+    out$args$method.fit <- table.args$method.fit[1]
     out$args$type.information <- table.args$type.information[1]
     out$args$robust <- table.args$robust[1]
+    out$args$p.null <- all(table.args$p.null) 
+    if(out$args$simplify==FALSE){
+        out$model <- ls.model
+        if(!is.null(name.model)){
+            names(out$model) <- name.model
+        }else{
+            names(out$model) <- name
+        }
+    }
 
     out$param <- cbind(model = as.character(all.table.param$model),
                        all.table.param[setdiff(names(all.table.param),"model")],
                        Uname = all.coefUnamesO, trans.Uname = all.coefUnames)
-
 
     ## check whether parameters from different hypotheses are combined
     test.hypoCross <- apply(contrast, MARGIN = 1, function(iRow){length(unique(Wald.table.param$model[iRow!=0]))})>1
@@ -378,19 +443,15 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     }
 
     ## ** export
-    attr(out,"call") <- list(anova = lapply(ls.object,attr,"call"),
-                             rbind = mycall)
+    if(any(names(mycall) %in% c("","model") == FALSE)){ ## explicit export of the argument because otherwise call may just contain a pointer
+        for(iArg in setdiff(names(mycall),c("","model"))){ ## iArg <- "name"
+            mycall[[iArg]] <- get(iArg)
+        }
+    }
+    out$call <- c(list(rbind = mycall), anova = stats::setNames(lapply(ls.object,"[[","call"),name))
     class(out) <- append("rbindWald_lmm",class(out))
     return(out)
 }
-
-
-## * rbind.rbindWald_lmm (code)
-##' @export
-rbind.rbindWald_lmm <- function(...){
-    stop("Cannot use rbind on the output of rbind.Wald_lmm. \n")
-}
-
 
 ## * .rbind.iid (code)
 .rbind.cluster <- function(object){
@@ -405,7 +466,7 @@ rbind.rbindWald_lmm <- function(...){
 
 
 ## * .rbind.iid (code)
-.rbind.iid <- function(object, robust, type.information, keep.grad, transform.sigma, transform.k, transform.rho,
+.rbind.iid <- function(object, robust, type.information, transform.sigma, transform.k, transform.rho, p,
                        seq.cluster, n.cluster, all.table.param, all.coefUnames, all.coefUnamesO,options){
 
     all.iid <- matrix(0, nrow = n.cluster, ncol = NROW(all.table.param),
@@ -415,7 +476,7 @@ rbind.rbindWald_lmm <- function(...){
     for(iO in 1:length(object)){ ## iO <- 1
         iTable.param2 <- all.table.param2[all.table.param$model==iO,,drop=FALSE]
         iAll.iid <- lava::iid(object[[iO]], effects = "all", robust = robust, type.information = type.information,
-                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, options = options)
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p[[iO]], options = options)
         
         iNewname <- iTable.param2[match(colnames(iAll.iid), iTable.param2$trans.name),"Uname"]
         all.iid[rownames(iAll.iid), iNewname] <- iAll.iid
@@ -428,27 +489,28 @@ rbind.rbindWald_lmm <- function(...){
 }
 
 ## * .rbind.vcov (code)
-.rbind.vcov <- function(object, robust, type.information, transform.sigma, transform.k, transform.rho, keep.grad,
+.rbind.vcov <- function(object, robust, type.information, transform.sigma, transform.k, transform.rho, keep.grad, p,
                         seq.cluster, n.cluster, independence, all.table.param, all.coefUnames, all.coefUnamesO, options){
-
     
     ## ** prepare
     effects <- list("all",c("all","gradient"))[[keep.grad+1]]
     all.table.param2 <- cbind(all.table.param, Uname.trans = all.coefUnames, Uname = all.coefUnamesO)
 
     ## ** vcov
-    ls.vcov <- lapply(object, stats::vcov, effects = effects, robust = robust, type.information = type.information,
-                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                      options = options)
+    ls.vcov <- lapply(1:length(object), FUN = function(iO){
+        stats::vcov(object[[iO]], effects = effects, robust = robust, type.information = type.information,
+                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p[[iO]],
+                    options = options)
+    })
     vcov.sparse <- do.call(Matrix::bdiag,ls.vcov)
     dimnames(vcov.sparse) <- list(all.coefUnamesO, all.coefUnamesO)
-        
+    
     if(independence){
         out <- as.matrix(vcov.sparse)
         all.iid <- NULL
     }else{
         all.iid <- .rbind.iid(object, robust = robust, type.information = type.information,
-                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p,
                               seq.cluster = seq.cluster, n.cluster = n.cluster,
                               all.table.param = all.table.param, all.coefUnames = all.coefUnames, all.coefUnamesO = all.coefUnamesO, options = options)
         
@@ -464,11 +526,11 @@ rbind.rbindWald_lmm <- function(...){
         }
         out <- vcovR
 
-        ## ## attempt to get closer to the original vcov
-        ## for(iO in 1:length(object)){ ## iO <- 1
-        ##     iName <- all.table.param2[all.table.param2$model==iO,"Uname"]
-        ##     out[iName,iName] <- as.matrix(vcov.sparse[iName,iName])
-        ## }
+        ## attempt to get closer to the original vcov (WARNING vcov not necessarily positive definite)
+        for(iO in 1:length(object)){ ## iO <- 1
+            iName <- all.table.param2[all.table.param2$model==iO,"Uname"]
+            out[iName,iName] <- as.matrix(vcov.sparse[iName,iName])
+        }
         ## if(any(eigen(out)$values<=0)){
         ##     out <- vcovR
         ## }
@@ -479,7 +541,7 @@ rbind.rbindWald_lmm <- function(...){
     ## ** dVcov
     if(keep.grad){
         attr(out,"gradient") <- array(0, dim = rep(NROW(all.table.param),3),
-                                       dimnames = list(all.coefUnamesO, all.coefUnamesO, all.coefUnamesO))
+                                      dimnames = list(all.coefUnamesO, all.coefUnamesO, all.coefUnamesO))
         
         ls.dVcov <- lapply(ls.vcov, attr,"gradient")            
         for(iO in 1:length(object)){ ## iO <- 1
@@ -489,7 +551,7 @@ rbind.rbindWald_lmm <- function(...){
         }
         ## add model-based vcov when robust=1, i.e., compute df from model-based vcov even though one uses robust vcov
         if(robust==1){
-            out.model <- .rbind.vcov(object, robust = FALSE, type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+            out.model <- .rbind.vcov(object, robust = FALSE, type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p,
                                      keep.grad = FALSE, seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence,
                                      all.table.param = all.table.param, all.coefUnames = all.coefUnames, all.coefUnamesO = all.coefUnamesO, options = options)
             attr(out.model,"iid") <- NULL

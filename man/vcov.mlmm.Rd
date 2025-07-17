@@ -6,54 +6,37 @@
 \usage{
 \method{vcov}{mlmm}(
   object,
-  effects = "contrast",
-  p = NULL,
-  newdata = NULL,
-  ordering = "by",
-  robust = object$args$robust,
-  type.information = object$object$type.information,
+  effects = "Wald",
+  ordering = NULL,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
-  simplify = TRUE,
   ...
 )
 }
 \arguments{
 \item{object}{a \code{mlmm} object.}
 
-\item{effects}{[character] By default will output the estimates relative to the hypotheses being tested (\code{"contrast"}).
-But can also output all model coefficients (\code{"all"}),
-or only coefficients relative to the mean (\code{"mean"} or \code{"fixed"}),
-or only coefficients relative to the variance structure (\code{"variance"}),
-or only coefficients relative to the correlation structure (\code{"correlation"}).}
+\item{effects}{[character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
+or the value of the linear mixed model parameters (\code{"all"})?
+Can also contain \code{"gradient"} to also output the gradient of the Variance-Covariance matrix.}
 
-\item{p}{[list of numeric vector] list of model coefficients to be used. Only relevant if differs from the fitted values.}
+\item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
 
-\item{newdata}{[NULL] Not used. For compatibility with the generic method.}
+\item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 
-\item{ordering}{[character] should the output be ordered by type of parameter (\code{"parameter"}) or by model (\code{"by"}).
-Not relevant when \code{effects="contrast"}.}
-
-\item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
-Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
-
-\item{type.information}{[character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).}
-
-\item{transform.sigma}{[character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.}
-
-\item{transform.k}{[character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.}
-
-\item{transform.rho}{[character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.}
-
-\item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?}
-
-\item{simplify}{[logical] Should the column names contain the level of the by variable?
-Not relevant when \code{effects=\"contrast\"}.}
+\item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
+Only relevant when \code{effects="all"}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
+}
+\value{
+A matrix with one column and column per parameter.  \itemize{
+\item \code{effects} includes \code{"gradient"}: with an attribute \code{"gradient"} containing a 3 dimensional array with dimension the number of parameters.
+}
 }
 \description{
 Extract the variance-covariance matrix of the model coefficients from multiple linear mixed models.
 }
+\keyword{methods}

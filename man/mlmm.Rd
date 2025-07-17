@@ -12,6 +12,7 @@ mlmm(
   effects = NULL,
   robust = FALSE,
   df = NULL,
+  p = NULL,
   name.short = TRUE,
   transform.sigma = NULL,
   transform.k = NULL,

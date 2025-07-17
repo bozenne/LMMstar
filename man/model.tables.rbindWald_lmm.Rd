@@ -2,7 +2,7 @@
 % Please edit documentation in R/model.tables.R
 \name{model.tables.rbindWald_lmm}
 \alias{model.tables.rbindWald_lmm}
-\title{Statistical Inference From Combined Wald Tests Applied to Linear Mixed Models}
+\title{Statistical Inference From Combined Wald Tests}
 \usage{
 \method{model.tables}{rbindWald_lmm}(
   x,
@@ -46,8 +46,14 @@ with argument \code{effects="contrast"} the output will be converted into a matr
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
+\value{
+A \code{data.frame} object.
+}
 \description{
 Combine estimates, standard errors, degrees-of-freedom, confidence intervals (CIs) and p-values
 relative to linear contrasts of parameters from different linear mixed models.
+}
+\details{
+When \code{effects} is \code{"Wald"}, this function simply calls \code{\link{confint}} with a specific value for the argument \code{column}.
 }
 \keyword{methods}

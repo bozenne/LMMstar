@@ -2,12 +2,16 @@
 % Please edit documentation in R/coef.R
 \name{coef.Wald_lmm}
 \alias{coef.Wald_lmm}
-\title{Extract Coefficients From Wald Tests Applied to a Linear Mixed Model}
+\title{Extract Coefficients From Wald Tests}
 \usage{
 \method{coef}{Wald_lmm}(
   object,
   effects = "Wald",
+  method = "none",
   backtransform = NULL,
+  transform.sigma = NULL,
+  transform.k = NULL,
+  transform.rho = NULL,
   transform.names = TRUE,
   simplify = TRUE,
   ...
@@ -19,15 +23,20 @@
 \item{effects}{[character] should the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 or the value of the linear mixed model parameters (\code{"all"})?}
 
+\item{method}{[character] how linear contrast estimates should be pooled (\code{"average"}, \code{"pool.se"}, \code{"pool.gls"}, \code{"pool.gls1"}, \code{"pool.rubin"}, \code{"p.rejection"})?
+Only relevant when \code{effects = "Wald"}. See \code{\link{confint.Wald_lmm}} for details.}
+
 \item{backtransform}{[logical] should the estimates be back-transformed?}
+
+\item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 
 \item{transform.names}{[logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 Only relevant when \code{effects="all"}.}
 
-\item{simplify}{[logical] omit from the output the attribute containing the type of each parameter or contrast (mu/sigma/k/rho).}
+\item{simplify}{[logical] omit from the output an attribute containing the parameter type or contrast term.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
-Extract estimated value of linear contrasts applied on parameters from a linear mixed model.
+Extract estimated value of linear contrasts involved in Wald tests.
 }

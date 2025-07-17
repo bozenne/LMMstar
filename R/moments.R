@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul  9 2025 (14:35) 
+## Last-Updated: jul 17 2025 (15:27) 
 ##           By: Brice Ozenne
-##     Update #: 709
+##     Update #: 726
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -163,7 +163,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     if(score || information || vcov || df.analytic){
         type.effects <- c("mu","sigma","k","rho")[c("mean","variance","variance","correlation") %in% effects]
         attr(effects, "original.names") <- names(newname.allcoef[param.type %in% type.effects])
-        attr(effects, "reparametrize.names") <- as.character(newname.allcoef[param.type %in% type.effects])
+        attr(effects, "reparametrize.names") <- as.character(newname.allcoef[param.type %in% type.effects])        
     }
 
     ## ** 2- compute partial derivatives regarding the mean and the variance
@@ -279,10 +279,11 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                               pattern = design$vcov$pattern, index.cluster = design$index.cluster, 
                               indiv = indiv, REML = method.fit=="REML", precompute = precompute)
     }
-    
+
     ## *** score
     if(score || (vcov && robust)){ 
         if(trace>=1){cat("- score \n")}
+
         Mscore <- .score(X = design$mean, residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, weights = design$weights, 
                          pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef,
                          indiv = indiv || (vcov && robust), REML = method.fit=="REML", effects = effects2, precompute = precompute)
@@ -334,12 +335,12 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
             }
         }
     }
-    
+
     ## *** variance-covariance
     if(vcov){
         if(trace>=1){cat("- variance-covariance \n")}
 
-        if(indiv){
+        if(indiv && information){
             Minfo <- apply(Minfo, MARGIN = 2:3, sum)
         }
 

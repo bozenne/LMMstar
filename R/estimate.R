@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt 20 2024 (16:41) 
+## Last-Updated: jul 17 2025 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 1283
+##     Update #: 1439
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,7 @@
 ##'
 ##' @param x  a \code{lmm} object.
 ##' @param f [function] function taking as input \code{p}, the linear mixed model parameters, which outputs the parameter(s) of interest.
-##' Can accept extra-arguments.
+##' Can accept extra-arguments, such as \code{object} representing the linear mixed model.
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
 ##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
@@ -91,7 +91,6 @@
 ##' e.deltaC ## Degrees-of-freedom are a bit more accurate
 ##' }
 
-
 ## * estimate.lmm (code)
 ##' @export
 estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, type.information = NULL, level = 0.95,
@@ -108,7 +107,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
         options <- LMMstar.options()
     }
     dots$options <- NULL
-    
+
     ## *** function
     f.formals <- formals(f)
     names.formals <- names(f.formals)
@@ -123,8 +122,8 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
     ls.args <- stats::setNames(vector(mode = "list", length = length(names.formals)-1), setdiff(names.formals,"p"))
     ls.args[names(which(!is.empty))] <- f.formals[names(which(!is.empty))]
     ls.args[names(dots)] <- dots
-    if("object" %in% names(ls.args) && is.null(ls.args$object) || "x" %in% names(ls.args) && is.null(ls.args$x)){
-        ls.args <- c(list(x),ls.args[setdiff(names(ls.args),c("object","x"))])
+    if("object" %in% names(ls.args) && is.null(ls.args$object)){
+        ls.args <- c(list(x),ls.args[setdiff(names(ls.args),"object")])
     }
 
     ## *** df
@@ -154,15 +153,20 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
         }
     }
     
-    
-
     ## *** average
     if(!is.logical(average)){
         stop("Argument \'average\' must be TRUE or FALSE. \n")
     }
+    
+    ## *** derivative approximation
+    if(is.null(method.numDeriv)){
+        method.numDeriv <- options$method.numDeriv
+    }
+
+    ## ** warper
     if(average){
-        ff <- function(x, keep.indiv = FALSE){
-            iRes <- do.call(f, args = c(list(p = x),ls.args))
+        ff <- function(p, keep.indiv = FALSE){
+            iRes <- do.call(f, args = c(list(p = p),ls.args))
             iOut <- mean(iRes)
             if(keep.indiv){
                 attr(iOut,"indiv") <- iRes
@@ -170,154 +174,47 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
             return(iOut)
         }
     }else{
-        ff <- function(x, keep.indiv){
-            do.call(f, args = c(list(p = x),ls.args))
+        ff <- function(p, keep.indiv){
+            do.call(f, args = c(list(p = p),ls.args))
         }
     }
-    
-    ## *** transform
-    if(is.null(transform.sigma)){
-        transform2.sigma <- "none"
-    }else{
-        transform2.sigma <- transform.sigma
-    }
-    if(is.null(transform.k)){
-        transform2.k <- "none"
-    }else{
-        transform2.k <- transform.k
-    }
-    if(is.null(transform.rho)){
-        transform2.rho <- "none"
-    }else{
-        transform2.rho <- transform.rho
-    }
-
-    ### *** derivative approximation
-    if(is.null(method.numDeriv)){
-        method.numDeriv <- options$method.numDeriv
-    }
-
-    ## ** estimate
-    beta <- stats::coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, options = options)
-    attr(beta, "transform.sigma") <- transform2.sigma
-    attr(beta, "transform.k") <- transform2.k
-    attr(beta, "transform.rho") <- transform2.rho
-    type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
-
-    ## ** partial derivative
-    fbeta <- ff(beta, keep.indiv = TRUE)
-    if(average){
-        fbeta.indiv <- attr(fbeta,"indiv")
-        attr(fbeta,"indiv") <- NULL
-    }
-    ## remove attributes otherwise is.vector(fbeta) is FALSE
-    if(!is.null(attr(fbeta,"transform.sigma"))){attr(fbeta,"transform.sigma") <- NULL}
-    if(!is.null(attr(fbeta,"transform.k"))){attr(fbeta,"transform.k") <- NULL}
-    if(!is.null(attr(fbeta,"transform.rho"))){attr(fbeta,"transform.rho") <- NULL}
-
-    if(!is.vector(fbeta) || (!is.numeric(fbeta) && !is.logical(fbeta))){
-        stop("The output of the function defined in the argument \'FUN\' must be a numeric vector. \n")
-    }
-    if(!is.null(names(fbeta)) && any(duplicated(names(fbeta)))){
-        stop("The output of the function defined in the argument \'FUN\' should not contain duplicated names. \n")
-    }
-
-    grad <- numDeriv::jacobian(func = ff, x = beta, method = method.numDeriv)
-    colnames(grad) <- names(beta)
-
-    ## revert back to usual transformation if vcov parameter not used
-    if(all(!is.na(grad))){
-        if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
-            transform2.sigma <- x$reparametrize$transform.sigma
-        }
-        if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
-            transform2.k <- x$reparametrize$transform.k
-        }
-        if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
-            transform2.rho <- x$reparametrize$transform.rho
-        }
-    }
-
-    ## ** extract variance-covariance
-    Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
-                         robust = robust, type.information = type.information, 
-                         transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
 
     ## ** delta-method
-    C.Sigma.C <- grad %*% Sigma %*% t(grad)
-
-    ## second order?
-    ## g(\thetahat) = g(\theta) + (\thetahat-\theta)grad + 0.5(\thetahat-\theta)lap(\thetahat-\theta) + ...
-    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25\Var[(\thetahat-\theta)lap(\thetahat-\theta)] + \Cov((\thetahat-\theta)grad,(\thetahat-\theta)lap(\thetahat-\theta)) + ...
-    ## https://stats.stackexchange.com/questions/427332/variance-of-quadratic-form-for-multivariate-normal-distribution
-    ## Var[g(\thetahat)] = grad\Var[\thetahat-\theta]grad + 0.25*2*tr((lap\Var[\thetahat-\theta])^2) + 0 + ...
-    
-    ## lap <- numDeriv::hessian(func = f, x = beta) ## laplacian
-    ## 2 * sum(diag(Sigma %*% lap %*% Sigma %*% lap))
-    if(average){
-        C.sigma.C <- sqrt(diag(C.Sigma.C) + sum((fbeta.indiv - fbeta)^2)/(length(fbeta.indiv)-1))
-    }else{
-        C.sigma.C <- sqrt(diag(C.Sigma.C))
-    }
- 
-    ## ** df
-    if(df){
-        colnames(grad) <- colnames(Sigma)
-        e.df <- .df_contrast(contrast = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "gradient"))
-    }else{
-        if(length(e.df)==1 & length(fbeta)>1){
-            e.df <- rep(e.df,length(fbeta))
-        }else if(length(e.df) != length(fbeta)){
-            stop("Incorrect length of argument \'df\': when a numeric vector it should have lenght either 1 or the output of argument \'f\'. \n",
-                 "Valid length: ",length(fbeta),". \n")
-        }
-    }
+    out <- .estimate(x, ff = ff, average = average, df = df, level = level, 
+                     robust = robust, type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                     method.numDeriv = method.numDeriv, options = options)
 
     ## ** export
-    alpha <- 1-level
-    out <- data.frame(estimate = as.double(fbeta),
-                      se = as.double(C.sigma.C),
-                      df = as.double(e.df),
-                      lower = as.double(fbeta + stats::qt(alpha/2, df = e.df) * C.sigma.C),
-                      upper = as.double(fbeta + stats::qt(1-alpha/2, df = e.df) * C.sigma.C),
-                      p.value = as.double(2*(1-stats::pt(abs(fbeta/C.sigma.C), df = e.df))))
-    attr(out,"gradient") <- grad
-    if(!is.null(names(fbeta))){
-        rownames(out) <- names(fbeta)
-        rownames(attr(out,"gradient")) <- names(fbeta)
-    }
-    colnames(attr(out,"gradient")) <- names(beta)
     return(out)
 }
 
-## * estimate.mlmm (documentation)
-##' @title Delta Method for Multiple Linear Mixed Models
-##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters from group-specific linear mixed models.
-##' 
-##' @param x  a \code{mlmm} object.
-##' @param f [function] function taking as input \code{p}, a vector containing the group-specific linear mixed model parameters, which outputs the parameter(s) of interest.
+## * estimate.Wald (documentation)
+##' @title Delta Method for Wald Tests
+##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters involved in Wald tests.
+##'
+##' @param x  a \code{Wald_lmm} object.
+##' @param f [function] function taking as input \code{object}, the \code{Wald_lmm} object, which outputs the parameter(s) of interest.
 ##' Can accept extra-arguments.
-##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors. 
-##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
 ##' Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.
-##' @param type.information [character] Should the expected information be used  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
-##' @param average [logical] is the estimand the average output of argument \code{f}?
-##' Otherwise consider each individual output of argument \code{f}.
 ##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
 ##' Passed to \code{numDeriv::jacobian}.
-##' @param transform.sigma [character] Transformation used on the variance coefficient for the reference level. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"} - see details.
-##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
-##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param ... extra arguments passed to \code{f}.
+##'
+##' @keywords mhtest
+##' 
+##' @details Based a first order delta method to evaluate the variance of the estimate.
+##' The derivative of the transformation is evaluated using numerical differentiation (\code{numDeriv::jacobian}). \cr \cr
+##' 
+##' Compared to \code{estimate.lmm}, the \code{f} argument cannot take \code{p} as argument.
+##' One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
+##' 
+##' @examples
 
-## * estimate.mlmm (code)
+## * estimate.Wald_lmm (code)
 ##' @export
-estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = NULL, level = 0.95,
-                          method.numDeriv = NULL, average = FALSE,
-                          transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, ...){
-
+estimate.Wald_lmm <- function(x, f, df = x$args$df, level = 0.95, method.numDeriv = NULL, ...){
 
     ## ** normalize arguments
     ## *** dots
@@ -328,55 +225,149 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         options <- LMMstar.options()
     }
     dots$options <- NULL
-    
+
     ## *** function
     f.formals <- formals(f)
     names.formals <- names(f.formals)
     is.empty <- sapply(f.formals,inherits,"name")
-    if("p" %in% names.formals == FALSE){
-        stop("Incorrect argument \'f\': the function should take \'p\' as argument. \n",
-             "It refers to the model parameters, coef(x, effects = \"all\"), that will be varied to assess uncertainty. \n")
+    if("object" %in% names.formals == FALSE){
+        stop("Incorrect argument \'f\': the function should take \'object\' as argument. \n",
+             "It refers to the output of anova based on model parameters that will be varied to assess uncertainty. \n")
+    }
+    if("p" %in% names.formals){
+        stop("Incorrect argument \'f\': the function should not take \'p\' as argument. \n",
+             "Consider using instead argument \'object\', refering to the output of anova based on model parameters that will be varied to assess uncertainty. \n")
     }
     if(any(names(dots) %in% names.formals == FALSE)){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    ls.args <- stats::setNames(vector(mode = "list", length = length(names.formals)-1), setdiff(names.formals,"p"))
+    ls.args <- stats::setNames(vector(mode = "list", length = length(names.formals)-1), setdiff(names.formals,"object"))
     ls.args[names(which(!is.empty))] <- f.formals[names(which(!is.empty))]
     ls.args[names(dots)] <- dots
-    if("object" %in% names(ls.args) && is.null(ls.args$object) || "x" %in% names(ls.args) && is.null(ls.args$x)){
-        ls.args <- c(list(x),ls.args[setdiff(names(ls.args),c("object","x"))])
-    }
-
+    
     ## *** df
+    ## e.df: [numeric] value for the degrees-of-freedom (estimated or given by the user)
+    ## df: [logical] whether degrees-of-freedom should be estimated
+    if(length(df)>1){
+        stop("Argument \'df\' must have length 1. \n")
+    }
+    if((!is.numeric(df) && !is.logical(df)) || !is.vector(df)){
+        stop("Argument \'df\' must be a numeric or logical value. \n")
+    }
+    if(is.numeric(df) && df %in% 0:1){
+        df <- as.logical(df)
+    }
     if(is.numeric(df)){
         e.df <- df
-        df <- FALSE
-    }else if(is.logical(df) && length(df)==1){
-        e.df <- NULL
-    }else{
-        stop("Argument \'df\' must be a logical value or a numeric vector. \n")
-    }
-
-    ## *** average
-    if(!is.logical(average)){
-        stop("Argument \'average\' must be TRUE or FALSE. \n")
-    }
-    if(average){
-        ff <- function(x, keep.indiv = FALSE){
-            iRes <- do.call(f, args = c(list(p = x),ls.args))
-            iOut <- mean(iRes)
-            if(keep.indiv){
-                attr(iOut,"indiv") <- iRes
+        df <- FALSE ## no need to estimate the degrees-of-freedom
+    }else if(is.logical(df)){
+        if(df==TRUE){
+            if(x$args$df==0){
+                stop("Argument \'df\' cannot be TRUE when no degrees-of-freedom have been stored. \n",
+                     "Consider setting the argument \'df\' to TRUE when calling lmm. \n")
             }
-            return(iOut)
-        }
-    }else{
-        ff <- function(x, keep.indiv = FALSE){
-            do.call(f, args = c(list(p = x),ls.args))
+            e.df <- NULL
+        }else{
+            e.df <- Inf
         }
     }
     
-    ## *** transform
+    ## *** derivative approximation
+    if(is.null(method.numDeriv)){
+        method.numDeriv <- options$method.numDeriv
+    }
+
+    ## ** wraper
+    ff <- function(p, keep.indiv){ ## x <- NULL
+        do.call(f, args = c(list(object = stats::update(x, p = p)), ls.args))
+    }
+
+    ## ** delta-method
+    out <- .estimate(x, ff = ff, average = FALSE, df = df, level = level, 
+                     transform.sigma = x$args$transform.sigma, transform.k = x$args$transform.k, transform.rho = x$args$transform.rho,
+                     method.numDeriv = method.numDeriv, options = options)
+
+    ## ** export
+    return(out)
+}
+
+## * estimate.rbindWald (documentation)
+##' @title Delta Method for Combined Wald Tests
+##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters involved in combined Wald tests.
+##'
+##' @param x  a \code{rbindWald_lmm} object.
+##' @param f [function] function taking as input \code{object}, the \code{rbindWald_lmm} object, which outputs the parameter(s) of interest.
+##' Can accept extra-arguments.
+##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
+##' Passed to \code{numDeriv::jacobian}.
+##' @param ... extra arguments passed to \code{f}.
+##'
+##' @keywords mhtest
+##' 
+##' @details Based a first order delta method to evaluate the variance of the estimate.
+##' The derivative of the transformation is evaluated using numerical differentiation (\code{numDeriv::jacobian}). \cr \cr
+##' 
+##' Compared to \code{estimate.lmm}, the \code{f} argument cannot take \code{p} as argument.
+##' One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
+##' 
+##' @examples
+##' data(gastricbypassL, package = "LMMstar")
+##' e.reg <- by(gastricbypassL, gastricbypassL$time, function(iData){
+##'    iLMM <- lmm(glucagonAUC ~ weight, data = iData, repetition = ~1|id)
+##'    anova(iLMM, "weight=0", simplify = FALSE)
+##' })
+##'
+##' e.Wald14 <- rbind(e.reg[[1]], e.reg[[2]], e.reg[[3]], e.reg[[4]])
+##'
+##' estimate(e.Wald14, function(object){ 
+##'    p <- coef(object)
+##'    c(p, average = mean(p))
+##' })
+##'
+##' estimate(e.Wald14, function(object){ 
+##'    coef(object, method = c("none","average"))
+##' })
+##' @export
+estimate.rbindWald_lmm <- estimate.Wald_lmm
+
+## * estimate.mlmm (code)
+##' @title Delta Method for Multiple Linear Mixed Models
+##' @description Estimate standard errors, confidence intervals, and p-values for a smooth transformation of parameters from multiple linear mixed models.
+##'
+##' @param x  a \code{rbindWald_lmm} object.
+##' @param f [function] function taking as input \code{object}, the \code{rbindWald_lmm} object, which outputs the parameter(s) of interest.
+##' Can accept extra-arguments.
+##' @param df [logical] Should degree-of-freedom, computed using Satterthwaite approximation, for the parameter of interest be output.
+##' Can also be a numeric vector providing providing the degrees-of-freedom relative to each estimate.
+##' @param level [numeric,0-1] the confidence level of the confidence intervals.
+##' @param method.numDeriv [character] method used to approximate the gradient: either \code{"simple"} or \code{"Richardson"}.
+##' Passed to \code{numDeriv::jacobian}.
+##' @param ... extra arguments passed to \code{f}.
+##'
+##' @keywords mhtest
+##' 
+##' @details Based a first order delta method to evaluate the variance of the estimate.
+##' The derivative of the transformation is evaluated using numerical differentiation (\code{numDeriv::jacobian}). \cr \cr
+##' 
+##' Compared to \code{estimate.lmm}, the \code{f} argument cannot take \code{p} as argument.
+##' One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
+##' 
+##' @keywords mhtest
+##' 
+##' @export
+estimate.mlmm <- estimate.Wald_lmm
+
+## * .estimate
+##' @description Perform delta method based on a refit function
+##' @noRd 
+.estimate <- function(x, ff, average, df, level, 
+                      robust = NULL, type.information = NULL, transform.sigma, transform.k, transform.rho,
+                      method.numDeriv, options){
+
+    ## ** initialize transform (for lmm only, otherwise transform.sigma/k/rho are provided, i.e. not NULL)
     if(is.null(transform.sigma)){
         transform2.sigma <- "none"
     }else{
@@ -393,17 +384,16 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
         transform2.rho <- transform.rho
     }
 
-    ### *** derivative approximation
-    if(is.null(method.numDeriv)){
-        method.numDeriv <- options$method.numDeriv
-    }
-
     ## ** estimate
-    beta <- stats::coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, order = "by", options = options)
+    beta <- stats::coef(x, effects = "all", transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, transform.names = FALSE, simplify = FALSE, options = options)
+    type.beta <- attr(beta,"type")
+    attr(beta, "type") <- NULL
+    attr(beta, "sigma") <- NULL
+    attr(beta, "k.x") <- NULL
+    attr(beta, "k.y") <- NULL
     attr(beta, "transform.sigma") <- transform2.sigma
     attr(beta, "transform.k") <- transform2.k
     attr(beta, "transform.rho") <- transform2.rho
-    type.beta <- stats::setNames(x$design$param$type,x$design$param$name)[names(beta)]
 
     ## ** partial derivative
     fbeta <- ff(beta, keep.indiv = TRUE)
@@ -426,7 +416,7 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     grad <- numDeriv::jacobian(func = ff, x = beta, method = method.numDeriv)
     colnames(grad) <- names(beta)
 
-    ## revert back to usual transformation if vcov parameter not used
+    ## revert back to usual transformation if vcov parameter not used (for lmm only, otherwise transform.sigma/k/rho are provided, i.e. not NULL)
     if(all(!is.na(grad))){
         if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
             transform2.sigma <- x$reparametrize$transform.sigma
@@ -440,8 +430,14 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
 
     ## ** extract variance-covariance
-    Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], robust = robust, type.information = type.information, 
-                         transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
+    if(is.null(robust) && is.null(type.information)){ ## Wald_lmm, rbindWald_lmm, mlmm
+        Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
+                             transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
+    }else{ ## lmm
+        Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
+                             robust = robust, type.information = type.information, 
+                             transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
+    }
 
     ## ** delta-method
     C.Sigma.C <- grad %*% Sigma %*% t(grad)
@@ -461,18 +457,20 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
     
     ## ** df
-    if(!is.null(e.df)){
-        if(length(e.df)==1 & length(fbeta)>1){
-            e.df <- rep(e.df,length(fbeta))
-        }else if(length(e.df) != length(fbeta)){
-            stop("Incorrect length of argument \'df\': when a numeric vector it should have same length as the number of estimates. \n",
-                 "Valid length: ",length(fbeta),". \n")
-        }
-    }else if(!is.null(attr(Sigma, "gradient"))){
+    if(df){
         colnames(grad) <- colnames(Sigma)
         e.df <- .df_contrast(contrast = grad, vcov.param = Sigma, dVcov.param = attr(Sigma, "gradient"))
+    }else if(length(df)==1){
+        if(identical(FALSE,df)){
+            e.df <- rep(Inf, length(fbeta))
+        }else{
+            e.df <- rep(df,length(fbeta))
+        }
+    }else if(length(e.df) != length(fbeta)){
+        stop("Incorrect length of argument \'df\': when a numeric vector it should have lenght either 1 or the output of argument \'f\'. \n",
+             "Valid length: ",length(fbeta),". \n")
     }else{
-        e.df <- rep(Inf, NROW(grad))
+        e.df <- df
     }
 
     ## ** export
@@ -490,611 +488,6 @@ estimate.mlmm <- function(x, f, df = FALSE, robust = FALSE, type.information = N
     }
     colnames(attr(out,"gradient")) <- names(beta)
     return(out)
-}
-
-
-## * .estimate (documentation)
-##' @title Optimizer for mixed models
-##' @description Optimization procedure for mixed model (REML or ML).
-##' Alternate between one step of gradient descent to update the variance parameters
-##' and a GLS estimation of the mean parameters.
-##' @noRd
-##'
-##' @param design [list] information about the mean and variance structure. Obtained using \code{.model.matrix.lmm}.
-##' @param time [list] information about the time variable (e.g. unique values)
-##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
-##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
-##' @param transform.sigma,transform.k,transform.rho possible transformations for the variance parameters.
-##' @param precompute.moments [logical] have certain key quantities be pre-computed (e.g. \eqn{X'X}).
-##' @param init [numeric vector] values used to initialize the mean and parameters.
-##' @param n.iter [integer,>0] maximum number of iterations.
-##' @param tol.score [double,>0] convergence is not reached unless each element of the score is smaller (in absolute value) than this value. 
-##' @param tol.param [double,>0] convergence is not reached unless the change in parameter values between two iterations is smaller (in absolute value) than this value. 
-##' @param init.cor [1,2] method to initialize the correlation parameters.
-##' @param trace [1, 2, or 3] should each iteration be displayed?
-##' 
-##' @examples
-##' ## simulate data in the long format
-##' set.seed(10)
-##' dL <- sampleRem(100, n.times = 3, format = "long")
-##' 
-##' ## fit Linear Mixed Model
-##' LMMstar.options(optimizer = "BFGS")
-##' eUN.gls <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
-##' 
-##' LMMstar.options(optimizer = "FS")
-##' eUN.lmm <- lmm(Y ~ X1 + X2 + X5, repetition = ~visit|id, structure = "UN", data = dL, df = FALSE)
-##'
-##' @keywords internal
-
-## * .estimate (code)
-.estimate <- function(design, time, method.fit, type.information, 
-                      transform.sigma, transform.k, transform.rho,
-                      precompute.moments, optimizer, init, n.iter, tol.score, tol.param, n.backtracking, init.cor, trace){
-
-    ## ** apply default values
-    if(is.null(trace)){
-        trace <- FALSE
-    }
-
-    ## ** prepare
-    index.cluster <- design$index.cluster
-
-    param.mu <- design$param[design$param$type=="mu","name"]
-    param.sigma <- design$param[design$param$type=="sigma","name"]
-    param.k <- design$param[design$param$type=="k","name"]
-    param.rho <- design$param[design$param$type=="rho","name"]
-    param.Omega <- c(param.sigma,param.k,param.rho)
-    param.name <- c(param.mu,param.Omega)
-
-    param.fixed <- design$param[!is.na(design$param$constraint),"name"]
-    param.Omega2 <- setdiff(param.Omega,param.fixed)
-    param.mu2 <- setdiff(param.mu,param.fixed)
-    param.fixed.mu <- setdiff(param.mu,param.mu2)
-    design.param2 <- design$param[match(param.Omega, design$param$name),,drop=FALSE]
-    
-    n.param <- length(param.name)
-    Upattern <- design$vcov$Upattern
-    n.Upattern <- NROW(Upattern)
-
-    if(length(param.fixed.mu)>0){
-        partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
-        partialY <- design$Y - partialHat
-            
-        if(!is.null(design$precompute.XX) && !is.null(design$precompute.XY) && length(param.mu2)>0){
-            ## remove XX involving fixed parameters
-            key.XX <- design$precompute.XX$key[param.mu2,param.mu2,drop=FALSE]
-            index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
-            key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]        
-            precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,index.precompute,drop=FALSE]})
-
-
-            ## update XY with X(Y-Xb(fixed))
-            if(attr(design$weights,"user-defined")){
-                wX.mean <- sweep(design$mean[,param.mu2,drop=FALSE], FUN = "*", MARGIN = 1, STATS = sqrt(design$weights[attr(index.cluster,"vectorwise")]))
-                wY <- cbind(partialY*sqrt(design$weights[attr(index.cluster,"vectorwise")]))
-            }else{
-                wX.mean <- design$mean[,param.mu2,drop=FALSE]
-                wY <- partialY
-            }
-            precompute.XY <- .precomputeXR(X = wX.mean,
-                                           residuals = wY,
-                                           pattern = design$vcov$Upattern$name,
-                                           pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                           pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
-
-        }else{
-            precompute.XY <- NULL
-            precompute.XX <- NULL
-            key.XX <- NULL
-        }
-        
-    }else{
-        partialY <- design$Y
-        precompute.XY <- design$precompute.XY
-        precompute.XX <- design$precompute.XX$pattern
-        key.XX <- design$precompute.XX$key
-    }
-    
-    effects <- c("variance","correlation")
-
-    ## ** intialization
-    if(!is.null(init)){
-
-        if(is.matrix(init)){
-            if(NROW(init)!=time$n || NCOL(init)!=time$n){
-                stop("When a matrix, initialization should be a square matrix with dimensions compatible with time (",time$n,"x",time$n,"). \n")
-            }
-            init.mu <- NULL
-            init.Omega <- init
-            init <- NULL
-        }else if(!is.vector(init)){
-            stop("Initialization should either be a vector containing value for all, or only mean parameters, \n",
-                 "or be a full data variance-covariance matrix. \n")
-        }else if(any(param.mu2 %in% names(init) == FALSE)){
-            stop("Initialization does not contain value for all mean parameters. \n",
-                 "Missing parameters: \"",paste(param.mu[param.mu %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
-        }else if(all(names(init) %in% param.mu)){
-            init.mu <- init
-            init.Omega <- NULL
-            init <- NULL
-        }else if(any(param.Omega %in% names(init) == FALSE)){
-            stop("Initialization does not contain value for all variance-covariance parameters. \n",
-                 "Missing parameters: \"",paste(param.Omega[param.Omega %in% names(init) == FALSE], collapse = "\" \""),"\". \n")
-        }
-
-    }else{
-        init.mu <- NULL
-        init.Omega <- NULL
-    }
-
-    if(is.null(init)){
-
-        param.value <- stats::setNames(rep(NA, n.param),param.name)
-
-        ## mean value
-        if(!is.null(init.mu)){
-            param.value[param.mu2] <- init.mu[param.mu2]
-        }else if(length(param.mu2)>0){
-
-            if(!is.null(init.Omega)){
-                start.OmegaM1 <- stats::setNames(lapply(Upattern$name, function(iPattern){ ## iPattern <- 1
-                    iCluster <- attr(design$vcov$pattern,"list")[[iPattern]][1]
-                    iTime <- design$index.clusterTime[[iCluster]]
-                    return(solve(init.Omega[iTime,iTime,drop=FALSE]))
-                }), Upattern$name)
-            }else{
-                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-                    diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
-                }), Upattern$name)
-            }
-            param.value[param.mu2] <- .estimateGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                                   Y = partialY, design = design, param.mu = param.mu2)
-        }
-        ## vcov values
-        iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
-        if(length(param.Omega2)>0){
-            if(is.null(init.Omega)){
-                outInit <- .initialize(design$vcov, init.cor = init.cor, method.fit = method.fit, residuals = iResiduals.long, Xmean = design$mean, index.cluster = index.cluster)
-            }else{
-                outInit <- .initialize2(design$vcov, index.clusterTime = design$index.clusterTime, Omega = init.Omega)
-            }
-        }else{
-            outInit <- NULL
-        }
-
-        ## check initialization leads to a positive definite matrix 
-        initOmega <- .calc_Omega(object = design$vcov, param = outInit, simplify = FALSE)        
-        test.npd <- sapply(initOmega,function(iOmega){any(eigen(iOmega, symmetric = TRUE)$values<0)})
-        if(any(test.npd)){ ## otherwise initialize as compound symmetry
-            param.value[setdiff(param.sigma,param.fixed)] <- outInit[setdiff(param.sigma,param.fixed)]
-            param.value[setdiff(param.k,param.fixed)] <- outInit[setdiff(param.k,param.fixed)]
-            param.value[setdiff(param.rho,param.fixed)] <- stats::median(outInit[setdiff(param.rho,param.fixed)])            
-        }else{        
-            param.value[names(outInit)] <- outInit
-        }
-    }else{
-        param.value <- init[param.name]     
-    }
-    if(trace>1){
-        cat("Initialization:\n")
-        print(param.value)
-    }
-
-    ## ** loop
-    update.param.Omega <- stats::setNames(rep(0, length(param.Omega)), param.Omega)
-
-    if(n.iter==0 || length(param.Omega2)==0){
-        cv <- as.numeric(length(param.Omega2)==0)
-        param.valueM1 <- NULL
-        logLik.value <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                     logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                     trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
-        logLik.valueM1 <- NULL
-        score.value <- NULL
-        iIter <- 0
-    }else if(optimizer=="FS"){
-        cv <- 0
-        param.valueM1 <- NULL
-        logLik.value <- -Inf
-        score.value <- stats::setNames(rep(Inf, length(param.value)), names(param.value))
-        information.value <- NULL
-        type.information <- "expected"
-        ## wolfe.c1 <- 1e-4
-        ## wolfe.c2 <- 0.9
-        iIter <- 0
-        if(trace>1){
-            cat("\nLoop:\n")
-        }
-        for(iiIter in 0:(n.iter-1)){ ## iIter <- 1
-            logLik.valueM1 <- logLik.value
-            score.valueM1 <- score.value
-            information.valueM1 <- information.value
-
-            ## *** estimate moments
-            outMoments <- .moments.lmm(value = param.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                       trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
-
-            logLik.value <- outMoments$logLik    
-            score.value <- outMoments$score    
-            information.value <- outMoments$information
-            ## if(iiIter==0){
-            ##     test.wolfe <- c(TRUE,TRUE)
-            ## }else{
-            ##     ## wolfe condition for full step
-            ##     test.wolfe <- .wolfe(update = update.value,
-            ##                          logLik.old = logLik.valueM1, logLik.new = logLik.value, 
-            ##                          score.old = score.valueM1, score.new = score.value, alpha = 1, c1 = wolfe.c1, c2 = wolfe.c2)
-            ## }
-            if(length(param.Omega2)==0){ ## deal with special case of no variance coefficient (e.g. when performing profile likelihood on sigma)
-                if(iIter==0){
-                    ## continue (do one iteration to get GLS estimate)
-                }else{
-                    cv <- 1
-                    break
-                }
-            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score[param.Omega2])<tol.score) && (iiIter==0 || all(abs(param.valueM1[param.Omega2] - param.value[param.Omega2])<tol.param))){
-                if(iiIter==0){
-                    param.valueM1 <- param.value * NA
-                }
-                cv <- 1
-                break
-            }else if(iiIter == 0 && is.na(logLik.value)){
-                cv <- -2
-                break
-            }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
-                outMoments <- .backtracking(valueM1 = param.valueM1, update = update.param.Omega, n.iter = n.backtracking,
-                                            design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                            logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, precompute.moments = precompute.moments,
-                                            precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX, Y = partialY, param.mu = param.mu2, param.Omega = param.Omega2)
-                
-                if(attr(outMoments,"cv")==FALSE){
-                    cv <- -1
-                    param.value <- param.valueM1 ## revert back to previous iteration
-                    break
-                }else{
-                    param.value <- attr(outMoments,"value")
-                    logLik.value <- outMoments$logLik    
-                    score.value <- outMoments$score    
-                    information.value <- outMoments$information
-                }
-            }
-
-            ## *** update variance-covariance estimate
-            param.valueM1 <- param.value
-            if(length(param.Omega2)>0){
-                
-                ## update variance-covariance parameters (transform scale)
-                update.param.Omega[param.Omega2] <- stats::setNames(as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE])), param.Omega2)
-                param.newvalue.trans <- outMoments$reparametrize$p + update.param.Omega
-                ## back to original (transform scale)
-                param.value[param.Omega] <- .reparametrize(param.newvalue.trans,
-                                                           type = design.param2$type,
-                                                           sigma = design.param2$sigma,
-                                                           k.x = design.param2$k.x,
-                                                           k.y = design.param2$k.y,
-                                                           Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                           transform.names = FALSE)$p
-            }
-            ## *** update mean estimate
-            if(length(param.mu2)>0){
-                iOmega <- .calc_Omega(object = design$vcov, param = param.value, simplify = FALSE)
-                param.value[param.mu2] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                                       pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                                       Y = partialY, design = design,
-                                                       param.mu = param.mu2)
-            }
-     
-            ## *** display
-            iIter <- iIter+1
-            if(trace > 0 && trace < 3){
-                cat("*")
-            }else{
-                if(!is.null(attr(outMoments,"n.backtrack"))){
-                    txt.backtract <- paste0(" (",attr(outMoments,"n.backtrack")," backtrack)")
-                }else{
-                    txt.backtract <- ""
-                }
-
-                if(trace==3){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
-                }else if(trace==4){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
-                    print(param.value)
-                }else if(trace > 4){
-                    cat("iteration ",iIter,txt.backtract,": logLik=",formatC(outMoments$logLik, digits = 10),"\n",sep="")
-                    M.print <- rbind(estimate = param.value,
-                                     diff = c(param.value - param.valueM1),
-                                     score = c(rep(NA, length(param.mu)),outMoments$score))
-                    print(M.print)
-                    cat("\n")
-                
-            }
-            }
-        
-    }
-
-        if(cv>0){
-            attr(cv,"message") <- "Convergence"
-        }else if(cv==0){
-            attr(cv,"message") <- "Stop optimization before convergence (maximum number of iterations reached)"
-        }else if(cv==-1){
-            attr(cv,"message") <- "Stop optimization before convergence (decreasing log-likelihood)"
-        }else if(cv==-2){
-            attr(cv,"message") <- "Stop optimization before convergence (log-likelihood=NA based on the initial values)"
-        }
-        if(trace>=1){
-            if(trace %in% 2:3){
-                cat("\n")
-                print(param.value)
-            }
-            if(length(param.Omega2)==0){
-                cat(attr(cv,"message")," after ",iIter," iteration. \n",sep="") ## only one iteration (GLS)
-            }else if(cv==-2){
-                cat(attr(cv,"message"),". \n",sep="") ## incorrect initialization
-            }else if(iIter==0){
-                cat(attr(cv,"message")," after ",iIter," iteration: max score=",max(abs(outMoments$score[param.Omega2])),"\n", sep = "")
-            }else{
-                cat(attr(cv,"message")," after ",iIter," iterations: max score=",max(abs(outMoments$score[param.Omega2]))," | max change in coefficient=",max(abs(param.valueM1 - param.value)),"\n", sep = "")
-            }
-        }
-        score <- outMoments$score
-    }else{
-        warper_obj <- function(p){
-            p.original <- .reparametrize(p,
-                                         type = design$param[match(names(param.value), design$param$name), "type"],
-                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
-                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
-                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
-                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                         transform.names = FALSE)$p
-            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
-                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                          logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$logLik
-        }
-        warper_grad <- function(p){
-            p.original <- .reparametrize(p,
-                                         type = design$param[match(names(param.value), design$param$name), "type"],
-                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
-                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
-                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
-                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                         transform.names = FALSE)$p
-            -.moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
-                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                          logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                          trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$score
-        }
-        warper_hess <- function(p){
-            p.original <- .reparametrize(p,
-                                         type = design$param[match(names(param.value), design$param$name), "type"],
-                                         sigma = design$param[match(names(param.value), design$param$name), "sigma"],
-                                         k.x = design$param[match(names(param.value), design$param$name), "k.x"],
-                                         k.y = design$param[match(names(param.value), design$param$name), "k.y"],
-                                         Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                         transform.names = FALSE)$p
-            .moments.lmm(value = p.original, design = design, time = time, method.fit = method.fit, type.information = "observed",
-                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                         logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                         trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)$information
-        }
-
-        ## *** reparametrize (original -> unconstrain scale)
-        param.value.trans <- .reparametrize(param.value,
-                                            type = design$param[match(names(param.value), design$param$name), "type"],
-                                            sigma = design$param[match(names(param.value), design$param$name), "sigma"],
-                                            k.x = design$param[match(names(param.value), design$param$name), "k.x"],
-                                            k.y = design$param[match(names(param.value), design$param$name), "k.y"],
-                                            Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                            transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                            transform.names = FALSE)$p
-
-        ## *** optimize
-        ## warper_obj(param.value.trans)
-        ## warper_obj(2*param.value.trans)
-        ## numDeriv::jacobian(x = param.value.trans, func = warper_obj)-warper_grad(param.value.trans)
-        if(trace<=0){trace <- 0}
-        res.optim <- optimx::optimx(par = param.value.trans, fn = warper_obj, gr = warper_grad, hess = warper_hess,
-                                    method = optimizer, itnmax = n.iter, control = list(trace = trace))
-        ## solution <- stats::setNames(as.double(res.optim[1,1:length(param.value.trans)]), names(param.value.trans))
-        ## warper_obj(solution)
-        ## warper_grad(solution)
-
-        ## *** reparametrize (unconstrain scale -> original)
-        param.value[] <- .reparametrize(as.double(res.optim[1:length(param.value)]),
-                                        type = design$param[match(names(param.value), design$param$name), "type"],
-                                        sigma = design$param[match(names(param.value), design$param$name), "sigma"],
-                                        k.x = design$param[match(names(param.value), design$param$name), "k.x"],
-                                        k.y = design$param[match(names(param.value), design$param$name), "k.y"],
-                                        Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                        transform.names = FALSE)$p
-
-        param.valueM1 <- NULL
-        score.value <- attr(res.optim,"details")[,"ngatend"][[1]]
-        logLik.value <- NULL
-        logLik.valueM1 <- NULL
-        iIter <- res.optim$niter
-        attr(iIter,"eval") <- c("logLik" = NA, "score" = NA)
-        if("fevals" %in% names(res.optim)){
-            attr(iIter,"eval")["logLik"] <- res.optim$fevals
-        }
-        if("gevals" %in% names(res.optim)){
-            attr(iIter,"eval")["score"] <- res.optim$gevals
-        }
-        cv <- as.numeric(res.optim$convcode==0)
-    }
-
-    ## ** export
-    return(list(estimate = param.value,
-                previous.estimate = param.valueM1,
-                logLik = logLik.value,
-                previous.logLik = logLik.valueM1,
-                score = score.value,
-                n.iter = iIter,                
-                cv = cv,
-                control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
-                            n.backtracking = as.double(n.backtracking), init.cor = as.double(init.cor))
-                ))
-}
-
-## * .estimateGLS
-## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
-.estimateGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, Y, design, param.mu){
-    name.param <- param.mu
-    n.param <- length(name.param)
-    numerator <- matrix(0, nrow = n.param, ncol = 1)
-    denominator <- matrix(0, nrow = n.param, ncol = n.param)
-
-    if(!is.null(key.XX)){
-        max.key <- key.XX[n.param,n.param]
-    }
-
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        if(!is.null(precompute.XX) && !is.null(precompute.XY)){
-            iVec.Omega <- as.double(OmegaM1[[iPattern]])
-            iTime2 <- length(iVec.Omega)
-            numerator <- numerator + t(iVec.Omega %*%  precompute.XY[[iPattern]])
-            denominator <- denominator + as.double(iVec.Omega %*%  precompute.XX[[iPattern]])[key.XX]
-        }else{
-            iIndexCluster <- design$index.cluster[design$vcov$pattern == which(pattern==iPattern)]
-            for(iId in 1:length(iIndexCluster)){ ## iId <- 2
-                iX <- design$mean[iIndexCluster[[iId]],param.mu,drop=FALSE]
-                numerator  <- numerator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% Y[iIndexCluster[[iId]]])
-                denominator  <- denominator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% iX)
-            }
-
-        }
-    }
-
-    out <- solve(denominator, numerator)    
-    return(stats::setNames(as.double(out), name.param))
-}
-
-## * .wolfe
-## Nocedal 2000 Numerical optimization page 34 (formula 3.
-## (3.6a) f(x_k + \alpha_k p_k) <= f(x_k) + c_1 \alpha_k \nabla f_k p_k
-##        -logLik_{k+1} <= -logLik_{k} + c_1 \alpha_k Score_k update_k
-## MAKE SURE THAT THE CHANGE IN LOGLIK WORTH THE AMOUNT OF UPDATE OTHERWISE WE SHOULD HALF THE UPDATE
-## (3.6b) \nable f(x_k + \alpha_k p_k) p_k >= c_2 \nabla f_k p_k
-##        -Score_{k+1} update_k <=c2 Score_k update_k
-## MAKE SURE THAT THE SCORE IS NOT TOO NEGATIVE OTHERWISE WE COULD GO FURTHER
-.wolfe <- function(update, logLik.old, logLik.new, score.old, score.new, alpha, c1, c2){
-    if(!is.na(c1)){
-        test.a <- as.vector( (-logLik.new) <= (-logLik.old) + c1 * alpha * update %*% (-score.old) )
-    }else{
-        test.a <- TRUE
-    }
-    if(!is.na(c2)){
-        test.b <- as.vector(update %*% (-score.new) <= - c2 * update %*% (-score.old))
-    }else{
-        test.b <- TRUE
-    }
-    return(c(test.a, test.b))
-}
-
-## * backtracking
-.backtracking <- function(valueM1, update, n.iter,
-                          design, time, method.fit, type.information,
-                          transform.sigma, transform.k, transform.rho, 
-                          logLikM1, scoreM1, informationM1, information, effects, precompute.moments,
-                          precompute.XY, precompute.XX, key.XX, Y, param.mu, param.Omega){
-
-    if(n.iter<=0){return(list(cv = FALSE))}
-    
-    alpha <- 1/2
-    design.param <- design$param[match(param.Omega, design$param$name),,drop=FALSE]                                                
-    valueNEW <- valueM1
-    momentNEW <- NULL
-    cv <- FALSE
-
-    ## move param to transform scale
-    valueM1.trans <- .reparametrize(valueM1[param.Omega],
-                                    type = design.param$type,
-                                    sigma = design.param$sigma,
-                                    k.x = design.param$k.x,
-                                    k.y = design.param$k.y,
-                                    Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                    transform.names = FALSE)$p
-
-    for(iIter in 1:n.iter){
-
-        ## update variance-covariance parameters (transform scale)
-        valueNEW.trans <- stats::setNames(valueM1.trans[param.Omega] + alpha * update[param.Omega], param.Omega)
-
-        ## update variance-covariance parameters (original scale)
-        valueNEW[param.Omega] <- .reparametrize(valueNEW.trans,
-                                                type = design.param$type,
-                                                sigma = design.param$sigma,
-                                                k.x = design.param$k.x,
-                                                k.y = design.param$k.y,
-                                                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                transform.names = FALSE)$p
-
-        ## estimate residual variance-covariance matrix
-        iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, simplify = FALSE)
-        iDet <- sapply(iOmega,det) 
-        if(any(is.na(iDet)) || any(iDet<0)){
-            alpha <- alpha/2
-            next
-        }
-        
-        ## update mean parameters
-        if(length(param.mu)>0){
-            valueNEW[param.mu] <- .estimateGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                               pattern = design$vcov$Upattern$name,
-                                               precompute.XY = precompute.XY,
-                                               precompute.XX = precompute.XX,
-                                               key.XX = key.XX,
-                                               Y = Y,
-                                               design = design,
-                                               param.mu = param.mu)
-        }
-
-        ## compute moments
-        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                  trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
-
-        ## ## check wolfe condition
-        ## test.wolfe <- .wolfe(update,
-        ##                      logLik.old = logLikM1, logLik.new = momentNEW$score,
-        ##                      score.old = scoreM1, score.new = momentNEW$score,
-        ##                      alpha = alpha, c1 = c1, c2 = c2)
-        ## check convergence
-        if(is.na(momentNEW$logLik) || momentNEW$logLik<logLikM1){
-            alpha <- alpha/2
-        }else{
-            cv <- TRUE
-            break
-        }
-
-    }
-
-    ## ** export
-    if(is.null(momentNEW)){
-        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                  trace = FALSE, precompute.moments = precompute.moments, transform.names = FALSE)
-    }
-    attr(momentNEW,"value") <- valueNEW
-    attr(momentNEW,"cv") <- cv
-    attr(momentNEW,"n.backtrack") <- iIter
-    
-    return(momentNEW)
 }
                 
 ##----------------------------------------------------------------------
