@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 17 2025 (15:47) 
+## Last-Updated: jul 18 2025 (12:35) 
 ##           By: Brice Ozenne
-##     Update #: 347
+##     Update #: 378
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -579,7 +579,6 @@ effects2contrast <- function(object, effects, rhs, options){
              "or a contrast matrix. \n", "or covariate names \n ")
     }
 
-
     ## ** Generate contrast matrix
     if(all(effects %in% effects.ref)){
         ## *** Case 1: effects refer to a type of parameter
@@ -588,7 +587,7 @@ effects2contrast <- function(object, effects, rhs, options){
         ls.null <- list()
 
         if("mean" %in% effects){
-     
+            
             ## names of the terms in the design matrix
             terms.mean <- attr(object.X$mean,"term.labels")
 
@@ -605,21 +604,27 @@ effects2contrast <- function(object, effects, rhs, options){
         }
 
         if("variance" %in% effects){
-             
+            
             ## names of the k coefficients
             name.coef.k <- name.coef[type.coef == "k"]
             n.coef.k <- length(name.coef.k)
 
             ## terms
             if(is.null(name.strata.sigma)){
+                ## no strata: test each term
                 terms.var <- unique(attr(object.X$var,"term.labels") [match(name.coef.k, colnames(object.X$var))])
+            }else if(all(attr(object.X$var,"variable") %in% strata.var | attr(object.X$var,"variable") %in% attr(strata.var,"original"))){
+                ## no term: test strata
+                terms.var <- rep(paste(attr(strata.var,"original"),collapse=", "), length(name.strata.sigma))
             }else{
-                terms.var <- paste(c(name.strata.sigma,setdiff(attr(object.X$var,"variable"), strata.var)), collapse = ":")
+                ## term and strata: test term(s) within strata
+                terms.var <- sapply(name.strata.sigma, function(iStrata){paste(iStrata,setdiff(attr(object.X$var,"variable"), strata.var), sep = ":")})
             }
+            Uterms.var <- unique(terms.var)
 
             ## contrast matrix 
-            ls.contrast$k <- stats::setNames(lapply(name.coef.sigma, function(iSigma){ ## iSigma <- name.coef.sigma[1]
-                iCoef <- intersect(name.coef.k, object.coef[object.coef$sigma == iSigma,"name"])
+            ls.contrast$k <- stats::setNames(lapply(Uterms.var, function(iTerm){ ## iTerm <- Uterms.var[1]
+                iCoef <- name.coef.k[terms.var==iTerm]
                 iC <- matrix(0, nrow = length(iCoef), ncol = n.coef,
                              dimnames = list(paste0(iCoef,"=1"), name.coef))
                 iC[,iCoef] <- diag(1, nrow = length(iCoef))
@@ -629,24 +634,30 @@ effects2contrast <- function(object, effects, rhs, options){
         }
 
         if("correlation" %in% effects){
-                
+
             ## names of the rho coefficients
             name.coef.rho <- name.coef[type.coef == "rho"]
             n.coef.rho <- length(name.coef.rho)
             if(is.null(name.strata.sigma)){
+                ## no strata: test each term
                 terms.cor <- unique(attr(object.X$cor,"term.labels"))
+            }else if(all(attr(object.X$cor,"variable") %in% strata.var | attr(object.X$cor,"variable") %in% attr(strata.var,"original"))){
+                ## no term: test strata
+                terms.cor <- rep(paste(attr(strata.var,"original"),collapse=", "), length(name.strata.sigma))
             }else{
-                terms.cor <- paste(c(name.strata.sigma,setdiff(attr(object.X$cor,"variable"), strata.var)), collapse = ":")
+                ## term and strata: test term(s) within strata
+                terms.cor <- sapply(name.strata.sigma, function(iStrata){paste(iStrata,setdiff(attr(object.X$cor,"variable"), strata.var), sep = ":")})
             }
+            Uterms.cor <- unique(terms.cor)
 
             ## contrast matrix 
-            ls.contrast$rho <- stats::setNames(lapply(name.coef.sigma, function(iSigma){ ## iSigma <- name.coef[type.coef=="sigma"][1]
-                iCoef <- intersect(name.coef.rho, object.coef[object.coef$sigma == iSigma,"name"])
+            ls.contrast$rho <- stats::setNames(lapply(Uterms.cor, function(iTerm){ ## iTerm <- Uterms.cor[1]
+                iCoef <- name.coef.rho[terms.cor==iTerm]
                 iC <- matrix(0, nrow = length(iCoef), ncol = n.coef,
                              dimnames = list(paste0(iCoef,"=0"), name.coef))
                 iC[,iCoef] <- diag(1, nrow = length(iCoef))
                 return(iC)                
-            }),terms.cor)
+            }),Uterms.cor)
             ls.null$rho <- lapply(ls.contrast$rho, function(iC){stats::setNames(rep(0, NROW(iC)),rownames(iC))})
         }
         
@@ -656,7 +667,7 @@ effects2contrast <- function(object, effects, rhs, options){
         ## *** Case 2: effects refer to a mcp object (multcomp package)
 
         out.m2c <- try(multcomp::glht(object, linfct = effects), silent = TRUE)
-            
+        
         if(inherits(out.m2c,"try-error")){
             valid.type <- eval(formals(multcomp::contrMat)$type)
             if(length(effects)==1 && length(effects[[1]])==1 && is.character(effects[[1]]) && effects[[1]] %in% valid.type == FALSE){
@@ -675,10 +686,10 @@ effects2contrast <- function(object, effects, rhs, options){
         ls.contrast <- list(user = list(user = out.m2c$linfct))
         ls.null  <- list(user = list(user = stats::setNames(out.m2c$rhs, rownames(out.m2c$linfct))))
         backtransform <- TRUE
-   
+        
     }else if(is.matrix(effects)){
         ## *** Case 3: effects refer to contrast matrix
-            
+        
         if(is.null(colnames(effects))){
             colnames(effects) <- name.coef
             rescue <- FALSE
@@ -714,7 +725,7 @@ effects2contrast <- function(object, effects, rhs, options){
         }
         ls.contrast <- list(user = list(user = effects))
         ls.null  <- list(user = list(user = rhs))
-            
+        
     }else if(is.character(effects)){
         ## *** Case 4: effects refer to variable names or equations
         out.eq2c <- equation2contrast(effects,

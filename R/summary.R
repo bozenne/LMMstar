@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 17 2025 (14:29) 
+## Last-Updated: jul 18 2025 (11:30) 
 ##           By: Brice Ozenne
-##     Update #: 1813
+##     Update #: 1826
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -964,13 +964,15 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
                 
                 nchar2.type <- nchar(rowname.multivariate)
                 maxchar2.type <- max(nchar2.type)
-                vec2.white <- sapply(maxchar2.type-nchar2.type, function(iN){paste(rep(" ", iN), collapse = "")})
-                rownames(table.multivariate) <- paste(vec2.white,rowname.multivariate,sep="")                                
+                
+                vec2.white <- sapply(maxchar2.type-nchar2.type, function(iN){paste(rep(" ", iN), collapse = "")}) 
+                attr(table.multivariate,"row.names") <- paste(vec2.white,rowname.multivariate,sep="") ## used instead of rownames to avoid error when providing duplicated row names
+                ## (e.g. stratified UN (male/female): the variance and correlation wil both have a line genderfemale:visit)                             
             }else{
                 rownames(table.multivariate) <- object$multivariate$term
             }
         }else{            
-            rownames(table.multivariate) <- "all"
+            rownames(table.multivariate) <- "all" 
         }
 
         ## restaure attributes (i.e. message)
@@ -1142,18 +1144,21 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     if("p.value" %in% names(table)){
         if(all(is.na(table$p.value))){
             table.print <- table[,setdiff(names(table),"p.value"),drop=FALSE]
-        }else{
+        }else{ ## use attr(.,"row.names") <- to restore the row names to handle the case of duplicated rownames
+            keep.rownames <- rownames(table)
+            rownames(table) <- NULL
             table.print <- cbind(table,
                                  stats::symnum(table$p.value, corr = FALSE, na = FALSE,
                                                cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                                                symbols = c("***", "**", "*", ".", " "))
                                  )
             names(table.print)[NCOL(table.print)] <- ""
+            attr(table.print,"row.names") <- keep.rownames
         }
     }else{
         table.print <- table
     }
-    
+   
 
     ## ** round
     columns.num <- setdiff(names(table)[sapply(table,is.numeric)],c("p.value",col.df))
@@ -1195,10 +1200,10 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }
 
     ## ** add space to rownames
-    if(identical(rownames(table.print),"1")){
-        rownames(table.print) <- space
+    if(identical(rownames(table.print),"1")){ ## use attr(.,"row.names") <- instead of rownames() <- to handle the case of duplicated rownames
+        attr(table.print,"row.names") <- space
     }else{
-        rownames(table.print) <- paste(space,rownames(table.print))
+        attr(table.print,"row.names") <- paste(space,rownames(table.print))
     }
     ## ** subset columns
     table.print <- table.print[,names(table.print) %in% columns,drop=FALSE]

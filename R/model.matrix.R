@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 16 2024 (15:03) 
+## Last-Updated: jul 18 2025 (12:20) 
 ##           By: Brice Ozenne
-##     Update #: 3259
+##     Update #: 3266
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -911,11 +911,17 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }else if(is.factor(data[[iVar]])){
             out <- stats::contrasts(data[[iVar]])
             if(any(colSums(abs(out)>1e-12)>1)){
-                if(any(options()$contrast!=c("contr.treatment","contr.poly"))){
-                    stop("Cannot handle contrasts involving simultaneously several levels. \n",
+                txt.error <- paste0("The column \"",iVar,"\" of argument \'data\' involves contrasts with multiple levels. \n",
+                                    "This can be seen when running stats::contrasts(data$",iVar,"). \n")
+                if(inherits(data[[iVar]],"ordered")){
+                    stop(txt.error,
+                         "Could be because \"",iVar,"\" is an ordered factor instead of a (usual) factor. \n",
+                         "Considering applying as.factor to the variable before running lmm. \n")
+                }else if(any(options()$contrast!=c("contr.treatment","contr.poly"))){
+                    stop(txt.error,
                          "Could be because options()$contrast has been modified to non-standard contrasts. \n")
                 }else{
-                    stop("Cannot handle contrasts involving simultaneously several levels. \n")
+                    stop(txt.error)
                 }
             }
         }else{

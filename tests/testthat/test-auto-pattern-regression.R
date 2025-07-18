@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 31 2023 (09:54) 
 ## Version: 
-## Last-Updated: May 18 2024 (13:20) 
+## Last-Updated: jul 18 2025 (15:46) 
 ##           By: Brice Ozenne
-##     Update #: 22
+##     Update #: 26
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -270,7 +270,7 @@ test_that("Unstructured covariance matrix (REML)",{
     ## expect_equal(as.double(test), as.double(GS), tol = 1e-6)
 
     ## ** information
-    expect_equal(vcov(eUNexp.lmm, effects = "mean"), vcov(eUN.gls), tol = 1e-6)
+    expect_equivalent(vcov(eUNexp.lmm, effects = "mean"), vcov(eUN.gls), tol = 1e-6)
 
     ## no transformation
     newp <- coef(eUN.lmm, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")+0.1
@@ -373,7 +373,7 @@ test_that("Unstructured covariance matrix (REML)",{
                  tol = 1e-2)
 
     ## ** anova
-    eUN.lmm_anova <- anova(eUN.lmm, effects = "all", ci = TRUE)$multivariate
+    eUN.lmm_anova <- anova(eUN.lmm, effects = "all")$multivariate
     expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="mu","df.denom"], c(99.00144, 96.18348, 94.17755), tol = 1e-1)
     expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="k","df.denom"], c(189.236), tol = 1e-1)
     expect_equal(eUN.lmm_anova[eUN.lmm_anova$type=="rho","df.denom"], c(20.66968), tol = 1e-1)
@@ -658,7 +658,7 @@ test_that("Stratified unstructured (REML)",{
     ## ** information
     name.all <- names(coef(eSUN.lmm, effects = "all"))
     name.mu <- names(coef(eSUN.lmm, effects = "mean"))
-    name.vcov <- names(coef(eSUN.lmm, effects = c("variance","covariance")))
+    name.vcov <- names(coef(eSUN.lmm, effects = c("variance")))
     name.vcovM <- grep(":male",name.vcov,value=TRUE)
     name.vcovF <- grep(":female",name.vcov,value=TRUE)
 
@@ -753,11 +753,14 @@ test_that("Stratified unstructured (REML)",{
     expect_equal(test$df, GS, tol = 1e-3)
     
     ## ** anova
-    eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all", ci = TRUE)$multivariate
+    eSUN.lmm_anova <- anova(eSUN.lmm, effects = "all")$multivariate
     expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="mu","df.denom"], c(57.00206139, 55.02679117, 67.96985137, 93.51660476, 54.92384757), tol = 1e-1)
-    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="k","df.denom"], c(86.07826), tol = 1e-1)
-    expect_equal(eSUN.lmm_anova[eSUN.lmm_anova$type=="rho","df.denom"], c(9.100919), tol = 1e-1)
 
+    eSUN.lmm_anovaALLk <- anova(eSUN.lmm, effects = paste0(names(coef(eSUN.lmm, effects = "variance")[-(1:2)]),"=1"))$multivariate
+    eSUN.lmm_anovaALLrho <- anova(eSUN.lmm, effects = paste0(names(coef(eSUN.lmm, effects = "correlation")),"=0"))$multivariate
+    expect_equal(eSUN.lmm_anovaALLk[eSUN.lmm_anovaALLk$type=="k","df.denom"], c(86.07826), tol = 1e-1)
+    expect_equal(eSUN.lmm_anovaALLrho[eSUN.lmm_anovaALLrho$type=="rho","df.denom"], c(9.100919), tol = 1e-1)
+    
 
     ## ** getVarCov
     Omega.GS <- list("female" = matrix(c(0.87759105, 0.1151575, 0.06705109, 0.12241344, 0.1151575, 0.87666546, -0.09762837, 0.35757795, 0.06705109, -0.09762837, 0.81905439, -0.00726966, 0.12241344, 0.35757795, -0.00726966, 1.04251101), 

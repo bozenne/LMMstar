@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 31 2022 (11:36) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:43) 
+## Last-Updated: jul 18 2025 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 86
+##     Update #: 89
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,6 @@
 if(FALSE){
     library(lava)
     library(testthat)
-    library(lme4)
 
     library(LMMstar)
 }
@@ -33,6 +32,7 @@ set.seed(10)
 d <- sampleRem(1e2, n.time = 2)
 d$dX <- d$X2 - d$X1
 d$dY <- d$Y2 - d$Y1
+d$baseline <- d$Y1
 
 ## ** ANCOVA
 e.ANCOVA1 <- lm(Y2~Y1+X1, data = d)
@@ -40,12 +40,14 @@ e.ANCOVA2 <- lm(dY~Y1+X1, data = d)
 
 test_that("delta method for association based on residual variance", {
 
-    dL2 <- reshape(d, direction = "long", idvar = "id",
-                   timevar = "variable", times = c("Y1","Y2"), varying = c("Y1","Y2"), 
-                   v.names = "value")
+    dL2 <- reshape(d, direction = "long", idvar = c("id","baseline"),
+                   timevar = "time", times = c("Y1","Y2"), varying = c("Y1","Y2"), 
+                   v.names = "Y")
+    dL2$baseline[dL2$time=="Y1"] <- 0
+    rownames(dL2) <- NULL
 
     ## ANCOVA1
-    e.lmmANCOVA1 <- lmm(value ~ variable + variable:X1, data = dL2, repetition = ~variable|id)
+    e.lmmANCOVA1 <- lmm(Y ~ time + time:X1, data = dL2, repetition = ~time|id)
     e.coefANCOVA1 <- coef(e.lmmANCOVA1, effects  = "all")
     e.OmegaANCOVA1 <- sigma(e.lmmANCOVA1)
     e.vcovANCOVA1 <- vcov(e.lmmANCOVA1, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")
@@ -60,7 +62,7 @@ test_that("delta method for association based on residual variance", {
     expect_equal(unname(e.coefANCOVA1["k.Y2"]*e.coefANCOVA1["rho(Y1,Y2)"]), unname(coef(e.ANCOVA1)["Y1"]), tol = 1e-5)
 
     ## (with X1)
-    expect_equal(unname(e.coefANCOVA1["variableY2:X1"]-e.coefANCOVA1["k.Y2"]*e.coefANCOVA1["rho(Y1,Y2)"]*e.coefANCOVA1["variableY1:X1"]),
+    expect_equal(unname(e.coefANCOVA1["timeY2:X1"]-e.coefANCOVA1["k.Y2"]*e.coefANCOVA1["rho(Y1,Y2)"]*e.coefANCOVA1["timeY1:X1"]),
                  unname(coef(e.ANCOVA1)["X1"]), tol = 1e-5)
 
     ## ## check variance
@@ -71,12 +73,12 @@ test_that("delta method for association based on residual variance", {
     
     e.deltaANCOVA1 <- estimate(e.lmmANCOVA1, function(p){
         c(Y1 = p["rho(Y1,Y2)"]*p["k.Y2"],
-          X1 = p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"])
+          X1 = p["timeY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["timeY1:X1"])
     })
     e.deltaANCOVA1.bis <- estimate(e.lmmANCOVA1, function(p){
         Omega <- sigma(e.lmmANCOVA1, p = p)
         c(Y1 = Omega["Y1","Y2"]/Omega["Y1","Y1"],
-          X1 = p["variableY2:X1"]-(Omega["Y1","Y2"]/Omega["Y1","Y1"])*p["variableY1:X1"])
+          X1 = p["timeY2:X1"]-(Omega["Y1","Y2"]/Omega["Y1","Y1"])*p["timeY1:X1"])
     })
     
     
@@ -93,10 +95,7 @@ test_that("delta method for association based on residual variance", {
     expect_equal(as.double(unlist(e.deltaANCOVA1)), as.double(unlist(test)), tol = 1e-5)
 
     ## ANCOVA2
-    dL22 <- dL2
-    dL22$Y1[dL22$variable=="Y1"] <- 0
-   
-    e.lmmANCOVA2 <- lmm(value ~ variable+variable:X1+Y1, data = dL22, repetition = ~variable|id, type.information = "expected")
+    e.lmmANCOVA2 <- lmm(Y ~ time+time:X1+baseline, data = dL2, repetition = ~time|id, type.information = "expected")
     ## summary(lm(value ~ variable+variable:X1+Y1, data = dL22))
     ## summary(gls(value ~ variable+variable:X1+Y1, data = dL22, correlation = corSymm(form=~1|id), weights = varIdent(form=~1|variable)))
     e.coefANCOVA2 <- coef(e.lmmANCOVA2, effects  = "all")
@@ -104,12 +103,12 @@ test_that("delta method for association based on residual variance", {
     e.vcovANCOVA2 <- vcov(e.lmmANCOVA2, effects = "all", transform.sigma = "none", transform.k = "none", transform.rho = "none")
 
     ## check estimate
-    expect_equal(unname(e.coefANCOVA2["Y1"]+e.coefANCOVA2["k.Y2"]*e.coefANCOVA2["rho(Y1,Y2)"]-1), unname(coef(e.ANCOVA2)["Y1"]), tol = 1e-5)
-    expect_equal(unname(e.coefANCOVA2["variableY2:X1"]-e.coefANCOVA2["k.Y2"]*e.coefANCOVA2["rho(Y1,Y2)"]*e.coefANCOVA2["variableY1:X1"]), unname(coef(e.ANCOVA2)["X1"]), tol = 1e-5)
+    expect_equal(unname(e.coefANCOVA2["baseline"]+e.coefANCOVA2["k.Y2"]*e.coefANCOVA2["rho(Y1,Y2)"]-1), unname(coef(e.ANCOVA2)["Y1"]), tol = 1e-5)
+    expect_equal(unname(e.coefANCOVA2["timeY2:X1"]-e.coefANCOVA2["k.Y2"]*e.coefANCOVA2["rho(Y1,Y2)"]*e.coefANCOVA2["timeY1:X1"]), unname(coef(e.ANCOVA2)["X1"]), tol = 1e-5)
 
     e.deltaANCOVA2 <- estimate(e.lmmANCOVA2, function(p){
-        c(Y1 = as.double(p["Y1"]+p["k.Y2"]*p["rho(Y1,Y2)"]-1),
-          X1 = as.double(p["variableY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["variableY1:X1"]))
+        c(Y1 = as.double(p["baseline"]+p["k.Y2"]*p["rho(Y1,Y2)"]-1),
+          X1 = as.double(p["timeY2:X1"]-p["k.Y2"]*p["rho(Y1,Y2)"]*p["timeY1:X1"]))
     })
     ## do not match standard error
     ## summary(e.ANCOVA2)$coef[c("Y1","X1"),]
@@ -135,11 +134,11 @@ summary(e.lm)$coef["dX",]
 test_that("delta method for association based on residual variance", {
 
     dL2 <- reshape(d, direction = "long", idvar = "id",
-                   timevar = "variable", times = c("dX","dY"), varying = c("dX","dY"), 
-                   v.names = "value")
+                   timevar = "time", times = c("dX","dY"), varying = c("dX","dY"), 
+                   v.names = "Y")
 
     ## bivariate mixed model estimating the association between the changes
-    e.lmm2 <- lmm(value ~ variable, data = dL2, repetition = ~variable|id)
+    e.lmm2 <- lmm(Y ~ time, data = dL2, repetition = ~time|id)
 
     e.coef2 <- coef(e.lmm2, effects  = "all")
     e.Omega2 <- sigma(e.lmm2)

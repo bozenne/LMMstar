@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:29) 
+## Last-Updated: jul 18 2025 (16:36) 
 ##           By: Brice Ozenne
-##     Update #: 57
+##     Update #: 58
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,6 +115,7 @@ dL$visit <- factor(dL$visit,
                    levels = 1:length(name.varying),
                    labels = name.varying)
  
+## LMMstar.options(param.optimizer = c(init.cor = 2))
 
 ## ** test
 test_that("multiple t-test",{

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: okt 20 2024 (16:42) 
+## Last-Updated: jul 18 2025 (10:35) 
 ##           By: Brice Ozenne
-##     Update #: 186
+##     Update #: 187
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -193,12 +193,12 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     stop("Element \"tol.param\" in argument \'param.optimizer\' should be strictly positive. \n")
                 }                
                 if(("init.cor" %in% names(args$param.optimizer))){
-                    if(is.numeric(init.cor)){
+                    if(is.numeric(args$param.optimizer["init.cor"])){
                         if(args$param.optimizer["init.cor"] %in% 1:2 == FALSE){
                             stop("Element \"init.cor\" in argument \'param.optimizer\' should either be 1 (i.e. \"average\") or 2 (i.e. \"overall\"). \n")
                         }
                     }else{
-                        if(is.factor(init.cor)){
+                        if(is.factor(args$param.optimizer["init.cor"])){
                             args$param.optimizer["init.cor"] <- as.character(args$param.optimizer["init.cor"])
                         }
                         if(args$param.optimizer["init.cor"] %in% c("average","overall") == FALSE){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:04) 
+## Last-Updated: jul 18 2025 (10:53) 
 ##           By: Brice Ozenne
-##     Update #: 401
+##     Update #: 410
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,10 +16,13 @@
 ### Code:
 
 ## * aggregate
-##' @description Pool estimates
-##' @noRd
+##' @title Pool Estimates
+##' @description Pool estimates from one or several linear mixed models. \code{confint} is the prefered method as this is meant for internal use.
 ##' 
+##' @param object output of \code{anova.lmm}, \code{rbind.Wald_lmm}, or \code{mlmm}.
 ##' @param method [character] method(s) used to pool the estimates
+##' @param rhs [logical or numeric vector] either the right-hand side of the null hypotheses to be tested
+##' or whether the value of the summary statistic under the null hypothesis should be computed - mostly relevant when \code{method="p.rejection"} where this can be time consuming.
 ##' @param columns [character] column(s) to be exported
 ##' @param qt [numeric or character] critical quantile to be considered when evaluating the proportion of rejected hypotheses.
 ##' Can also be the name of a multiple testing method from which the quantile should be computed.
@@ -28,11 +31,15 @@
 ##' @param tol [numeric, >0] threshold below which a pseudo-inverse is used when inverted a matrix, i.e., the eigen-values are truncated.
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
-##' @keywords internal
-##' 
+##' @seealso \code{\link{confint.Wald_lmm}}, \code{\link{confint.rbindWald_lmm}}, \code{\link{confint.mlmm}}
+##'
+##' @details Use a first order delta method to evaluate the standard error.
+##' When \code{method="p.rejection"} the p-value and distribution under the null is evaluated by simulating data using a Gaussian or t-copula, which can be time consumming.
+##' The number of sample is controlled by the argument \code{n.sampleCopula} in \code{\link{LMMstar.options}}.
 
 
 ## * aggregate.lmm
+##' @export
 aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
 
     ## ** normalize user input
@@ -93,7 +100,7 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
     }
 
     ## *** null
-    ## can either be the null hypotheses to be tested or logical: conformity to this requirement is tests in .aggregate()
+    ## can either be the null hypotheses to be tested or logical: conformity to this requirement is tested in .aggregate()
     if(is.null(rhs)){
         rhs <- any(c("null","statistic","p.value") %in% columns)
     }
@@ -174,9 +181,11 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
 }
 
 ## * aggregate.rbindWald_lmm
+##' @export
 aggregate.rbindWald_lmm <- aggregate.Wald_lmm
 
 ## * aggregate.rbindWald_lmm
+##' @export
 aggregate.mlmm <- aggregate.Wald_lmm
 
 ## * .pool

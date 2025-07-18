@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 17 2025 (16:36) 
+## Last-Updated: jul 18 2025 (11:37) 
 ##           By: Brice Ozenne
-##     Update #: 1347
+##     Update #: 1355
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -207,6 +207,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
     vcov.beta <- stats::vcov(object, effects = effects, df = df, robust = robust,
                              type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names,
                              options = options)
+
     if(df){
         df <- pmax(attr(vcov.beta,"df"), options$min.df)
         attr(vcov.beta,"df") <- NULL
@@ -252,6 +253,7 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
         }
         null <- null[nameNoTransform.beta]
     }
+
     ## ** combine
     name.beta <- names(beta)
     out <- data.frame(estimate = beta, se = sqrt(diag(vcov.beta[name.beta,name.beta,drop=FALSE])),

@@ -2,6 +2,9 @@
 
 S3method("[",correlate)
 S3method("[",summarize)
+S3method(aggregate,Wald_lmm)
+S3method(aggregate,mlmm)
+S3method(aggregate,rbindWald_lmm)
 S3method(anova,lmm)
 S3method(anova,mlmm)
 S3method(as.array,correlate)

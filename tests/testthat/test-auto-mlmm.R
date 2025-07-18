@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:06) 
+## Last-Updated: jul 18 2025 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,6 @@
 
 if(FALSE){
     library(testthat)
-    library(mice)
 
     library(LMMstar)
 }

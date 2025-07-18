@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 17 2025 (14:22) 
+## Last-Updated: jul 18 2025 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 223
+##     Update #: 225
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,8 +20,6 @@ if(FALSE){
     library(numDeriv)
     library(lava)
     library(multcomp)
-    library(lme4) ## removed due to error in appveyer and Github action (change of Matrix package version)
-    library(lmerTest)
 
     library(LMMstar)
 }

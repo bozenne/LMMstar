@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: okt 18 2024 (15:30) 
+## Last-Updated: jul 18 2025 (10:03) 
 ##           By: Brice Ozenne
-##     Update #: 551
+##     Update #: 554
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -519,8 +519,11 @@ partialCor.lmm <- function(object, level = 0.95, R2 = FALSE, se = TRUE, df = TRU
     ## ** R2
     if(R2){
         ## linear contrasts
-        ls.C <- lapply(stats::anova(object, effects = "mean", df = FALSE, ci = TRUE)$glht[[1]], function(iAOV){
-            iAOV$linfct[,name.meancoef,drop=FALSE]
+        object.Ftest <- stats::anova(object, effects = "mean", df = FALSE)
+        object.Ftest_contrast <- model.tables(object.Ftest, effects = "contrast", simplify = FALSE)
+        
+        ls.C <- lapply(object.Ftest_contrast, function(iContrast){
+            iContrast[,name.meancoef,drop=FALSE]
         })
         ls.C[[length(ls.C)+1]] <- matrix(0, nrow = length(keep.meancoef), ncol = NCOL(ls.C[[1]]),
                                          dimnames = list(keep.meancoef, colnames(ls.C[[1]])))

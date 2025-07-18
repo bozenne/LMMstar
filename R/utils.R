@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 16 2024 (13:41) 
+## Last-Updated: jul 18 2025 (11:31) 
 ##           By: Brice Ozenne
-##     Update #: 340
+##     Update #: 343
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -405,6 +405,7 @@ is.invertible <- function(object, cov2cor, tol = 10^(-10*sqrt(NCOL(object)))){
 ##' ncharTable(df2)
 ##' 
 ncharTable <- function(object, digits, format = "f"){
+
     if(is.matrix(object)){
         if(missing(digits)){
             xplus <- cbind(rownames(object),formatC(object, format = format))
@@ -420,6 +421,8 @@ ncharTable <- function(object, digits, format = "f"){
             object.num <- formatC(as.matrix(object.num), digits = digits, format = format)
         }
         object.char <- object[!test.num]
+        rownames(object.char) <- NULL ## remove possibly duplicated rownames
+        rownames(object.num) <- NULL ## remove possibly duplicated rownames
 
         xplus <- cbind(rownames(object))
         if(length(object.char)>0){
@@ -434,7 +437,7 @@ ncharTable <- function(object, digits, format = "f"){
         sum(pmax(nchar.colnames,nchar(trimws(iRow)))+1, na.rm = TRUE)-1
     })
     return(max(width))
-   
+    
 }
 
 

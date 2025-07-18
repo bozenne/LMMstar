@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: jul 15 2024 (10:11) 
+## Last-Updated: jul 18 2025 (10:10) 
 ##           By: Brice Ozenne
-##     Update #: 74
+##     Update #: 78
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,7 +42,7 @@ test_that("estimate correlation via lmm", {
                   type.information = "observed",
                   data = dfL, structure = "UN")
     test <- model.tables(e0.lmm, effects = "correlation")[,c("estimate","lower","upper")]
-    GS <- unlist(cor.test(Y[,1],Y[,2])[c("estimate","conf.int")])
+    GS <- unlist(cor.test(df.Y[,1],df.Y[,2])[c("estimate","conf.int")])
 
     test2 <- partialCor(c(V1,V2)~1, data = df.Y)
     
@@ -72,12 +72,14 @@ test_that("estimate partial correlation via lmm (independence)", {
     ## mixed model
     e.lmm <- lmm(distance ~ Sex*age, repetition = ~1|Subject, structure = "CS", data = Orthodont)
     e.R2lmm <- suppressWarnings(partialCor(e.lmm, se = FALSE, R2 = TRUE))
+    GS <- c(SexFemale = 0.0656862339350077, age = 0.704414550093718, `SexFemale:age` = -0.23903997345213)
+    expect_equal(GS, e.R2lmm[,"estimate"], tol = 1e-5)
 
+    ## R2 (does not precisely match r2glmm)
+    expect_equivalent(attr(e.R2lmm,"R2")[1:NROW(e.R2lmm),"estimate"], e.R2lmm[,"estimate"]^2, tol = 1e-5)
     ## e.lmer <- lme4::lmer(distance ~ Sex*age + (1|Subject), data = Orthodont)
     ## library(r2glmm); setNames(r2beta(e.lmer, method = "kr")[2:4,"Rsq"],r2beta(e.lmer, method = "kr")[2:4,"Effect"])
-
-    GS <- c("age" = 0.57834264, "Sex:age" = 0.07388639, "Sex" = 0.00431524)
-    GS - attr(e.R2lmm, "R2")[names(GS),"estimate"] ## some difference in age effect
+    ##  c("age" = 0.57834264, "Sex:age" = 0.07388639, "Sex" = 0.00431524) ## some difference in age effect
 })
 
 ## * ICC
@@ -86,7 +88,7 @@ test_that("ICC", {
     ## e.icc <- psych::ICC(Y)
 
     e1.lmm <- lmm(value ~ 1,
-                  repetition =~ Var2|Var1,
+                  repetition =~ time|id,
                   data = dfL, structure = "CS", df = FALSE)
     test1 <- model.tables(e1.lmm, effects = "correlation")[,c("estimate","lower","upper")]
     ## GS1 <- e.icc$results[e.icc$results$type=="ICC1",c("ICC","lower bound","upper bound")]
@@ -95,8 +97,8 @@ test_that("ICC", {
                      "upper bound" = c(0.40506582))
     expect_equal(as.double(GS1["ICC"]),as.double(test1["rho","estimate"]), tol = 1e-6)
 
-    e3.lmm <- lmm(value ~ Var2,
-                  repetition =~ Var2|Var1,
+    e3.lmm <- lmm(value ~ time,
+                  repetition =~ time|id,
                   data = dfL, structure = "CS", df = FALSE)
     test3 <- model.tables(e3.lmm, effects = "correlation")[,c("estimate","lower","upper")]
     ## GS3 <- e.icc$results[e.icc$results$type=="ICC3",c("ICC","lower bound","upper bound")]
