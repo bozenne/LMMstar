@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jun 16 2022 (15:19) 
 ## Version: 
-## Last-Updated: okt  3 2024 (18:09) 
+## Last-Updated: jul 24 2025 (16:13) 
 ##           By: Brice Ozenne
-##     Update #: 539
+##     Update #: 541
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -293,8 +293,8 @@ profile.lmm <- function(fitted, effects = NULL, profile.likelihood = FALSE,
                 return(iDiff)
             }
             ## optim
-            resUp <- try(uniroot(f = iFCT.dlogLik, lower = iValue.trans, upper = iBound[2], f.lower = logLik(fitted), extendInt = "upX"))
-            resDown <- try(uniroot(f = iFCT.dlogLik, lower = iBound[1], upper = iValue.trans, f.upper = logLik(fitted), extendInt = "downX"))
+            resUp <- try(stats::uniroot(f = iFCT.dlogLik, lower = iValue.trans, upper = iBound[2], f.lower = logLik(fitted), extendInt = "upX"))
+            resDown <- try(stats::uniroot(f = iFCT.dlogLik, lower = iBound[1], upper = iValue.trans, f.upper = logLik(fitted), extendInt = "downX"))
             
             ## export
             if(inherits(resUp,"try-error")){

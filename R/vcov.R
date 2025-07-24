@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 18 2025 (11:39) 
+## Last-Updated: jul 24 2025 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 1233
+##     Update #: 1237
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -296,7 +296,10 @@ vcov.Wald_lmm <- function(object, effects = "Wald", df = FALSE,
 
     ## *** transform
     if("Wald" %in% effects){
-        if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){
+        test.sigma <- !is.null(transform.sigma) && transform.sigma!=object$args$transform.sigma
+        test.k <- !is.null(transform.k) && transform.k!=object$args$transform.k
+        test.rho <- !is.null(transform.rho) && transform.rho!=object$args$transform.rho
+        if(test.sigma || test.k || test.rho){
             txt.print <- paste0("transform.",c("sigma","k","rho"))[c(test.sigma,test.k,test.rho)]
             message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"Wald\". \n")    
         }
@@ -473,7 +476,10 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
 
     ## *** transform
     if("Wald" %in% effects){
-        if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){
+        test.sigma <- !is.null(transform.sigma) && transform.sigma!=object$args$transform.sigma
+        test.k <- !is.null(transform.k) && transform.k!=object$args$transform.k
+        test.rho <- !is.null(transform.rho) && transform.rho!=object$args$transform.rho
+        if(test.sigma || test.k || test.rho){
             txt.print <- paste0("transform.",c("sigma","k","rho"))[c(test.sigma,test.k,test.rho)]
             message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"Wald\". \n")    
         }

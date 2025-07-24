@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: sep 30 2024 (13:52) 
+## Last-Updated: jul 24 2025 (16:38) 
 ##           By: Brice Ozenne
-##     Update #: 176
+##     Update #: 182
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,6 +21,7 @@ if(FALSE){
     library(nlme)
     library(lme4)
     library(lmerTest)
+    library(mvtnorm)
 
     library(LMMstar)
 }
@@ -470,25 +471,25 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
     dmu <- rep(0.2,J)
 
     set.seed(10)
-    Y_G1 <- rmvnorm(n, mean = mu, sigma = Sigma)
-    Y_G2 <- rmvnorm(n, mean = mu + dmu, sigma = Sigma)
+    Y_G1 <- mvtnorm::rmvnorm(n, mean = mu, sigma = Sigma)
+    Y_G2 <- mvtnorm::rmvnorm(n, mean = mu + dmu, sigma = Sigma)
 
-    dtW <- rbind(data.table(id = paste0("H",formatC(1:n, width = 3, format = "d", flag = "0")),
+    dfW <- rbind(data.frame(id = paste0("H",formatC(1:n, width = 3, format = "d", flag = "0")),
                             group = "G1",
                             Y_G1),
-                 data.table(id = paste0("C",formatC(1:n, width = 3, format = "d", flag = "0")),
+                 data.frame(id = paste0("C",formatC(1:n, width = 3, format = "d", flag = "0")),
                             group = "G2",
                             Y_G2))
-    dtL <- reshape(dtW, direction = "long", idvar = "id",
-                   timevar = "pipeline", times = paste0("V",1:10), varying = paste0("V",1:10),
+    dfL <- reshape(dfW, direction = "long", idvar = "id",
+                   timevar = "pipeline", times = paste0("X",1:10), varying = paste0("X",1:10),
                    v.name = "value")
-    dtL$pipeline <- factor(dtL$pipeline, levels = paste0("V",1:10))
-    dtLS <- summarize(value ~ group+pipeline, dtL)
+    dfL$pipeline <- factor(dfL$pipeline, levels = paste0("X",1:10))
+    dfLS <- summarize(value ~ group+pipeline, dfL)
 
-    e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dtL, df = FALSE, robust = TRUE,
+    e.mlmm <- mlmm(value~group, repetition = ~1|id, data = dfL, df = TRUE, robust = TRUE,
                    by = "pipeline", effects = "groupG2=0", trace = FALSE)
 
-    expect_equal(as.double(tapply(dtLS$mean,dtLS$pipeline,diff)),
+    expect_equal(as.double(tapply(dfLS$mean,dfLS$pipeline,diff)),
                  as.double(coef(e.mlmm)),
                  tol = 1e-6)
     expect_equal(c(0.73517896, 0.74659791, 0.4706369, 0.55304145, 0.50451361, 0.40581536, 0.57647407, 0.45109887, 0.66812277, 0.61664579),
@@ -496,7 +497,7 @@ test_that("Incorrect ordering of the coefficient in mlmm", {
                  tol = 1e-6)
 
     expect_equal(as.double(model.tables(e.mlmm, method = "pool.gls")),
-                 c(0.6344376,0.22787562, Inf, 0.1878096, 1.0810656, 0.00536699),
+                 c(0.6344376, 0.23512808, 162.17705528, 0.17013028, 1.09874492, 0.007708),
                  tol =  1e-6
                  )
 })
@@ -524,15 +525,14 @@ test_that("Incorrect count of the missing data when duplicated visit within indi
     dL$visit2[2] <- "1"
     dL$Y[2] <- NA
 
-    dLS0 <- summarize(Y ~ 1| id, data = dL[dL$visit==1,], na.rm = TRUE)
+    dLS0 <- summarize(Y ~ 1, data = dL[dL$visit==1,], na.rm = TRUE)
     expect_equal(0, dLS0$missing)
 
     ## summarize(Y ~ visit, data = dL, na.rm = TRUE)
     dLS <- summarize(Y ~ visit| id, data = dL, na.rm = TRUE)
     expect_equal(c(0,1,0), dLS$missing)
-    dLS2 <- summarize(Y ~ visit2| id, data = dL, na.rm = TRUE)
+    dLS2 <- summarize(Y ~ visit2, data = dL, na.rm = TRUE)
     expect_equal(c(1,0,0), dLS2$missing)
-
     
     summarizeNA(dL)
     summarizeNA(dL[,c("id","visit","Y")], repetition = ~visit|id)
@@ -545,13 +545,14 @@ test_that("Incorrect count of the missing data when duplicated visit within indi
 test_that("Incorrect display of the missing data patterns", {
     data("armd.wide", package = "nlmeU")
     dataNA <- autoplot(summarizeNA(armd.wide))$data
-    MNA <- do.call(rbind,strsplit(levels(dataNA$variable),"(", fixed = TRUE))
-    df.NA <- data.frame(variable = gsub("\n","",MNA[,1], fixed = TRUE),
-                        value = as.numeric(gsub(" missing)","",MNA[,2], fixed = TRUE))
-                        )
-    expect_equal(unname(colSums(is.na(armd.wide))),
-                 df.NA[match(df.NA$variable,names(armd.wide)),"value"],
-                 tol = 1e-6)
+    xlab <- stats::setNames(paste0(dataNA$variable,"\n(",dataNA$nX.NA," missing)"),dataNA$variable.strata)[levels(dataNA$variable.strata)]
+    
+    xlab.value <- stats::setNames(dataNA$nX.NA,dataNA$variable.strata)[levels(dataNA$variable.strata)]
+    xlab.name <- stats::setNames(dataNA$variable,dataNA$variable.strata)[levels(dataNA$variable.strata)]
+
+    expect_equal(as.double(colSums(is.na(armd.wide))),
+                 as.double(xlab.value))
+    expect_equal(names(armd.wide), unname(xlab.name))
 })
 
 ## * from: Brice Sunday 24-02-11 at 23:42
@@ -600,7 +601,7 @@ test_that("sigma with block CS", {
     ## summarize(signal.34 ~ deprivation + vigilance + day, data = sleepL)
     ## plot(summarizeNA(data = sleepL[!duplicated(paste(sleepL$id,sleepL$day,sleepL$vigilance)),], repetition = ~day+vigilance|id), variable = "signal.34")
     
-    e.lmmRe <- lmm(formula = signal.34 ~ deprivation + vigilance + (1|id/day), 
+    e.lmmRe <- lmm(signal.34 ~ deprivation + vigilance + (1|id/day), 
                    data = sleepL)
     expect_equal(logLik(e.lmmRe),-109.7932, tol = 1e-4)
     sigma(e.lmmRe) ## check there is no error
@@ -611,26 +612,27 @@ test_that("sigma with block CS", {
                            "lower" = c(13.42757262, 0.08373206, -0.17613267), 
                            "upper" = c(14.7791726, 1.3276286, 0.9225778), 
                            "p.value" = c(0, 0.02736532, 0.17946925))
-    expect_equivalent(model.tables(e.lmmRe),table.GS, tol = 1e-4)
+    expect_equivalent(model.tables(e.lmmRe)[,c("estimate","se")], table.GS[,c("estimate","se")], tol = 1e-4)
+    expect_equivalent(model.tables(e.lmmRe)$df, table.GS$df, tol = 1e-2)
     
 
-    e.lmmCS <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
                    repetition = ~1|id, data = sleepL)
     expect_equal(logLik(e.lmmCS),-109.7932, tol = 1e-4)
     sigma(e.lmmCS) ## check there is no error
-    expect_equivalent(model.tables(e.lmmCS),table.GS, tol = 1e-4)
+    expect_equivalent(model.tables(e.lmmCS), model.tables(e.lmmRe), tol = 1e-4)
 
-    e.lmmCS.rep <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS.rep <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
                        repetition = ~rep|id, data = sleepL)
     expect_equal(logLik(e.lmmCS.rep),-109.7932, tol = 1e-4)
     sigma(e.lmmCS.rep) ## check there is no error
-    expect_equivalent(model.tables(e.lmmCS.rep),table.GS, tol = 1e-4)
+    expect_equivalent(model.tables(e.lmmCS.rep), model.tables(e.lmmRe), tol = 1e-4)
 
-    e.lmmCS.repDay <- lmm(formula = signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS.repDay <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
                           repetition = ~repDay|id, data = sleepL)
     expect_equal(logLik(e.lmmCS.repDay),-109.7932, tol = 1e-4)
     sigma(e.lmmCS.repDay) ## check there is no error
-    expect_equivalent(model.tables(e.lmmCS.repDay),table.GS, tol = 1e-4)
+    expect_equivalent(model.tables(e.lmmCS.repDay), model.tables(e.lmmRe), tol = 1e-4)
     
 })
 

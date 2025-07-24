@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 16 2025 (17:10) 
+## Last-Updated: jul 24 2025 (14:03) 
 ##           By: Brice Ozenne
-##     Update #: 1385
+##     Update #: 1391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -378,7 +378,7 @@ coef.Wald_lmm <- function(object, effects = "Wald", method = "none", backtransfo
     }
     if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){
         if(effects == "Wald"){
-            txt.print <- paste0("transform.",c("sigma","k","rho"))[c(test.sigma,test.k,test.rho)]
+            txt.print <- paste0("transform.",c("sigma","k","rho"))[c(!is.null(transform.sigma),!is.null(transform.k),!is.null(transform.rho))]
             message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"contrast\". \n")
         }
         if(object$args$p.null){
@@ -545,7 +545,7 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
     }
     if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){
         if(effects == "Wald"){
-            txt.print <- paste0("transform.",c("sigma","k","rho"))[c(test.sigma,test.k,test.rho)]
+            txt.print <- paste0("transform.",c("sigma","k","rho"))[c(!is.null(transform.sigma),!is.null(transform.k),!is.null(transform.rho))]
             message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"contrast\". \n")
         }
         if(object$args$p.null){

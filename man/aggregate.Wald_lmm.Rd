@@ -5,7 +5,7 @@
 \title{Pool Estimates}
 \usage{
 \method{aggregate}{Wald_lmm}(
-  object,
+  x,
   method,
   rhs = NULL,
   columns = NULL,
@@ -17,7 +17,7 @@
 )
 }
 \arguments{
-\item{object}{output of \code{anova.lmm}, \code{rbind.Wald_lmm}, or \code{mlmm}.}
+\item{x}{output of \code{anova.lmm}, \code{rbind.Wald_lmm}, or \code{mlmm}.}
 
 \item{method}{[character] method(s) used to pool the estimates}
 

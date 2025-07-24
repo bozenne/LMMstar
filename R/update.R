@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:11) 
+## Last-Updated: jul 24 2025 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 27
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,24 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+## * update.lmm
+##' @export
+update.lmm <- function(object, ...){
+
+    out <- try(stats::update.default(object, ...), silent = TRUE)
+    if(inherits(out,"try-error")){ ## try to handle not finding the dataset by using what is stored in the object
+        if(inherits(object$call$data,"name") && inherits(try(get(object$call$data), silent = TRUE), "try-error")){
+            object$call$data <- object$data.original
+            out <- stats::update.default(object, ...)
+        }else{
+            stop(out)
+        }
+    }
+    return(out)
+
+}
+
 
 ## * update.rbindWald_lmm
 ##' @export

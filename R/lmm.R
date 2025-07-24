@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 17 2025 (11:29) 
+## Last-Updated: jul 24 2025 (18:15) 
 ##           By: Brice Ozenne
-##     Update #: 3171
+##     Update #: 3186
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -400,15 +400,21 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
 lmm.Wald_lmm <- function(object, data, repetition, structure, weights, 
                          method.fit, df, type.information, trace, control){
 
-    if(is.null(object$model)){
+    if(inherits(object$model,"lmm")){
+        out <- object$model
+    }else{ ## otherwise look in different environments
         out <- try(eval(object$call[["object"]]), silent = TRUE)
         if(inherits(out,"try-error")){
-            cat("Could not retrieve the lmm object. \n",
-                "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
-                "Original error message: ",out)
+            for(iE in 1:sys.nframe()){
+                out <- try(eval(object$call[["object"]], envir = sys.frame(iE)),silent = TRUE)
+                if(!inherits(out,"try-error")){break}
+            }
+            if(inherits(out,"try-error")){
+                cat("Could not retrieve the lmm object. \n",
+                    "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
+                    "Original error message: ",out)
+            }
         }
-    }else{
-        out <- object$model
     }
     
     ## ** export
@@ -420,15 +426,21 @@ lmm.Wald_lmm <- function(object, data, repetition, structure, weights,
 lmm.rbindWald_lmm <- function(object, data, repetition, structure, weights, 
                               method.fit, df, type.information, trace, control){
 
-    if(is.null(object$model)){
+    if(is.list(object$model)){
+        out <- object$model
+    }else{ ## otherwise look in different environments
         out <- try(lapply(object$call[setdiff(names(object$call),"rbind")], function(iO){eval(iO[["object"]])}), silent = TRUE)
         if(inherits(out,"try-error")){
-            cat("Could not retrieve the lmm object. \n",
-                "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
-                "Original error message: ",out)
+            for(iE in 1:sys.nframe()){
+                out <- try(lapply(object$call[setdiff(names(object$call),"rbind")], function(iO){eval(iO[["object"]], envir = sys.frame(iE))}), silent = TRUE)
+                if(!inherits(out,"try-error")){break}
+            }
+            if(inherits(out,"try-error")){
+                cat("Could not retrieve the lmm object. \n",
+                    "Consider setting the argument \'simplify\' to FALSE when calling anova to export the lmm. \n",
+                    "Original error message: ",out)
+            }
         }
-    }else{
-        out <- object$model
     }
     
     ## ** export

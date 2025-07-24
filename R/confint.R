@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 18 2025 (11:37) 
+## Last-Updated: jul 24 2025 (16:40) 
 ##           By: Brice Ozenne
-##     Update #: 1355
+##     Update #: 1360
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -636,11 +636,11 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
 
             attr(out, "n.sample") <-  n.sample
             
-        }else if(length(iMethod.adj)>0 && iMethod.adj %in% c("none",p.adjust.methods)){
+        }else if(length(iMethod.adj)>0 && iMethod.adj %in% c("none",stats::p.adjust.methods)){
             
             if("p.value" %in% columns){
                 out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
-                if(iMethod.adj %in% p.adjust.methods){
+                if(iMethod.adj %in% stats::p.adjust.methods){
                     out[iIndex.table,"p.value"] <- stats::p.adjust(out[iIndex.table,"p.value"], method = iMethod.adj)
                 }
             }
@@ -665,7 +665,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
                 qt <- out$quantile
             }
             ## do not always request null and p.value as it can be numerically expensive for method = "p.rejection"
-            iPool <- aggregate(object = object, method = intersect(method, pool.method), columns = union(columns,c("type","transformed","tobacktransform","method")), qt = qt,
+            iPool <- aggregate(object, method = intersect(method, pool.method), columns = union(columns,c("type","transformed","tobacktransform","method")), qt = qt,
                                level = level, df = df, options = options)            
             out <- rbind(out,matrix(NA, nrow = NROW(iPool), ncol = NCOL(out),
                                     dimnames = list(rownames(iPool),names(out))))

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:42) 
+## Last-Updated: jul 24 2025 (14:05) 
 ##           By: Brice Ozenne
-##     Update #: 1439
+##     Update #: 1441
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -174,7 +174,7 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
             return(iOut)
         }
     }else{
-        ff <- function(p, keep.indiv){
+        ff <- function(p, keep.indiv = FALSE){
             do.call(f, args = c(list(p = p),ls.args))
         }
     }
@@ -209,8 +209,6 @@ estimate.lmm <- function(x, f, df = !is.null(x$df) & !robust, robust = FALSE, ty
 ##' 
 ##' Compared to \code{estimate.lmm}, the \code{f} argument cannot take \code{p} as argument.
 ##' One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
-##' 
-##' @examples
 
 ## * estimate.Wald_lmm (code)
 ##' @export

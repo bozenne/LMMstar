@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:59) 
+## Last-Updated: jul 24 2025 (16:20) 
 ##           By: Brice Ozenne
-##     Update #: 1410
+##     Update #: 1411
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -716,8 +716,22 @@ residuals.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, 
         options <- LMMstar.options()
     }
     dots$options <- NULL
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    
+    ## hidden arguments
+    if("transform.sigma" %in% names(dots)){
+        transform.sigma <- dots$transform.sigma
+    }else{
+        transform.sigma <- NULL
+    }
+    if("transform.k" %in% names(dots)){
+        transform.k <- dots$transform.k
+    }else{
+        transform.k <- NULL
+    }
+    if("transform.rho" %in% names(dots)){
+        transform.rho <- dots$transform.rho
+    }else{
+        transform.rho <- NULL
     }
 
     ## *** p

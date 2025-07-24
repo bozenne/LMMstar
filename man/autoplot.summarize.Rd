@@ -66,6 +66,10 @@ dtS <- summarize(weight ~ time, data = gastricbypassL)
 plot(dtS)
 dtS <- summarize(glucagonAUC + weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
 plot(dtS, variable = "glucagonAUC")
-plot(dtS, variable = "glucagonAUC", type = "correlation", size.text = 1)
+
+dtS2 <- summarize(glucagonAUC + weight ~ time|id, data = gastricbypassL, na.rm = TRUE,
+                  columns = add("correlation"))
+plot(dtS2, variable = "glucagonAUC", type = "correlation", size.text = 1)
+plot(dtS2, variable = "weight", type = "correlation", size.text = 1)
 }
 \keyword{hplot}

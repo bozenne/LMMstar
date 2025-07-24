@@ -24,10 +24,10 @@ E.g. Y1+Y2 ~ Gender will compute for each gender the correlation matrix for Y1 a
 \item{repetition}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.}
 
 \item{use}{[character] method for computing correlation in the presence of missing values: \code{"everything"}, \code{"all.obs"}, \code{"complete.obs"}, \code{"na.or.complete"}, or \code{"pairwise.complete.obs"}.
-Passed to \code{\link{stats::cor}}.}
+Passed to \code{\link{cor}}.}
 
 \item{method}{[character] type of correlation coefficient: \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
-Passed to \code{\link{stats::cor}}.}
+Passed to \code{\link{cor}}.}
 
 \item{collapse.value}{[character] symbol used to combine covariate values when using multiple grouping variables.}
 

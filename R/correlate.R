@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul  5 2024 (16:41) 
 ## Version: 
-## Last-Updated: jul  9 2024 (15:17) 
+## Last-Updated: jul 24 2025 (16:13) 
 ##           By: Brice Ozenne
-##     Update #: 88
+##     Update #: 89
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -24,9 +24,9 @@
 ##' @param data [data.frame] dataset containing the observations.
 ##' @param repetition [formula] Specify the structure of the data: the time/repetition variable and the grouping variable, e.g. ~ time|id.
 ##' @param use [character] method for computing correlation in the presence of missing values: \code{"everything"}, \code{"all.obs"}, \code{"complete.obs"}, \code{"na.or.complete"}, or \code{"pairwise.complete.obs"}.
-##' Passed to \code{\link{stats::cor}}.
+##' Passed to \code{\link{cor}}.
 ##' @param method [character] type of correlation coefficient: \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
-##' Passed to \code{\link{stats::cor}}.
+##' Passed to \code{\link{cor}}.
 ##' @param collapse.value [character] symbol used to combine covariate values when using multiple grouping variables.
 ##' @param collapse.var [character] symbol used to combine variable names to be pasted left of the covariate values when using multiple grouping variables.
 ##' Can be disabled setting it to \code{NULL} or \code{FALSE}.

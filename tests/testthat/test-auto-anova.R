@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 13 2022 (13:55) 
 ## Version: 
-## Last-Updated: jul 17 2025 (17:20) 
+## Last-Updated: jul 24 2025 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 68
+##     Update #: 72
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,7 @@ e.lmm3 <- lmm(Y ~ X1*X2+X5, repetition = ~visit|id, data = dL,
 
 test_that("pooling anova_lmm ", {
 
-    e.anova <- anova(e.lmm3, effects = c("X11=0","X21=0","X5=0","X11:X21=0"))
+    e.anova <- anova(e.lmm3, effects = c("X11=0","X21=0","X5=0","X11:X21=0"), simplify = FALSE)
 
     ## average
     test.average <- model.tables(e.anova, method = "average")
@@ -162,9 +162,9 @@ test_that("pooling anova_lmm ", {
 test_that("rbind.anova_lmm", {
 
     ## same clusters - model-based
-    A123.bis <- rbind(anova(e.lmm1, effect = c("X11=0")),
-                      anova(e.lmm1, effect = c("X21=0")),
-                      anova(e.lmm1, effect = c("X3=0")))
+    A123.bis <- rbind(anova(e.lmm1, effect = c("X11=0"), simplify = FALSE),
+                      anova(e.lmm1, effect = c("X21=0"), simplify = FALSE),
+                      anova(e.lmm1, effect = c("X3=0"), simplify = FALSE))
     A123 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
 
     expect_equal(coef(A123), coef(A123.bis), tol = 1e-5)
@@ -172,17 +172,17 @@ test_that("rbind.anova_lmm", {
     ## extra-diagonal elements differ as some are model-based and other are robust-based
 
     ## same clusters - robust
-    A123.bis_robust <- rbind(anova(e.lmm1, effect = c("X11=0"), robust = TRUE),
-                      anova(e.lmm1, effect = c("X21=0"), robust = TRUE),
-                      anova(e.lmm1, effect = c("X3=0"), robust = TRUE))
+    A123.bis_robust <- rbind(anova(e.lmm1, effect = c("X11=0"), robust = TRUE, simplify = FALSE),
+                             anova(e.lmm1, effect = c("X21=0"), robust = TRUE, simplify = FALSE),
+                             anova(e.lmm1, effect = c("X3=0"), robust = TRUE, simplify = FALSE))
     A123_robust <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"), robust = TRUE)
 
     expect_equal(coef(A123_robust), coef(A123.bis_robust), tol = 1e-5)
     expect_equal(vcov(A123_robust), vcov(A123.bis_robust), tol = 1e-5)
 
     ## different clusters
-    A1 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
-    A2 <- anova(e.lmm2, effect = c("X11=0","X21=0","X3=0"))
+    A1 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"), simplify = FALSE)
+    A2 <- anova(e.lmm2, effect = c("X11=0","X21=0","X3=0"), simplify = FALSE)
     A12.ter <- rbind(A1,A2)
     A123 <- anova(e.lmm1, effect = c("X11=0","X21=0","X3=0"))
 

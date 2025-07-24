@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 20 2022 (12:12) 
 ## Version: 
-## Last-Updated: jul 18 2025 (10:10) 
+## Last-Updated: jul 24 2025 (12:07) 
 ##           By: Brice Ozenne
-##     Update #: 78
+##     Update #: 79
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,8 +17,6 @@
 
 if(FALSE){
     library(testthat)
-    library(psych)   
-    library(lme4) 
     library(mvtnorm)
 
     library(LMMstar)

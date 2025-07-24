@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: jul 18 2025 (10:53) 
+## Last-Updated: jul 24 2025 (13:54) 
 ##           By: Brice Ozenne
-##     Update #: 410
+##     Update #: 411
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @title Pool Estimates
 ##' @description Pool estimates from one or several linear mixed models. \code{confint} is the prefered method as this is meant for internal use.
 ##' 
-##' @param object output of \code{anova.lmm}, \code{rbind.Wald_lmm}, or \code{mlmm}.
+##' @param x output of \code{anova.lmm}, \code{rbind.Wald_lmm}, or \code{mlmm}.
 ##' @param method [character] method(s) used to pool the estimates
 ##' @param rhs [logical or numeric vector] either the right-hand side of the null hypotheses to be tested
 ##' or whether the value of the summary statistic under the null hypothesis should be computed - mostly relevant when \code{method="p.rejection"} where this can be time consuming.
@@ -40,7 +40,7 @@
 
 ## * aggregate.lmm
 ##' @export
-aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
+aggregate.Wald_lmm <- function(x, method, rhs = NULL, columns = NULL, qt = NULL, level = 0.95, df = NULL, tol = 1e-10, ...){
 
     ## ** normalize user input
     ## *** dots
@@ -96,7 +96,7 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
     if(all(c("df", "lower", "upper", "quantile", "p.value") %in% columns == FALSE)){
         df <- FALSE
     }else if(is.null(df)){
-        df <- object$args$df
+        df <- x$args$df
     }
 
     ## *** null
@@ -108,7 +108,7 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
     ## ** extract information from object
 
     ## *** estimates
-    tableUni <- stats::model.tables(object, method = "none", columns = c("type","n.param","name","term","transformed","tobacktransform",
+    tableUni <- stats::model.tables(x, method = "none", columns = c("type","n.param","name","term","transformed","tobacktransform",
                                                                          "estimate","se","statistic","df","null"),
                                     options = options)
 
@@ -119,7 +119,7 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
         }else{
             args.effects <- "Wald"
         }
-        Wald.Sigma <- stats::vcov(object, effects = args.effects, transform.names = FALSE, options = options)
+        Wald.Sigma <- stats::vcov(x, effects = args.effects, transform.names = FALSE, options = options)
         Wald.dSigma <- attr(Wald.Sigma,"gradient")
         attr(Wald.dSigma,"gradient") <- NULL        
     }else{
@@ -127,8 +127,8 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
         Wald.dSigma <- NULL
     }
     if(!is.na(level) && any(method %in% c("average", "pool.se","pool.gls","pool.gls1","p.rejection"))){
-        contrast <- stats::model.tables(object, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)[[1]]
-        All.Sigma <- stats::vcov(object, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, options = options)
+        contrast <- stats::model.tables(x, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)[[1]]
+        All.Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, options = options)
         All.dSigma <- attr(All.Sigma,"gradient")
         attr(All.Sigma,"gradient") <- NULL
     }else{
@@ -141,23 +141,23 @@ aggregate.Wald_lmm <- function(object, method, rhs = NULL, columns = NULL, qt = 
         if(!is.null(qt)){
             if(is.character(qt) && length(qt)!=1){
                 stop("Argument \'qt\' should be have length 1 when character. \n")
-            }else if(is.numeric(qt) && (length(qt)!=1 && length(qt)!=NROW(object$univariate))){
-                stop("Argument \'qt\' should either have length 1 or the number of contrasts (here ",NROW(object$univariate),") when numeric. \n")
+            }else if(is.numeric(qt) && (length(qt)!=1 && length(qt)!=NROW(x$univariate))){
+                stop("Argument \'qt\' should either have length 1 or the number of contrasts (here ",NROW(x$univariate),") when numeric. \n")
             }
             if(!is.numeric(qt) && (!is.character(qt) || (qt %in% c("none","bonferroni","single-step","single-step2")==FALSE))){
                 stop("Argument \'qt\' should either be numeric or one of \"none\", \"bonferroni\", \"single-step\", \"single-step2\". \n")
             }
             if(is.numeric(qt)){
                 if(length(qt)==1){
-                    critical.threshold <- rep(qt, NROW(object$univariate))
+                    critical.threshold <- rep(qt, NROW(x$univariate))
                 }else{
                     critical.threshold <- qt
                 }
             }else{
-                critical.threshold <- stats::confint(object, method = qt, columns = "quantile", options = options)$quantile
+                critical.threshold <- stats::confint(x, method = qt, columns = "quantile", options = options)$quantile
             }
         }else{
-            critical.threshold <- stats::confint(object, columns = "quantile", options = options)$quantile
+            critical.threshold <- stats::confint(x, columns = "quantile", options = options)$quantile
         }
     }else{
         critical.threshold <- NULL

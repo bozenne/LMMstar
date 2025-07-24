@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:59) 
+## Last-Updated: jul 24 2025 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 1530
+##     Update #: 1536
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -678,14 +678,48 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
 ## * predict.mlmm (documentation)
 ##' @title Predicted Outcome Value by Muliple Linear Mixed Model.
 ##' @description Estimate the expected outcome conditional on covariates and possibly on other outcomes based on group-specific linear mixed models.
+##' 
+##' @param object a \code{mlmm} object.
+##' @param newdata [data.frame] a dataset containing covariate values to condition on.
+##' When setting the argument 'dynamic' predictions should also contain cluster, timepoint, and outcome values.
+##' @param p [list of numeric vector] parameter values for each model. For internal use (delta-method via \code{\link{estimate.mlmm}}).
+##' @param keep.data [logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+##' Only possible in the long format.
+##' @param simplify [logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.
+##' @param ... Additional arguments passed to \code{\link{predict.lmm}}
 
 ## * predict.mlmm (code)
 ##' @export
 predict.mlmm <- function(object, p = NULL, newdata = NULL, keep.data = FALSE, simplify = TRUE, ...){
 
     ## ** normalize user input
+    ## *** dots
+    dots <- list(...)
+    if("options" %in% names(dots) && !is.null(dots$options)){
+        options <- dots$options
+    }else{
+        options <- LMMstar.options()
+    }
+    dots$options <- NULL
+    
+    ## hidden arguments
+    if("transform.sigma" %in% names(dots)){
+        transform.sigma <- dots$transform.sigma
+    }else{
+        transform.sigma <- NULL
+    }
+    if("transform.k" %in% names(dots)){
+        transform.k <- dots$transform.k
+    }else{
+        transform.k <- NULL
+    }
+    if("transform.rho" %in% names(dots)){
+        transform.rho <- dots$transform.rho
+    }else{
+        transform.rho <- NULL
+    }
 
-    ## p
+    ## *** p
     if(!is.null(p)){
         if(!is.list(p)){
             stop("Argument \'p\' should either be NULL or a list. \n")

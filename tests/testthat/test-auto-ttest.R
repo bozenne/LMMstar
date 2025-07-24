@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:20) 
 ## Version: 
-## Last-Updated: jul 18 2025 (16:36) 
+## Last-Updated: jul 24 2025 (12:02) 
 ##           By: Brice Ozenne
-##     Update #: 58
+##     Update #: 59
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -82,9 +82,12 @@ rownames(armd.longCC) <- NULL
 test_that("paired t-test",{
     ## LMMstar.options(optimizer = "FS")
     e.tt <- t.test(visual52-visual0 ~ treat.f, data = armd.wideCC)
-    e.lmm <- suppressMessages(lmm(visual ~ week*treat.f, 
-                                 repetition = ~ week | subject, structure = "UN",
-                                 data = armd.longCC[armd.longCC$week %in% c("0","52"),]))
+    
+    armd.longCC.052 <- armd.longCC[armd.longCC$week %in% c("0","52"),]
+    armd.longCC.052$week <- droplevels(armd.longCC.052$week)
+    e.lmm <- lmm(visual ~ week*treat.f, 
+                 repetition = ~ week | subject, structure = "UN",
+                 data = armd.longCC.052)
     e.confintlmm <- confint(e.lmm)
     expect_equivalent(abs(diff(e.tt$estimate)), abs(e.confintlmm["week52:treat.fActive","estimate"]), tol = 1e-5)
     ## expect_equivalent(e.tt$stderr, e.confintlmm["week52:treat.fActive","se"], tol = 1e-5) ##  difference 0.01 (2.28 vs. 2.29)
@@ -114,7 +117,7 @@ rownames(dL) <- NULL
 dL$visit <- factor(dL$visit,
                    levels = 1:length(name.varying),
                    labels = name.varying)
- 
+  
 ## LMMstar.options(param.optimizer = c(init.cor = 2))
 
 ## ** test

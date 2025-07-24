@@ -9,6 +9,19 @@
 
 \method{plot}{mlmm}(x, facet_nrow = NULL, facet_ncol = NULL, labeller = "label_value", ...)
 }
+\arguments{
+\item{object, x}{an \code{mlmm} object.}
+
+\item{type}{[character] the type of graphical display: can be \code{"forest"} to obtain a forest plot of the estimated contrast across models,
+\code{"heat"} to obtain a heatmap of the correlation between estimated contrasts across models,
+or a type character accepted by \code{\link{autoplot.Wald_lmm}} (\code{"fit"}, \code{"qqplot"}, ...).}
+
+\item{...}{argument(s) passed to \code{\link{autoplot.Wald_lmm}}.}
+
+\item{facet_nrow, facet_ncol}{[integer,>0] passed to \code{grid::grid.layout} to combine the ggplot objects into a single display}
+
+\item{labeller}{[character] should only the value (\code{"label_value"}) also the variable name (\code{"label_both"}) be displayed in the panels.}
+}
 \description{
 Display estimated linear contrasts applied on parameters from subgroup-specific linear mixed models.
 }

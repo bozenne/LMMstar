@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: mar  5 2025 (14:47) 
+## Last-Updated: jul 24 2025 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 1593
+##     Update #: 1616
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @title Graphical Display For Correlation Matrix
 ##' @description Graphical representation for correlation matrix
 ##'
-##' @param object [correlate] list of list of correlation matrix
+##' @param object,x [correlate] list of list of correlation matrix
 ##' @param index [character vector] optional vector used to select some of the correlation matrix.
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param name.legend  [character] title for the color scale.
@@ -32,7 +32,7 @@
 ##' @param high [character] color used to represent high correlation.
 ##' @param midpoint [numeric] value defining a modereate correlation.
 ##' @param limits [numeric vector of length 2] values defining a low and high correlation.
-##' 
+##' @param ... Not used. For compatibility with the generic method.
 
 ## * autoplot.correlate (code)
 ##' @export
@@ -271,13 +271,13 @@ autoplot.lmm <- function(object, type = NULL, type.residual = NULL,
             if(is.null(ylim)){
                 ylim <- c(-1,1)
             }
-            name.facet <- na.omit(union(object$design$vcov$name$cor,object$design$vcov$name$strata))
+            name.facet <- stats::na.omit(union(object$design$vcov$name$cor,object$design$vcov$name$strata))
         }else{
             name.legend <- "Covariance"
             if(is.null(ylim)){
                 ylim <- range(unlist(object.sigma,recursive = TRUE), na.rm = TRUE)
             }
-            name.facet <- unique(na.omit(c(object$design$vcov$name$cor,object$design$vcov$name$var,object$design$vcov$name$strata)))
+            name.facet <- unique(stats::na.omit(c(object$design$vcov$name$cor,object$design$vcov$name$var,object$design$vcov$name$strata)))
         }
 
         if(is.null(attr(object$time$var,"original"))){
@@ -321,335 +321,17 @@ autoplot.lmm <- function(object, type = NULL, type.residual = NULL,
 
 }
 
-## ** .autofit (helper to autoplot.lmm)
-.autofit <- function(object, facet, facet_nrow, facet_ncol, scales, labeller,
-                     obs.alpha, obs.size,
-                     at, time.var, color, position, ci, ci.alpha, 
-                     ylim, mean.size, size.text, position.errorbar, ...){
-
-    if(is.null(time.var) && object$time$n==1){
-        stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
-    }
-
-    ## ** extract from object
-    object.data <- object$data
-        
-    Upattern <- object$design$vcov$Upattern
-    pattern.cluster <- object$design$vcov$pattern
-
-    outcome.var <- object$outcome$var
-
-    if(is.null(time.var)){
-        time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
-        if(!is.null(attr(object$time$var,"original")) && all(!is.na(attr(object$time$var,"original")))){
-            xlabel.plot <- attr(object$time$var,"original")
-        }else{
-            xlabel.plot <- ""
-        }
-        
-    }else{
-
-        if(length(time.var)>1){
-            if("sep" %in% names(time.var)){
-                sep.time.var <- time.var["sep"]
-                time.var <- time.var[names(time.var) != "sep"]
-            }else{
-                sep.time.var <- ", "
-            }
-            if(all(time.var %in% names(object$data.original))){
-                object.data$XXtimeXX <- nlme::collapse(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
-                time.var <- "XXtimeXX"
-            }else{
-                stop("Incorrect value for argument \'time.var\'. \n",
-                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
-            }
-        }else if(length(time.var)==1 && time.var %in% names(data) == FALSE){
-            if(time.var %in% names(object$data.original)){
-                object.data[[time.var]] <- object$data.original[[time.var]][object.data$XXindexXX]
-            }else{
-                stop("Incorrect value for argument \'time.var\'. \n",
-                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
-            }
-        }
-        time.var.plot <- time.var
-        xlabel.plot <- time.var
-    }
-
-    time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
-    mu.var <- formula2var(object$formula$mean)$var$regressor
-    if(length(time.var) == 0 && length(mu.var) == 0){
-        message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
-        return(NULL)
-    }
-    
-    if(length(color) == 0){
-        color <- NULL
-    }else if(length(color)>1){
-        stop("Argument \'color\' should either be NULL \n",
-             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
-    }else if(length(color) == 1 && is.character(color)){
-        if(color %in% names(object.data) == FALSE){
-            if(color %in% names(object$data.original)){
-                object.data[[color]] <- object$data.original[[color]][object.data$XXindexXX]
-            }else{
-                stop("Incorrect value for argument \'color\'. \n",
-                     "No column ",color," found in the dataset used to fit the lmm. \n")
-            }
-        }
-    }else if(!identical(color,FALSE) && !identical(color,TRUE)){
-        stop("Argument \'color\' should either be NULL \n",
-             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
-    }
-    
-    if(!is.null(facet)){
-        if(!inherits(facet,"formula")){
-            stop("Argument \'facet\' must either be NULL or a formula. \n",
-                 "It will be passed to ggplot2::facet_wrap or ggplot2::facet_grid,\n",
-                 " depending on whether there are variables on the left hand side of the formula. \n")
-        } 
-        if(any(all.vars(facet) %in% names(object.data) == FALSE)){
-            hide.name <- c(paste0("XX",c("index","cluster","time","strata"),"XX"),
-                           paste0("XX",c("index","cluster","time","strata"),".indexXX"),
-                           time.var, color, outcome.var, object$cluster$var)
-            stop("When a formula, argument \'facet\' should contain variables available in the dataset used to fit the model. \n",
-                 "Unknown variable(s): \"",paste(all.vars(facet)[all.vars(facet) %in% names(object.data) == FALSE], collapse = "\" \""),"\" \n",
-                 "Available variable(s): \"",paste(setdiff(names(object.data),c(all.vars(facet),hide.name)), collapse = "\" \""),"\" \n")
-        }
-    }
-
-
-    ## ** find representative individuals
-    order.nrep <- names(sort(stats::setNames(Upattern$n.time, Upattern$name), decreasing = TRUE))
-    col.pattern <- factor(pattern.cluster, order.nrep)[object.data[["XXclusterXX"]]]
-
-    ## put observations with full data first to avoid "holes"  in the plot
-    reorder <- order(col.pattern,object.data[["XXclusterXX"]],object.data[["XXtimeXX"]])
-    data <- object.data[reorder,,drop=FALSE]
-    if(!is.null(at)){
-        if(is.vector(at)){at <- as.data.frame(as.list(at))}
-        if(!is.data.frame(at)){
-            stop("Argument \'at\' must be a data.frame or NULL. \n")
-        }
-        if(NROW(at)!=1){
-            stop("Argument \'at\' must have exactly one row. \n")
-        }
-        
-        if(any(names(at) %in% names(data) == FALSE)){
-            stop("Argument \'at\' contains variables not used by the model. \n",
-                 "Incorrect variable: \"",paste(names(at)[names(at) %in% names(data) == FALSE], collapse = "\" \""),"\" \n")
-        }
-        for(iCol in names(at)){
-            data[[iCol]] <- at[[iCol]]
-        }
-    }
-
-    ## design matrix: find unique combinations of covariates
-    timemu.var <- stats::na.omit(union(time.var, mu.var))
-    X.beta <- stats::model.matrix(object, effects = "mean",
-                                  newdata = data[,timemu.var, drop=FALSE])
-    IX.beta <- nlme::collapse(X.beta, as.factor = TRUE)
-    vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
-    UX.beta <- unique(vec.X.beta)
-
-    ## remove duplicates due to missing values (unequal number of repetitions)
-    UX.ntime <- table(droplevels(data[["XXclusterXX"]][data[["XXclusterXX"]] %in% names(UX.beta)]))
-    if(length(UX.beta)>1 && length(unique(UX.ntime))>1){
-        test.UX.beta <- rep(TRUE, length(UX.beta))
-        for(iUX in 1:length(UX.beta)){ ## iUX <- 2
-
-            iX <- IX.beta[data[["XXclusterXX"]] == names(UX.beta)[iUX]]
-            iTest <- sapply(names(UX.beta)[-iUX], function(iId){all(iX %in% IX.beta[data[["XXclusterXX"]] == iId])})
-            if(any(iTest)){
-                test.UX.beta[iUX] <- FALSE
-            }
-
-        }
-        UX.beta <- UX.beta[test.UX.beta]
-    }
-
-    lsID.beta <- lapply(UX.beta, function(iX.beta){names(iX.beta == vec.X.beta)}) ## cluster(s) within each mean pattern
-    newdata <- data[data[["XXclusterXX"]] %in% names(UX.beta),]
-
-    if(identical(color,TRUE)){
-        mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
-        if(length(mean.var)>0){
-            newdataRed <- newdata[order(newdata[["XXclusterXX"]]),mean.var,drop=FALSE]
-            order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
-
-            M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
-            if(length(M.duplicated)==0){
-                color <- NULL
-            }else{
-                color <- setdiff(names(which(colSums(M.duplicated)==NROW(M.duplicated))), all.vars(facet))
-            }
-        }else{
-            color <- NULL
-        }
-        if(length(color)>1){
-            if(paste(color,collapse=".") %in% names(newdataRed)){
-                stop("Cannot use argument \'color\'=TRUE when the dataset contain a column ",paste(color,collapse="."),". \n",
-                     "This name is used internally. \n")
-            }
-            newdata[[paste(color,collapse=".")]] <- nlme::collapse(newdata[,color,drop=FALSE], as.factor = TRUE)
-            color <- paste(color,collapse=".")
-        }else if(length(color)==0){
-            color <-  NULL
-        }
-    }else if(identical(color,FALSE)){
-        color <- NULL
-    }
-
-    if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
-        ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
-            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
-            cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
-        })
-    
-        index.X <- unlist(lapply(as.character(unique(data[["XXclusterXX"]])), function(iC){
-            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
-            iM <- cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
-            iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
-            which.max(iScore)
-        }))
-        data[[color]] <- sort(unique(newdata[[color]]))[index.X]
-    }
-
-    ## ** compute fitted curve
-    if(!is.na(obs.alpha) && obs.alpha>0){
-        preddata <- cbind(data, stats::predict(object, newdata = data[,timemu.var, drop=FALSE], simplify = FALSE, ...))
-    }else{
-        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], simplify = FALSE, ...))
-    }
-    if("lower" %in% names(preddata) == FALSE){
-        preddata$lower <- NA
-    }
-    if("upper" %in% names(preddata) == FALSE){
-        preddata$upper <- NA
-    }
-
-    ## ** add missing times (if any)
-    if(is.factor(preddata[[time.var.plot]])){
-        U.time <- levels(preddata[[time.var.plot]])
-    }else{
-        U.time <- sort(unique(preddata[[time.var.plot]]))
-    }
-    keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,all.vars(facet),"estimate","lower","upper")
-    preddata <- do.call(rbind,by(preddata[keep.col], preddata$XXclusterXX, function(iDF){ ## iDF <- preddata[preddata$XXclusterXX==1,]
-        if(all(U.time %in% iDF[[time.var.plot]])){
-            return(iDF)
-        }else{
-            iNewTime <- setdiff(U.time,iDF[[time.var.plot]])
-
-            iDFextra <- as.data.frame(lapply(names(iDF), function(iVar){
-                if(iVar == time.var.plot){
-                    return(iNewTime)
-                }else if(iVar %in% c("XXclusterXX",color,all.vars(facet))){
-                    return(rep(iDF[[iVar]][1], length(iNewTime)))
-                }else{
-                    return(rep(NA, length(iNewTime)))
-                } 
-            }))
-            names(iDFextra) <- names(iDF)
-            return(rbind(iDF,iDFextra))
-        }
-    }))
-
-    ## ** generate plot
-    gg <- ggplot2::ggplot(data = preddata, mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                  y = .data$estimate,
-                                                                  group = .data$XXclusterXX))
-    test.line <- all(tapply(preddata[["XXclusterXX"]],preddata[[time.var.plot]], function(iX){any(duplicated(iX))})==FALSE)
-
-    if(!is.na(obs.alpha) && obs.alpha>0){
-        if(!is.null(color)){
-            gg <- gg + ggplot2::geom_point(mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                  y = .data[[outcome.var]],
-                                                                  group = .data$XXclusterXX,
-                                                                  color = .data[[color]]),
-                                           alpha = obs.alpha,
-                                           position = position,
-                                           size = obs.size[1])
-            
-            if(test.line){
-                gg <- gg + ggplot2::geom_line(mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                     y = .data[[outcome.var]],
-                                                                     group = .data$XXclusterXX,
-                                                                     color = .data[[color]]),
-                                              alpha = obs.alpha,
-                                              position = position,
-                                              linewidth = obs.size[2])
-            }
-            ## gg + facet_wrap(~XXclusterXX)
-        }else{
-            gg <- gg + ggplot2::geom_point(mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                  y = .data[[outcome.var]],
-                                                                  group = .data$XXclusterXX),
-                                           alpha = obs.alpha,
-                                           size = obs.size[1])
-            if(test.line){
-                gg <- gg + ggplot2::geom_line(mapping = ggplot2::aes(x = .data[[time.var.plot]],
-                                                                     y = .data[[outcome.var]],
-                                                                     group = .data$XXclusterXX),
-                                              alpha = obs.alpha,
-                                              linewidth = obs.size[2])
-            }
-        }
-    }
-    if(ci){
-        if(is.na(ci.alpha)){
-            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), position = position.errorbar)
-        }else{
-            if(!is.null(color)){
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper, fill = .data[[color]]), alpha = ci.alpha, position = position)
-            }else{
-                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = ci.alpha)
-            }
-        }
-    }
-    if(!is.null(color)){
-        gg <- gg + ggplot2::geom_point(ggplot2::aes(color = .data[[color]]), size = mean.size[1], position = position)
-        if(test.line){
-            ## exclude NA' to avoid multiple apparent fit (1-2-3-4, 1-4, ...)
-            gg <- gg + ggplot2::geom_line(data = preddata[preddata[["XXclusterXX"]] %in% names(UX.beta),], ggplot2::aes(color = .data[[color]]), linewidth = mean.size[2], position = position)
-        }
-    }else{
-        gg <- gg + ggplot2::geom_point(size = mean.size[1])
-        if(test.line){
-            ## exclude NA' to avoid multiple apparent fit (1-2-3-4, 1-4, ...)
-            gg <- gg + ggplot2::geom_line(data = preddata[preddata[["XXclusterXX"]] %in% names(UX.beta),], linewidth = mean.size[2])
-        }
-    }
-    if(!is.null(facet) & length(all.vars(facet))>0){
-        if(attr(stats::terms(facet),"response")==0){
-            gg  <- gg + ggplot2::facet_wrap(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
-        }else{
-            gg  <- gg + ggplot2::facet_grid(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
-        }
-    }
-    gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
-    if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
-        if(length(xlabel.plot)==1){
-            if(xlabel.plot %in% names(object$data.original)){ ## single observed variable 
-                gg  <- gg + ggplot2::xlab(xlabel.plot)
-            }else if(time.var.plot=="XXtimeXX"){ ## internally made time variable
-                gg  <- gg + ggplot2::xlab(NULL)
-            }
-        }else { ## multiple (observed) variable aggregated into a single name
-            gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
-        }
-    }
-    if(!is.null(ylim)){
-        gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
-    }
-
-    ## ** export
-    return(list(data = preddata, plot = gg))    
-}
-
-
 ## * autoplot.mlmm (documentation)
 ##' @title Graphical Display of Wald Tests For Multiple Linear Mixed Models.
 ##' @description Display estimated linear contrasts applied on parameters from subgroup-specific linear mixed models.
+##' 
+##' @param object,x an \code{mlmm} object.
+##' @param type [character] the type of graphical display: can be \code{"forest"} to obtain a forest plot of the estimated contrast across models,
+##' \code{"heat"} to obtain a heatmap of the correlation between estimated contrasts across models,
+##' or a type character accepted by \code{\link{autoplot.Wald_lmm}} (\code{"fit"}, \code{"qqplot"}, ...).
+##' @param facet_nrow,facet_ncol [integer,>0] passed to \code{grid::grid.layout} to combine the ggplot objects into a single display
+##' @param labeller [character] should only the value (\code{"label_value"}) also the variable name (\code{"label_both"}) be displayed in the panels.
+##' @param ... argument(s) passed to \code{\link{autoplot.Wald_lmm}}.
 
 ## * autoplot.mlmm (code)
 ##' @export
@@ -1496,7 +1178,11 @@ autoplot.residuals_lmm <- function(object, type = NULL, type.residual = NULL, ti
 ##' plot(dtS)
 ##' dtS <- summarize(glucagonAUC + weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
 ##' plot(dtS, variable = "glucagonAUC")
-##' plot(dtS, variable = "glucagonAUC", type = "correlation", size.text = 1)
+##' 
+##' dtS2 <- summarize(glucagonAUC + weight ~ time|id, data = gastricbypassL, na.rm = TRUE,
+##'                   columns = add("correlation"))
+##' plot(dtS2, variable = "glucagonAUC", type = "correlation", size.text = 1)
+##' plot(dtS2, variable = "weight", type = "correlation", size.text = 1)
 
 ## * autoplot.summarize (code)
 ##' @export
@@ -1609,7 +1295,7 @@ autoplot.summarize <- function(object, type = "mean", variable = NULL,
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param add.missing [logical] should the number of missing values per variable be added to the x-axis tick labels.
 ##' @param order.pattern [numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).
-##' @param decreasing [logical] when ordering the missing data pattern (see argument \code{order.pattern}) should the sort order be decreasing?
+##' @param decreasing.order [logical] when ordering the missing data pattern (see argument \code{order.pattern}) should the sort order be decreasing?
 ##' Passed to \code{base::order}.
 ##' @param title [character] title of the graphical display. Passed to \code{ggplot2::ggtitle}.
 ##' @param labeller [character] how to label each facet: only the value (\code{"label_value"}) or with also the variable name (\code{"label_both"}). Passed to \code{ggplot2::facet_wrap}.
@@ -2001,8 +1687,12 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         value.text <- add.args$value.text
         value.round <- add.args$value.round
         value.size <- add.args$value.size
-
-        Sigma_t <- stats::cov2cor(object$vcov)
+        if(object$args$type=="user" || length(unique(object$univariate$term))==1){
+            Sigma_t <- stats::cov2cor(stats::vcov(object))
+        }else{
+            allContrast <- do.call(rbind,model.tables(object, effects = "contrast", simplify = FALSE))
+            Sigma_t <- stats::cov2cor(allContrast %*% stats::vcov(object, effects = "all") %*% t(allContrast))
+        }
         ## from matrix to long format
         table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE), value = as.numeric(Sigma_t)))
         rownames(table) <- NULL
@@ -2042,13 +1732,340 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         }
         gg <- gg + ggplot2::labs(x=name.x,y=name.y, fill = "correlation")
     }
-        
+    
     gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
 
     ## ** export
     return(list(data = table,
                 plot = gg))
 }
+
+## * .autofit (helper to autoplot.lmm)
+.autofit <- function(object, facet, facet_nrow, facet_ncol, scales, labeller,
+                     obs.alpha, obs.size,
+                     at, time.var, color, position, ci, ci.alpha, 
+                     ylim, mean.size, size.text, position.errorbar, ...){
+
+    if(is.null(time.var) && object$time$n==1){
+        stop("Cannot display the fitted values over time when there only is a single timepoint. \n")
+    }
+
+    ## ** extract from object
+    object.data <- object$data
+        
+    Upattern <- object$design$vcov$Upattern
+    pattern.cluster <- object$design$vcov$pattern
+
+    outcome.var <- object$outcome$var
+
+    if(is.null(time.var)){
+        time.var.plot <- "XXtimeXX" ## nice as it sure to be a categorical variable
+        if(!is.null(attr(object$time$var,"original")) && all(!is.na(attr(object$time$var,"original")))){
+            xlabel.plot <- attr(object$time$var,"original")
+        }else{
+            xlabel.plot <- ""
+        }
+        
+    }else{
+
+        if(length(time.var)>1){
+            if("sep" %in% names(time.var)){
+                sep.time.var <- time.var["sep"]
+                time.var <- time.var[names(time.var) != "sep"]
+            }else{
+                sep.time.var <- ", "
+            }
+            if(all(time.var %in% names(object$data.original))){
+                object.data$XXtimeXX <- nlme::collapse(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
+                time.var <- "XXtimeXX"
+            }else{
+                stop("Incorrect value for argument \'time.var\'. \n",
+                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
+            }
+        }else if(length(time.var)==1 && time.var %in% names(data) == FALSE){
+            if(time.var %in% names(object$data.original)){
+                object.data[[time.var]] <- object$data.original[[time.var]][object.data$XXindexXX]
+            }else{
+                stop("Incorrect value for argument \'time.var\'. \n",
+                     "No column ",time.var," found in the dataset used to fit the lmm. \n")
+            }
+        }
+        time.var.plot <- time.var
+        xlabel.plot <- time.var
+    }
+
+    time.var <- attr(object$time$var,"original") ## need to be after statement on time.var.plot to avoid confusion
+    mu.var <- formula2var(object$formula$mean)$var$regressor
+    if(length(time.var) == 0 && length(mu.var) == 0){
+        message("There is nothing to be displayed: empty time variable and no covariate for the mean structure. \n")
+        return(NULL)
+    }
+    
+    if(length(color) == 0){
+        color <- NULL
+    }else if(length(color)>1){
+        stop("Argument \'color\' should either be NULL \n",
+             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
+    }else if(length(color) == 1 && is.character(color)){
+        if(color %in% names(object.data) == FALSE){
+            if(color %in% names(object$data.original)){
+                object.data[[color]] <- object$data.original[[color]][object.data$XXindexXX]
+            }else{
+                stop("Incorrect value for argument \'color\'. \n",
+                     "No column ",color," found in the dataset used to fit the lmm. \n")
+            }
+        }
+    }else if(!identical(color,FALSE) && !identical(color,TRUE)){
+        stop("Argument \'color\' should either be NULL \n",
+             "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
+    }
+    
+    if(!is.null(facet)){
+        if(!inherits(facet,"formula")){
+            stop("Argument \'facet\' must either be NULL or a formula. \n",
+                 "It will be passed to ggplot2::facet_wrap or ggplot2::facet_grid,\n",
+                 " depending on whether there are variables on the left hand side of the formula. \n")
+        } 
+        if(any(all.vars(facet) %in% names(object.data) == FALSE)){
+            hide.name <- c(paste0("XX",c("index","cluster","time","strata"),"XX"),
+                           paste0("XX",c("index","cluster","time","strata"),".indexXX"),
+                           time.var, color, outcome.var, object$cluster$var)
+            stop("When a formula, argument \'facet\' should contain variables available in the dataset used to fit the model. \n",
+                 "Unknown variable(s): \"",paste(all.vars(facet)[all.vars(facet) %in% names(object.data) == FALSE], collapse = "\" \""),"\" \n",
+                 "Available variable(s): \"",paste(setdiff(names(object.data),c(all.vars(facet),hide.name)), collapse = "\" \""),"\" \n")
+        }
+    }
+
+
+    ## ** find representative individuals
+    order.nrep <- names(sort(stats::setNames(Upattern$n.time, Upattern$name), decreasing = TRUE))
+    col.pattern <- factor(pattern.cluster, order.nrep)[object.data[["XXclusterXX"]]]
+
+    ## put observations with full data first to avoid "holes"  in the plot
+    reorder <- order(col.pattern,object.data[["XXclusterXX"]],object.data[["XXtimeXX"]])
+    data <- object.data[reorder,,drop=FALSE]
+    if(!is.null(at)){
+        if(is.vector(at)){at <- as.data.frame(as.list(at))}
+        if(!is.data.frame(at)){
+            stop("Argument \'at\' must be a data.frame or NULL. \n")
+        }
+        if(NROW(at)!=1){
+            stop("Argument \'at\' must have exactly one row. \n")
+        }
+        
+        if(any(names(at) %in% names(data) == FALSE)){
+            stop("Argument \'at\' contains variables not used by the model. \n",
+                 "Incorrect variable: \"",paste(names(at)[names(at) %in% names(data) == FALSE], collapse = "\" \""),"\" \n")
+        }
+        for(iCol in names(at)){
+            data[[iCol]] <- at[[iCol]]
+        }
+    }
+
+    ## design matrix: find unique combinations of covariates
+    timemu.var <- stats::na.omit(union(time.var, mu.var))
+    X.beta <- stats::model.matrix(object, effects = "mean",
+                                  newdata = data[,timemu.var, drop=FALSE])
+    IX.beta <- nlme::collapse(X.beta, as.factor = TRUE)
+    vec.X.beta <- tapply(IX.beta, data[["XXclusterXX"]],paste, collapse = "_XXX_")
+    UX.beta <- unique(vec.X.beta)
+
+    ## remove duplicates due to missing values (unequal number of repetitions)
+    UX.ntime <- table(droplevels(data[["XXclusterXX"]][data[["XXclusterXX"]] %in% names(UX.beta)]))
+    if(length(UX.beta)>1 && length(unique(UX.ntime))>1){
+        test.UX.beta <- rep(TRUE, length(UX.beta))
+        for(iUX in 1:length(UX.beta)){ ## iUX <- 2
+
+            iX <- IX.beta[data[["XXclusterXX"]] == names(UX.beta)[iUX]]
+            iTest <- sapply(names(UX.beta)[-iUX], function(iId){all(iX %in% IX.beta[data[["XXclusterXX"]] == iId])})
+            if(any(iTest)){
+                test.UX.beta[iUX] <- FALSE
+            }
+
+        }
+        UX.beta <- UX.beta[test.UX.beta]
+    }
+
+    lsID.beta <- lapply(UX.beta, function(iX.beta){names(iX.beta == vec.X.beta)}) ## cluster(s) within each mean pattern
+    newdata <- data[data[["XXclusterXX"]] %in% names(UX.beta),]
+
+    if(identical(color,TRUE)){
+        mean.var <- all.vars(stats::delete.response(stats::terms(stats::formula(object, effects = "mean"))))
+        if(length(mean.var)>0){
+            newdataRed <- newdata[order(newdata[["XXclusterXX"]]),mean.var,drop=FALSE]
+            order.cluster <- droplevels(newdata[["XXclusterXX"]][order(newdata[["XXclusterXX"]])])
+
+            M.duplicated <- apply(newdataRed, 2, function(iCol){unlist(tapply(iCol, order.cluster, function(iColCluster){duplicated(iColCluster)[-1]}))})
+            if(length(M.duplicated)==0){
+                color <- NULL
+            }else{
+                color <- setdiff(names(which(colSums(M.duplicated)==NROW(M.duplicated))), all.vars(facet))
+            }
+        }else{
+            color <- NULL
+        }
+        if(length(color)>1){
+            if(paste(color,collapse=".") %in% names(newdataRed)){
+                stop("Cannot use argument \'color\'=TRUE when the dataset contain a column ",paste(color,collapse="."),". \n",
+                     "This name is used internally. \n")
+            }
+            newdata[[paste(color,collapse=".")]] <- nlme::collapse(newdata[,color,drop=FALSE], as.factor = TRUE)
+            color <- paste(color,collapse=".")
+        }else if(length(color)==0){
+            color <-  NULL
+        }
+    }else if(identical(color,FALSE)){
+        color <- NULL
+    }
+
+    if(!is.na(obs.alpha) && obs.alpha>0 && length(color)>1 && color %in% names(data) == FALSE){
+        ls.UX <- lapply(as.character(unique(newdata[["XXclusterXX"]])), function(iC){
+            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
+            cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
+        })
+    
+        index.X <- unlist(lapply(as.character(unique(data[["XXclusterXX"]])), function(iC){
+            iVec <- nlme::collapse(data[data[["XXclusterXX"]] %in% iC,mu.var,drop=FALSE], as.factor = FALSE)
+            iM <- cbind(repetition = data[data[["XXclusterXX"]] %in% iC,"XXtimeXX",drop=FALSE], lp = iVec)
+            iScore <- unlist(lapply(ls.UX, function(iUX){sum(iUX[match(iM[,"Days"],iUX[,"Days"]),"lp"]==iM[,"lp"])}))
+            which.max(iScore)
+        }))
+        data[[color]] <- sort(unique(newdata[[color]]))[index.X]
+    }
+
+    ## ** compute fitted curve
+    if(!is.na(obs.alpha) && obs.alpha>0){
+        preddata <- cbind(data, stats::predict(object, newdata = data[,timemu.var, drop=FALSE], simplify = FALSE, ...))
+    }else{
+        preddata <- cbind(newdata, stats::predict(object, newdata = newdata[,timemu.var, drop=FALSE], simplify = FALSE, ...))
+    }
+    if("lower" %in% names(preddata) == FALSE){
+        preddata$lower <- NA
+    }
+    if("upper" %in% names(preddata) == FALSE){
+        preddata$upper <- NA
+    }
+
+    ## ** add missing times (if any)
+    if(is.factor(preddata[[time.var.plot]])){
+        U.time <- levels(preddata[[time.var.plot]])
+    }else{
+        U.time <- sort(unique(preddata[[time.var.plot]]))
+    }
+    keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,all.vars(facet),"estimate","lower","upper")
+    preddata <- do.call(rbind,by(preddata[keep.col], preddata$XXclusterXX, function(iDF){ ## iDF <- preddata[preddata$XXclusterXX==1,]
+        if(all(U.time %in% iDF[[time.var.plot]])){
+            return(iDF)
+        }else{
+            iNewTime <- setdiff(U.time,iDF[[time.var.plot]])
+
+            iDFextra <- as.data.frame(lapply(names(iDF), function(iVar){
+                if(iVar == time.var.plot){
+                    return(iNewTime)
+                }else if(iVar %in% c("XXclusterXX",color,all.vars(facet))){
+                    return(rep(iDF[[iVar]][1], length(iNewTime)))
+                }else{
+                    return(rep(NA, length(iNewTime)))
+                } 
+            }))
+            names(iDFextra) <- names(iDF)
+            return(rbind(iDF,iDFextra))
+        }
+    }))
+
+    ## ** generate plot
+    gg <- ggplot2::ggplot(data = preddata, mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                  y = .data$estimate,
+                                                                  group = .data$XXclusterXX))
+    test.line <- all(tapply(preddata[["XXclusterXX"]],preddata[[time.var.plot]], function(iX){any(duplicated(iX))})==FALSE)
+
+    if(!is.na(obs.alpha) && obs.alpha>0){
+        if(!is.null(color)){
+            gg <- gg + ggplot2::geom_point(mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                  y = .data[[outcome.var]],
+                                                                  group = .data$XXclusterXX,
+                                                                  color = .data[[color]]),
+                                           alpha = obs.alpha,
+                                           position = position,
+                                           size = obs.size[1])
+            
+            if(test.line){
+                gg <- gg + ggplot2::geom_line(mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                     y = .data[[outcome.var]],
+                                                                     group = .data$XXclusterXX,
+                                                                     color = .data[[color]]),
+                                              alpha = obs.alpha,
+                                              position = position,
+                                              linewidth = obs.size[2])
+            }
+            ## gg + facet_wrap(~XXclusterXX)
+        }else{
+            gg <- gg + ggplot2::geom_point(mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                  y = .data[[outcome.var]],
+                                                                  group = .data$XXclusterXX),
+                                           alpha = obs.alpha,
+                                           size = obs.size[1])
+            if(test.line){
+                gg <- gg + ggplot2::geom_line(mapping = ggplot2::aes(x = .data[[time.var.plot]],
+                                                                     y = .data[[outcome.var]],
+                                                                     group = .data$XXclusterXX),
+                                              alpha = obs.alpha,
+                                              linewidth = obs.size[2])
+            }
+        }
+    }
+    if(ci){
+        if(is.na(ci.alpha)){
+            gg <- gg + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), position = position.errorbar)
+        }else{
+            if(!is.null(color)){
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper, fill = .data[[color]]), alpha = ci.alpha, position = position)
+            }else{
+                gg <- gg + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = ci.alpha)
+            }
+        }
+    }
+    if(!is.null(color)){
+        gg <- gg + ggplot2::geom_point(ggplot2::aes(color = .data[[color]]), size = mean.size[1], position = position)
+        if(test.line){
+            ## exclude NA' to avoid multiple apparent fit (1-2-3-4, 1-4, ...)
+            gg <- gg + ggplot2::geom_line(data = preddata[preddata[["XXclusterXX"]] %in% names(UX.beta),], ggplot2::aes(color = .data[[color]]), linewidth = mean.size[2], position = position)
+        }
+    }else{
+        gg <- gg + ggplot2::geom_point(size = mean.size[1])
+        if(test.line){
+            ## exclude NA' to avoid multiple apparent fit (1-2-3-4, 1-4, ...)
+            gg <- gg + ggplot2::geom_line(data = preddata[preddata[["XXclusterXX"]] %in% names(UX.beta),], linewidth = mean.size[2])
+        }
+    }
+    if(!is.null(facet) & length(all.vars(facet))>0){
+        if(attr(stats::terms(facet),"response")==0){
+            gg  <- gg + ggplot2::facet_wrap(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
+        }else{
+            gg  <- gg + ggplot2::facet_grid(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
+        }
+    }
+    gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
+        if(length(xlabel.plot)==1){
+            if(xlabel.plot %in% names(object$data.original)){ ## single observed variable 
+                gg  <- gg + ggplot2::xlab(xlabel.plot)
+            }else if(time.var.plot=="XXtimeXX"){ ## internally made time variable
+                gg  <- gg + ggplot2::xlab(NULL)
+            }
+        }else { ## multiple (observed) variable aggregated into a single name
+            gg  <- gg + ggplot2::xlab(paste(stats::na.omit(xlabel.plot), collapse = ", "))
+        }
+    }
+    if(!is.null(ylim)){
+        gg <- gg + ggplot2::coord_cartesian(ylim = ylim)
+    }
+
+    ## ** export
+    return(list(data = preddata, plot = gg))    
+}
+
+
 ## * .ggHeatmap
 .ggHeatmap <- function(object, name.time, type.cor = "both", 
                        name.facet = "facet", labeller = "label_value",

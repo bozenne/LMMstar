@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 17 2025 (14:20) 
+## Last-Updated: jul 24 2025 (12:00) 
 ##           By: Brice Ozenne
-##     Update #: 594
+##     Update #: 601
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -330,14 +330,14 @@
     if(length(param.rho)==0){return(out)}
 
     e.rho <- unlist(lapply(split(M.prodres, M.prodres$param), function(iDF){
-        
+
         if(init.cor==1){ 
             ## *** method 1: average time-specific correlations (exact formula for ML when no missing values)
             iRho <- iDF$prod/sqrt((iDF$n-iDF$df1)*(iDF$n-iDF$df2))
-            
+ 
             iMeanRho.pattern <- tapply(iRho, iDF$pattern, mean)
-            iNobs.pattern <- tapply(iDF$n, iDF$pattern, sum)
-            iHeterochedastic.pattern <- (tapply(iDF$sums1, iDF$pattern, sum)+tapply(iDF$sums2, iDF$pattern, sum))/(2*iNobs.pattern)
+            iNobs.pattern <- tapply((iDF$n-iDF$df1), iDF$pattern, sum)+tapply((iDF$n-iDF$df2), iDF$pattern, sum)
+            iHeterochedastic.pattern <- (tapply(iDF$sums1, iDF$pattern, sum)+tapply(iDF$sums2, iDF$pattern, sum))/iNobs.pattern
             iP.pattern <- tapply(iRho, iDF$pattern, length) ## p(p-1)/2
             iN.pattern <- tapply(iDF$n, iDF$pattern, unique)
 

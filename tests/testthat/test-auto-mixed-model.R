@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: jul 18 2025 (15:48) 
+## Last-Updated: jul 24 2025 (12:01) 
 ##           By: Brice Ozenne
-##     Update #: 225
+##     Update #: 226
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,7 +43,7 @@ test_that("Random intercept model",{
 
     ## ** iteration
     ## expect_equal(eRI.lmm$opt$n.iter,0)
-    expect_equal(eRI2.lmm$opt$n.iter,3)
+    expect_equal(eRI2.lmm$opt$n.iter,4)
 
     ## ** likelihood
     ## expect_equal(as.double(logLik(eRI.lmer)), as.double(logLik(eRI.lmm)), tol = 1e-6)

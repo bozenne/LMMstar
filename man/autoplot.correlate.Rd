@@ -24,7 +24,7 @@
 \method{plot}{correlate}(x, ...)
 }
 \arguments{
-\item{object}{[correlate] list of list of correlation matrix}
+\item{object, x}{[correlate] list of list of correlation matrix}
 
 \item{index}{[character vector] optional vector used to select some of the correlation matrix.}
 
@@ -48,6 +48,8 @@ or only the element in the lower or upper triangle (\code{"lower"}, \code{"upper
 \item{midpoint}{[numeric] value defining a modereate correlation.}
 
 \item{limits}{[numeric vector of length 2] values defining a low and high correlation.}
+
+\item{...}{Not used. For compatibility with the generic method.}
 }
 \description{
 Graphical representation for correlation matrix

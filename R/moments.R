@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul 17 2025 (15:27) 
+## Last-Updated: jul 24 2025 (13:31) 
 ##           By: Brice Ozenne
-##     Update #: 726
+##     Update #: 727
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,6 @@
 ##' @noRd
 
 ## * moments.lmm
-##' @export
 moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                         logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = TRUE,
                         indiv = FALSE, type.information = NULL, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE, ...){

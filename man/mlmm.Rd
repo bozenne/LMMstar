@@ -43,6 +43,8 @@ Argument passed to \code{\link{anova.lmm}}.}
 \item{df}{[logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 Argument passed to \code{\link{anova.lmm}}.}
 
+\item{p}{[list of numeric vector] parameter values for each model. For internal use (delta-method via \code{\link{estimate.mlmm}}).}
+
 \item{name.short}{[logical] use short names for the output coefficients (omit the name of the by variable).}
 
 \item{transform.sigma, transform.k, transform.rho, transform.names}{[character] transformation used on certain type of parameters.}

@@ -7,6 +7,8 @@
 \method{iid}{mlmm}(x, effects = "Wald", ordering = NULL, transform.names = TRUE, ...)
 }
 \arguments{
+\item{x}{an \code{mlmm} object.}
+
 \item{effects}{[character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 or for the linear mixed model parameters (\code{"all"})?}
 
@@ -16,8 +18,6 @@ or for the linear mixed model parameters (\code{"all"})?}
 Only relevant when \code{effects="all"}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{object}{an \code{mlmm} object.}
 }
 \description{
 Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from group-specific linear mixed models.

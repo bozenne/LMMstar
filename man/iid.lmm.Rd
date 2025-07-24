@@ -14,7 +14,6 @@
   transform.k = NULL,
   transform.rho = NULL,
   transform.names = TRUE,
-  REML2ML = NULL,
   ...
 )
 }

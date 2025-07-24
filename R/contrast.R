@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 18 2025 (12:35) 
+## Last-Updated: jul 24 2025 (16:02) 
 ##           By: Brice Ozenne
-##     Update #: 378
+##     Update #: 383
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -679,14 +679,13 @@ effects2contrast <- function(object, effects, rhs, options){
                      out.m2c)
             }
         }
-        out.m2c$contrast <- matrix(0, nrow = NROW(out.m2c$linfct), ncol = n.coef,
-                                   dimnames = list(rownames(out.m2c$linfct), name.coef))
-        out.m2c$contrast[,colnames(out.m2c$linfct)] <- out.m2c$linfct
-
-        ls.contrast <- list(user = list(user = out.m2c$linfct))
+        
+        ls.contrast <- list(user = list(user = matrix(0, nrow = NROW(out.m2c$linfct), ncol = n.coef,
+                                                      dimnames = list(rownames(out.m2c$linfct), name.coef))))
+        ls.contrast$user$user[,colnames(out.m2c$linfct)] <- out.m2c$linfct
         ls.null  <- list(user = list(user = stats::setNames(out.m2c$rhs, rownames(out.m2c$linfct))))
         backtransform <- TRUE
-        
+
     }else if(is.matrix(effects)){
         ## *** Case 3: effects refer to contrast matrix
         

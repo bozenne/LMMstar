@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 17 2025 (12:51) 
+## Last-Updated: jul 24 2025 (16:13) 
 ##           By: Brice Ozenne
-##     Update #: 581
+##     Update #: 587
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,6 +33,7 @@
 ##' Argument passed to \code{\link{anova.lmm}}.
 ##' @param df [logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
 ##' Argument passed to \code{\link{anova.lmm}}.
+##' @param p [list of numeric vector] parameter values for each model. For internal use (delta-method via \code{\link{estimate.mlmm}}).
 ##' @param name.short [logical] use short names for the output coefficients (omit the name of the by variable).
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param transform.sigma,transform.k,transform.rho,transform.names [character] transformation used on certain type of parameters.
@@ -171,7 +172,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
 
     if(trace>0){
         dots <- list(...)
-        if("repetition" %in% names(dots) && all.vars(delete.response(stats::terms(dots[["repetition"]])))[1] != by){
+        if("repetition" %in% names(dots) && all.vars(stats::delete.response(stats::terms(dots[["repetition"]])))[1] != by){
             cat("Fitting linear mixed models:\n")
         }else{
             cat("Fitting linear regressions:\n")
@@ -302,7 +303,7 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
     if(is.null(contrast.rbind)){
         keep.by.level <- do.call(rbind,lapply(ls.data, function(iData){iData[1,by.keep,drop=FALSE]}))
         keep.rownames <- rownames(out$univariate)
-        out$univariate <- merge(x = out$univariate, y = cbind(by = name.model, keep.by.level), by = "by", all.x = TRUE)
+        out$univariate <- merge(x = out$univariate, y = cbind(by = name.model, keep.by.level), by = "by", all.x = TRUE, sort = FALSE)
         rownames(out$univariate) <- keep.rownames
     }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: okt 14 2024 (18:45) 
+## Last-Updated: jul 24 2025 (12:51) 
 ##           By: Brice Ozenne
-##     Update #: 320
+##     Update #: 322
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -375,8 +375,11 @@ formula2repetition <- function(formula, data, repetition, keep.time, filter){
 
         if(length(detail.repetition$vars$time)==1){
             if(any(unlist(tapply(data[[detail.repetition$vars$time]],data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){
+                test <- sapply(tapply(data[[detail.repetition$vars$time]],data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE), max)
+                value <- unlist(tapply(data[[detail.repetition$vars$time]],data[[detail.repetition$vars$cluster]], function(iVec){unique(iVec[duplicated(iVec)])}, simplify = FALSE))
                 stop("Mismatch between argument \'repetition\' and argument \'data\'. \n",
-                     "There should not be duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n")
+                     "There should not be duplicated \"",detail.repetition$vars$time,"\" value (timepoint) within observations with the same \"",detail.repetition$vars$cluster,"\" value (cluster). \n",
+                     "Duplicated value ",paste(value, collapse = ", ")," for observation(s) ",paste(names(test)[test>0],collapse=", "),". \n")
             }
         }else{
             if(any(unlist(tapply(interaction(data[,detail.repetition$vars$time,drop=FALSE],drop=TRUE),data[[detail.repetition$vars$cluster]],duplicated, simplify = FALSE)))){

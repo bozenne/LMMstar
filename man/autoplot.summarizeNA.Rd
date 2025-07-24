@@ -31,14 +31,14 @@ Only required when the argument \code{repetition} has been specified when callin
 
 \item{order.pattern}{[numeric vector or character] in which order the missing data pattern should be displayed. Can either be a numeric vector indexing the patterns or a character refering to order the patterns per number of missing values (\code{"n.missing"}) or number of observations (\code{"frequency"}).}
 
+\item{decreasing.order}{[logical] when ordering the missing data pattern (see argument \code{order.pattern}) should the sort order be decreasing?
+Passed to \code{base::order}.}
+
 \item{title}{[character] title of the graphical display. Passed to \code{ggplot2::ggtitle}.}
 
 \item{labeller}{[character] how to label each facet: only the value (\code{"label_value"}) or with also the variable name (\code{"label_both"}). Passed to \code{ggplot2::facet_wrap}.}
 
 \item{...}{Not used. For compatibility with the generic method.}
-
-\item{decreasing}{[logical] when ordering the missing data pattern (see argument \code{order.pattern}) should the sort order be decreasing?
-Passed to \code{base::order}.}
 }
 \value{
 A list with two elements \itemize{

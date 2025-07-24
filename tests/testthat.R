@@ -14,5 +14,5 @@ library(numDeriv)
 library(qqtest)
 
 ## * run tests
-## setwd("~/Documents/GitHub/LMMstar/tests/")
 test_check("LMMstar")
+## test_check("LMMstar", filter = "anova")

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 18 2025 (15:43) 
+## Last-Updated: jul 24 2025 (18:09) 
 ##           By: Brice Ozenne
-##     Update #: 2167
+##     Update #: 2194
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -221,6 +221,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
     out$args$type.information <- type.information
     if(simplify == FALSE){
         out$model <- object
+    }else{
+        ## out$model <- parent.env(environment()) ## save pointer to the environment
     }
 
     out$param = cbind(trans.value = param, value = param.notrans, table.param[c("trans.name","name","type")])
@@ -264,7 +266,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
     if(objectH0$args$method.fit!=objectH1$args$method.fit){
         stop("The two models should use the same type of objective function for the likelihood ratio test to be valid. \n")
     }
-     if(!force && objectH1$args$method.fit=="REML" && (testEqual["mean"]==FALSE)){
+    if(!force && objectH1$args$method.fit=="REML" && (testEqual["mean"]==FALSE)){
         if(testEqual["var"] && testEqual["cor"]){
             message("Cannot use a likelihood ratio test to compare mean parameters when the objective function is REML. \n",
                     "Will re-estimate the model via ML and re-run the likelihood ratio test. \n")
@@ -273,8 +275,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
                     "Will re-estimate the model via ML and re-run the likelihood ratio test. \n",
                     "This will affect the estimation of the variance and correlation parameters. \n")
         }
-        objectH0 <- update(objectH0, method.fit = "ML")
-        objectH1 <- update(objectH1, method.fit = "ML")
+        objectH0 <- stats::update(objectH0, method.fit = "ML")
+        objectH1 <- stats::update(objectH1, method.fit = "ML")
     }
 
     ## ** LRT
@@ -567,14 +569,19 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
             }else{
                 out$univariate[iG.univariate,"df"] <- rep(Inf, length(iG.univariate))
             }
+
             ## handle the case of linear combinations of correlation where no transformation should be made for the estimate
             iTrans.univariate <- intersect(which(out$univariate$transformed),iG.univariate)
             names(iTrans.univariate) <- rownames(out$univariate)[iTrans.univariate]
             iNtrans.univariate <- intersect(which(!out$univariate$transformed),iG.univariate)
             names(iNtrans.univariate) <- rownames(out$univariate)[iNtrans.univariate]
 
-            out$univariate[iTrans.univariate,"estimate"] <- as.double(iContrast[names(iTrans.univariate),,drop=FALSE] %*% param)
-            out$univariate[iNtrans.univariate,"estimate"] <- as.double(iContrast[names(iNtrans.univariate),,drop=FALSE] %*% param.notrans)
+            if(length(iTrans.univariate)>0){
+                out$univariate[iTrans.univariate,"estimate"] <- as.double(iContrast[names(iTrans.univariate),,drop=FALSE] %*% param)
+            }
+            if(length(iNtrans.univariate)>0){
+                out$univariate[iNtrans.univariate,"estimate"] <- as.double(iContrast[names(iNtrans.univariate),,drop=FALSE] %*% param.notrans)
+            }
             out$univariate[iG.univariate,"se"] <- sqrt(diag(iContrast %*% vcov.param %*% t(iContrast)))
             out$univariate[iG.univariate,"null"] <- iNull
 

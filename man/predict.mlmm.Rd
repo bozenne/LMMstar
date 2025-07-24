@@ -13,6 +13,21 @@
   ...
 )
 }
+\arguments{
+\item{object}{a \code{mlmm} object.}
+
+\item{p}{[list of numeric vector] parameter values for each model. For internal use (delta-method via \code{\link{estimate.mlmm}}).}
+
+\item{newdata}{[data.frame] a dataset containing covariate values to condition on.
+When setting the argument 'dynamic' predictions should also contain cluster, timepoint, and outcome values.}
+
+\item{keep.data}{[logical] should the dataset relative to which the predicted means are evaluated be output along side the predicted values?
+Only possible in the long format.}
+
+\item{simplify}{[logical] simplify the data format (vector instead of data.frame) and column names (no mention of the time variable) when possible.}
+
+\item{...}{Additional arguments passed to \code{\link{predict.lmm}}}
+}
 \description{
 Estimate the expected outcome conditional on covariates and possibly on other outcomes based on group-specific linear mixed models.
 }

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 17 2025 (11:29) 
+## Last-Updated: jul 24 2025 (16:45) 
 ##           By: Brice Ozenne
-##     Update #: 811
+##     Update #: 814
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -990,8 +990,8 @@ resample.mlmm <- function(object, type, method = NULL, n.sample = 1e3, studentiz
 
         ## run
         iBlock <- NULL ## [:forCRANcheck:] foreach        a
-        ls.sample <- foreach::`%dopar%`(
-                                  foreach::foreach(iBlock=1:n.split.resampling,
+        ls2.sample <- foreach::`%dopar%`(
+                                  foreach::foreach(iBlock=1:nsplit.resampling,
                                                    .export = toExport,
                                                    .packages = c("LMMstar","nlme"),
                                                    .options.snow = opts), {

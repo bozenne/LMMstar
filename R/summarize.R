@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 30 2024 (15:01) 
+## Last-Updated: jul 24 2025 (16:48) 
 ##           By: Brice Ozenne
-##     Update #: 768
+##     Update #: 784
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -243,7 +243,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                 strata.X <- interaction(data[name.X],drop=TRUE)
                 try.FUN <- try(do.call(FUN, args = c(stats::setNames(as.list(data[strata.X==levels(strata.X)[1],Mnames.FUN[1,],drop=FALSE]),names.FUN),dots)), silent = FALSE)
             }
-                
+            
         }
 
         if(inherits(try.FUN,"try-error")){
@@ -389,8 +389,8 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
         }
 
         ## *** mean
-        if("mean" %in% columns){
-            iOut$mean <- colMeans(iDataY, na.rm = na.rm)
+        if("mean" %in% columns && any(!is.na(iDataY))){ ## otherwise colMeans outputs NaN instead of NA
+                iOut$mean <- colMeans(iDataY, na.rm = na.rm)
         }
         
         if("mean.lower" %in% columns || "mean.upper" %in% columns || "predict.lower" %in% columns || "predict.upper" %in% columns){
@@ -463,7 +463,9 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
 
         ## *** other quantiles
         if("min" %in% columns){
-            iOut$min <- apply(iDataY, MARGIN = 2, FUN = min, na.rm = na.rm)
+            iOut$min <- apply(iDataY, MARGIN = 2, FUN = function(iVec){
+                if(all(is.na(iVec))){NA}else{min(iVec, na.rm = na.rm)} ## otherwise min output a warning
+            })
         }
         if("q1" %in% columns && any(type.Y=="continuous")){
             iOut$q1[type.Y=="continuous"] <- apply(iDataYcont, MARGIN = 2, FUN = stats::quantile, prob = 0.25, na.rm = na.rm)
@@ -471,8 +473,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
         if("q3" %in% columns && any(type.Y=="continuous")){
             iOut$q3[type.Y=="continuous"] <- apply(iDataYcont, MARGIN = 2, FUN = stats::quantile, prob = 0.75, na.rm = na.rm)
         }
-        if("max" %in% columns){
-            iOut$max <- apply(iDataY, MARGIN = 2, FUN = max, na.rm = na.rm)
+        if("max" %in% columns && any(!is.na(iDataY))){
+            iOut$max <- apply(iDataY, MARGIN = 2, FUN = function(iVec){
+                if(all(is.na(iVec))){NA}else{max(iVec, na.rm = na.rm)} ## otherwise min output a warning
+            })
         }
 
         ## *** Interquartile range
@@ -490,7 +494,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                 })
                 iOut[,name.outFUN] <- do.call(rbind,iLS.outfun)
             }                
-                
+            
         }
 
         ## *** export
@@ -506,7 +510,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     ## ** correlation
     if("correlation" %in% columns){
         if(all(ls.init$detail.formula$var$regressor %in% ls.init$detail.repetition$var$time)){
-            ls.init$formula <- stats::reformulate("1", response = name.Y)
+            ls.init$formula <- stats::reformulate("1", response = paste(name.Y,collapse="+"))
         }else if(any(ls.init$detail.formula$var$regressor %in% ls.init$detail.repetition$var$time)){
             terms.rm <- intersect(ls.init$detail.formula$var$regressor, ls.init$detail.repetition$var$time)
             formula.terms <- stats::terms(ls.init$formula)            

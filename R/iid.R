@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 16 2025 (17:26) 
+## Last-Updated: jul 24 2025 (14:04) 
 ##           By: Brice Ozenne
-##     Update #: 414
+##     Update #: 418
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -33,7 +33,6 @@
 ##' @param transform.k [character] Transformation used on the variance coefficients relative to the other levels. One of \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"} - see details.
 ##' @param transform.rho [character] Transformation used on the correlation coefficients. One of \code{"none"}, \code{"atanh"}, \code{"cov"} - see details.
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
-##' 
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @details The influence function equals the individual score rescaled by the (inverse) information.
@@ -103,7 +102,6 @@ iid.lmm <- function(x,
                     transform.k = NULL,
                     transform.rho = NULL,
                     transform.names = TRUE,
-                    REML2ML = NULL,
                     ...){
 
     ## ** normalize user imput
@@ -284,7 +282,7 @@ iid.lmm <- function(x,
 ##' @title Extract the Influence Function From Wald Tests
 ##' @description Extract the influence function of linear contrasts involved in Wald tests.
 ##'
-##' @param object a \code{Wald_lmm} object.
+##' @param x a \code{Wald_lmm} object.
 ##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or for the linear mixed model parameters (\code{"all"})?
 ##' @param transform.names [logical] should the name of the coefficients be updated to reflect the transformation that has been used?
@@ -360,7 +358,7 @@ iid.Wald_lmm <- function(x, effects = "Wald", transform.names = TRUE, ...){
 ##' @title Extract the Influence Function From Wald Tests
 ##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from a linear mixed model.
 ##'
-##' @param object a \code{rbindWald_lmm} object.
+##' @param x a \code{rbindWald_lmm} object.
 ##' @param effects [character] should the influence function for the linear contrasts involved in the Wald test be output (\code{"Wald"}),
 ##' or for the linear mixed model parameters (\code{"all"})?
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
@@ -408,7 +406,7 @@ iid.rbindWald_lmm <- function(x, effects = "Wald", ordering = NULL, transform.na
     ## *** ordering
     if(!is.null(ordering)){
         ordering <- match.arg(ordering, c("contrast","model"))
-        table.param.order <- object$param[order(object$param[[switch(ordering, "model" = "model", "contrast" = "name")]]),,drop=FALSE]
+        table.param.order <- x$param[order(x$param[[switch(ordering, "model" = "model", "contrast" = "name")]]),,drop=FALSE]
     }
     
     ## ** extract lmm
@@ -453,7 +451,7 @@ iid.rbindWald_lmm <- function(x, effects = "Wald", ordering = NULL, transform.na
 ##' @title Extract the Influence Function for Multiple Linear Mixed Models
 ##' @description Extract the influence function of linear contrasts applied to an ML or REML estimator of parameters from group-specific linear mixed models.
 ##'
-##' @param object an \code{mlmm} object.
+##' @param x an \code{mlmm} object.
 ##' @inheritParams iid.rbindWald_lmm
 ##' 
 ##' @export
