@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: jul 24 2025 (13:31) 
+## Last-Updated: sep 26 2025 (14:16) 
 ##           By: Brice Ozenne
-##     Update #: 727
+##     Update #: 749
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -171,10 +171,9 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     out$residuals <- design$Y - out$fitted
 
     if(precompute.moments){
-
         wRR <- out$residuals
-        if(attr(design$weights, "user-defined")){ 
-            wRR <- sweep(wRR, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights))
+        if(attr(design$weights, "user-defined")){
+            wRR <- sweep(wRR, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights[,"likelihood"]*design$weights[,"Omega"]))
         } ## otherwise weights are set automatically to 1 but no need to update the residuals
         
         precompute <- list(weights = design$precompute.weights,
@@ -186,8 +185,8 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
 
         if(score || information || vcov || df.analytic){
             wR <-  out$residuals
-            if(attr(design$weights, "user-defined")){
-                wR <- sweep(wR, FUN = "*", MARGIN = 1, STATS = design$weights)
+            if(attr(design$weights, "user-defined")){ 
+                wR <- sweep(wR, FUN = "*", MARGIN = 1, STATS = design$weights[,"likelihood"]*design$weights[,"Omega"])
             } ## otherwise weights are set automatically to 1 but no need to update the residuals
             precompute$XR  <-  .precomputeXR(X = design$mean, residuals = wR, pattern = design$vcov$Upattern$name,
                                              pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),

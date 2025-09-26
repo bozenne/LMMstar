@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: jul 24 2025 (14:04) 
+## Last-Updated: sep 26 2025 (16:02) 
 ##           By: Brice Ozenne
-##     Update #: 418
+##     Update #: 430
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,47 +49,42 @@
 ##' 
 ##' @examples
 ##' data(gastricbypassL)
-##' 
-##' #### Case WITHOUT cross terms ####
-##' e.lmmREML <- lmm(weight ~ visit, method.fit = "REML", df = FALSE,
-##'                  repetition = ~ visit|id, data = gastricbypassL)
-##' e.lmmML <- lmm(weight ~ visit, method.fit = "ML", df = FALSE,
+##'
+##' if(require(lava)){
+##'
+##' #### ML version ####
+##' e.lmmML <- lmm(glucagonAUC ~ visit + weight, method.fit = "ML", df = TRUE,
 ##'               repetition = ~ visit|id, data = gastricbypassL)
 ##'
-##' name.mu <- names(coef(e.lmmREML, effects = "mean"))
-##' name.sigmakrho <- names(coef(e.lmmREML, effects = c("variance","correlation")))
-##' info.REML <- information(e.lmmREML, effects = "all", transform.names = FALSE)
-##' info.ML <- information(e.lmmML, effects = "all", transform.names = FALSE)
-##' info.REML2ML <- information(e.lmmML, p = coef(e.lmmREML, effects = "all"),
-##'                             effects = "all", transform.names = FALSE)
+##' ## linearisation of the estimator
+##' myiid <- iid(e.lmmML)
+##' myiid
 ##' 
-##' range(info.REML[name.mu,name.sigmakrho])
-##' range(info.ML[name.mu,name.sigmakrho])
-##' range(info.REML[name.mu,]-info.REML2ML[name.mu,])
-##' range(iid(e.lmmREML, REML2ML = TRUE) - iid(e.lmmREML, REML2ML = FALSE))
-##' ## neglectable differences
+##' ## same as
+##' myscore <- score(e.lmmML, indiv = TRUE, effects = "all")
+##' myvcov <- vcov(e.lmmML, effects = "all")
+##' range(iid(e.lmmML) - myscore %*% myvcov[,colnames(myiid)])
 ##' 
-##' #### Case WITH cross terms ####
-##' e2.lmmREML <- lmm(glucagonAUC ~ visit + weight, method.fit = "REML", df = FALSE,
-##'                  repetition = ~ visit|id, data = gastricbypassL)
-##' e2.lmmML <- lmm(glucagonAUC ~ visit + weight, method.fit = "ML", df = FALSE,
+##' #### REML version ####
+##' e.lmmREML <- lmm(glucagonAUC ~ visit + weight, method.fit = "REML", df = TRUE,
 ##'               repetition = ~ visit|id, data = gastricbypassL)
 ##'
-##' name2.mu <- names(coef(e2.lmmREML, effects = "mean"))
-##' name2.sigmakrho <- names(coef(e2.lmmREML, effects = c("variance","correlation")))
-##' info2.REML <- information(e2.lmmREML, effects = "all", transform.names = FALSE)
-##' info2.ML <- information(e2.lmmML, effects = "all", transform.names = FALSE)
-##' info2.REML2ML <- information(e2.lmmML, p = coef(e2.lmmREML, effects = "all"),
-##'                             effects = "all", transform.names = FALSE)
+##' ## linearisation of the estimator
+##' myiid2 <- iid(e.lmmREML)
+##' myiid2
 ##' 
-##' range(info2.REML[name.mu,]-info2.REML2ML[name.mu,])
-##' ## neglectable difference
-##' range(info2.REML[name.mu,name.sigmakrho])
-##' range(info2.ML[name.mu,name.sigmakrho])
-##' range(iid(e2.lmmREML, REML2ML = TRUE) - iid(e2.lmmREML, REML2ML = FALSE))
-##' ## non-neglectable differences
-##' diag(crossprod(iid(e2.lmmREML, REML2ML = TRUE)))/diag(vcov(e2.lmmREML))
-##' diag(crossprod(iid(e2.lmmREML, REML2ML = FALSE)))/diag(vcov(e2.lmmREML))
+##' ## same as
+##' myscore2 <- score(e.lmmREML, indiv = TRUE, effects = "all")
+##' myvcov2 <- vcov(e.lmmREML, effects = "all")
+##' range(iid(e.lmmREML) - myscore2 %*% myvcov2[,colnames(myiid2)])
+##'
+##' ## NOTE: the score w.r.t. the variance-covariance parameters
+##' ##       is not a sum of individual contributions with REML
+##' ## due to a term that looks like tr(\sum_i A_i / \sum_i B_i)
+##' ## the individual contribution is taken to be tr(A_i / \sum_i B_i)
+##' 
+##'
+##' }
 
 ## * iid.lmm (code)
 ##' @export
@@ -205,6 +200,7 @@ iid.lmm <- function(x,
                                logLik = FALSE, score = TRUE, information = keep.grad || iid.dVcov, vcov = recompute.vcov, df = recompute.vcov && (keep.grad || iid.dVcov),
                                indiv = TRUE, effects = effects2, robust = FALSE,
                                trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+
     x.score <- outMoments$score
     if(recompute.vcov){
         x.vcov <- outMoments$vcov
@@ -217,7 +213,7 @@ iid.lmm <- function(x,
     }else{
         keep.names <- stats::model.tables(x, effects = c("param",effects),
                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)$trans.name
-}
+    }
 
     ## ** compute iid
     out <- x.score %*% x.vcov[,keep.names,drop=FALSE]

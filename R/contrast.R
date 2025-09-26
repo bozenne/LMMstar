@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:02) 
+## Last-Updated: jul 24 2025 (18:56) 
 ##           By: Brice Ozenne
-##     Update #: 383
+##     Update #: 390
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -515,9 +515,6 @@ effects2contrast <- function(object, effects, rhs, options){
         if(any(is.na(effects))){
             stop("When a matrix, argument \'effects\' should no contain NA values. \n")
         }
-        if(any(rowSums(effects!=0)==0)){
-            stop("When a matrix, argument \'effects\' should no contain rows with only 0. \n")
-        }
         if(is.null(rownames(effects))){
             stop("When a matrix, argument \'effects\' should have row names. \n")
         }
@@ -553,7 +550,7 @@ effects2contrast <- function(object, effects, rhs, options){
         ## rhs
         if(is.null(rhs)){
             effects.type <- do.call(rbind,apply(effects, MARGIN = 1, function(iRow){tapply(iRow!=0,type.coef,sum)}, simplify=FALSE))
-            if("k" %in% names(effects.type) == FALSE){effects.type <- cbind(effects.type, k = 0)} ## case of a homoschedastic model
+            if("k" %in% colnames(effects.type) == FALSE){effects.type <- cbind(effects.type, k = 0)} ## case of a homoschedastic model
 
             if(any(effects.type[,"sigma"]!=0) || (any(effects.type[,"k"]!=0) && transform.k %in% c("sd","var","logsd","logvar"))){
                 stop("Unable to decide on a value for the right-hand side of the null hypothesis\n",
@@ -703,7 +700,10 @@ effects2contrast <- function(object, effects, rhs, options){
 
         ## normalize rhs
         if(is.null(rhs)){
-            effects.type2 <- colnames(effects.type)[apply(effects.type!=0,1,which)]
+            index.mu <- which(colnames(effects.type)=="mu")
+            effects.type2 <- colnames(effects.type)[apply(effects.type!=0,1,function(iRow){
+                if(all(iRow)==0){index.mu}else{which(iRow!=0)}
+            })]
             default.null <- c("mu" = 0,
                               "k" = ifelse(transform.k %in% c("log","logsquare"), 0, 1),
                               "rho" = 0)

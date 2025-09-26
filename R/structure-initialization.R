@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: jul 24 2025 (12:00) 
+## Last-Updated: sep 26 2025 (09:54) 
 ##           By: Brice Ozenne
-##     Update #: 601
+##     Update #: 610
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -100,10 +100,10 @@
     n.obs <- NROW(X)
 
     ## small sample correction (inflate residuals)
+    vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
     if(method.fit == "REML" && !is.null(Xmean) && NCOL(Xmean)>0){
         ## n - df
         ## vec.hat <- diag(Xmean %*% solve(t(Xmean) %*% Xmean) %*% t(Xmean))
-        vec.hat <- rowSums(Xmean %*% solve(t(Xmean) %*% Xmean) * Xmean)
         strata.mu <- attr(Xmean,"strata")
         if(any(is.na(strata.mu))){ ## partially or non-stratified mean structure: considered as non-stratified
             index.clusterStrata <-  sapply(object$var$Xpattern,attr,"index.strata")[object$var$pattern]
@@ -117,7 +117,6 @@
             epsilon2.ssc <- epsilon2 * (n.UX/(n.UX-p))[M.res[,"index.lp"]]
         }
     }else{
-        vec.hat <- NULL
         epsilon2.ssc <- epsilon2
     }
 
@@ -299,7 +298,7 @@
                 return(iOut)
             })
         }else{ ## more pairs than individuals
-            iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]
+            iLs.out <- apply(obs.iPattern, 1, function(iRow){ ## iRow <- obs.iPattern[1,]                
                 iLSDF <- split(data.frame(row = residuals.studentized[iRow[iPair[,"row"]]],
                                           col = residuals.studentized[iRow[iPair[,"col"]]],
                                           row.df = residuals.df[iRow[iPair[,"row"]]],

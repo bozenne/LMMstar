@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: mar  5 2025 (16:11) 
+## Last-Updated: jul 24 2025 (18:51) 
 ##           By: Brice Ozenne
-##     Update #: 1144
+##     Update #: 1147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -67,7 +67,7 @@
 ##' e.YbyX1
 ##' summary(e.YbyX1)
 ##' model.tables(e.YbyX1)
-##' coef(e.YbyX1, type = "contrast")
+##' coef(e.YbyX1)
 ##' effects(eUN.lmm, effects = "difference", variable = "X1")
 ##' effects(eUN.lmm, effects = "difference", variable = "X1", repetition = "3")
 ##'

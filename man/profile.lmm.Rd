@@ -123,11 +123,12 @@ round(tapply(df$Y,df$type,sd),1)
 e.RI <- lmm(Y ~ (1|type), data = df)
 
 #### delta method
+if(require(nlme)){
 confint(e.RI, effects = "correlation", df = FALSE) ## 0.76 [0.111; 0.955]
- 
 ranef(e.RI, effects = "variance", se = TRUE) ## 3.17 [0.429; 23.423]
 ranef(e.RI, effects = "variance", se = TRUE, transform=FALSE) ## 3.17 [-3.167; 9.510]
 ## same as confint(e.RI, effects = "correlation", transform.rho = "cov", df = FALSE)
+}
 
 #### profile likelihood
 \dontrun{

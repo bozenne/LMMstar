@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: jul  9 2025 (14:00) 
+## Last-Updated: sep 26 2025 (15:13) 
 ##           By: Brice Ozenne
-##     Update #: 1260
+##     Update #: 1276
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,6 +115,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
         design <- x$design ## useful in case of NA
         out <- x$information[keep.name,keep.name,drop=FALSE]
+        attr(out,"type.information") <- attr(x$information,"type.information")
         if(transform.names){
             dimnames(out) <- list(names(keep.name),names(keep.name))
         }
@@ -234,16 +235,15 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             REML.num2 <- stats::setNames(replicate(n.varcoef2, matrix(0, nrow = n.mucoef, ncol = n.mucoef), simplify = FALSE), name.varcoef2)
             for(iId in 1:n.cluster){ ## iId <- 1
                 iX <- X[index.cluster[[iId]],,drop=FALSE]
-                iOmegaM1 <- precision[[pattern[iId]]]
-                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]]
-                iOmegaM1.d2OmegaAndCo.OmegaM1 <- precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[pattern[iId]]]
-                iWeights <- weights[iId]
-                X.OmegaM1.X <- X.OmegaM1.X + iWeights * t(iX) %*% iOmegaM1 %*% iX
+                iOmegaM1 <- precision[[pattern[iId]]] * weights[iId,"Omega"]
+                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]] * weights[iId,"Omega"]
+                iOmegaM1.d2OmegaAndCo.OmegaM1 <- precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[pattern[iId]]] * weights[iId,"Omega"]
+                X.OmegaM1.X <- X.OmegaM1.X + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1 %*% iX
                 for(iParam in intersect(names(dOmega[[pattern[iId]]]), name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
-                    REML.num1[[iParam]] <- REML.num1[[iParam]] + iWeights * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
+                    REML.num1[[iParam]] <- REML.num1[[iParam]] + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
                 }
                 for(iParam2 in intersect(names(d2Omega[[pattern[iId]]]), name.varcoef2)){ ## intersect to handle when argument effects is only "variance" or "correlation"
-                    REML.num2[[iParam2]] <- REML.num2[[iParam2]] + iWeights * t(iX) %*% iOmegaM1.d2OmegaAndCo.OmegaM1[[iParam2]] %*% iX
+                    REML.num2[[iParam2]] <- REML.num2[[iParam2]] + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1.d2OmegaAndCo.OmegaM1[[iParam2]] %*% iX
                 }
             }
             REML.denom <- solve(X.OmegaM1.X)
@@ -270,16 +270,15 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         for(iId in 1:n.cluster){ ## iId <- 7
             iIndex <- index.cluster[[iId]]
             iPattern <- pattern[iId]
-            iWeights <- weights[iId]
             if(type.information == "observed"){
                 iResidual <- residuals[iIndex,,drop=FALSE]
             }
             iX <- t(X[iIndex,,drop=FALSE])
-            iOmegaM1 <- precision[[iPattern]]
+            iOmegaM1 <- precision[[iPattern]] * weights[iId,"Omega"]
         
             ## **** mean,mean
             if(test.mean){
-                info[iId,name.mucoef,name.mucoef] <- iWeights * (iX %*% iOmegaM1 %*% t(iX))
+                info[iId,name.mucoef,name.mucoef] <- weights[iId,"likelihood"] * (iX %*% iOmegaM1 %*% t(iX))
             }
             
             ## **** var,var
@@ -289,10 +288,10 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
                 ## compute and store contribution
                 if(type.information == "expected"){
-                    iValue <- 0.5 * iWeights * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
+                    iValue <- 0.5 * weights[iId,"likelihood"] * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
                 }else if(type.information == "observed"){
-                    iValue <- - 0.5 * iWeights * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
-                    iValue <- iValue - 0.5 * (as.vector(tcrossprod(iResidual)) %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
+                    iValue <- - 0.5 * weights[iId,"likelihood"] * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
+                    iValue <- iValue - 0.5 * prod(weights[iId,]) * (as.vector(tcrossprod(iResidual)) %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
                     ## same as iResidual[,1] %*% matrix(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,2], nrow = length(iIndex), ncol = length(iIndex)) %*% iResidual 
                 }
                 info[iId,iName.varcoef,iName.varcoef]  <- info[iId,iName.varcoef,iName.varcoef] + iValue[as.vector(attr(pair.vcov[[iPattern]],"key"))]
@@ -303,11 +302,11 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                         iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
                         iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
                         
-                        iREML.num1.1 <- iWeights * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.1] %*% t(iX)
+                        iREML.num1.1 <- prod(weights[iId,]) * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.1] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1
-                        iREML.num1.2 <- iWeights * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.2] %*% t(iX)
+                        iREML.num1.2 <- prod(weights[iId,]) * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.2] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]] %*% iOmegaM1
-                        iREML.num2 <- iWeights * iX %*% OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,,iParam2] %*% t(iX)
+                        iREML.num2 <- prod(weights[iId,]) * iX %*% OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,,iParam2] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% (d2Omega[[iPattern]][[iParam2]] - 2 * dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]]) %*% iOmegaM1
                         
                         iValue <- 0.5 * sum(REML.denom * (iREML.num2 + 0.5 * iREML.num1.1 %*% REML.denom %*% REML.num1[[iParam2.2]] + 0.5 * REML.num1[[iParam2.1]] %*% REML.denom %*% iREML.num1.2))
@@ -324,7 +323,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             if(type.information == "observed" && test.mean && test.vcov){
 
                 ## compute
-                iValue <- t(iResidual %x% t(iX)) %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]][,iName.varcoef,drop=FALSE]
+                iValue <- prod(weights[iId,]) * t(iResidual %x% t(iX)) %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]][,iName.varcoef,drop=FALSE]
                 ## kronecker product is the same as apply(iX, MARGIN = 1, FUN = function(iCol){as.double(tcrossprod(iCol,iResidual))})
                 
                 ## store

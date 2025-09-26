@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 24 2025 (14:05) 
+## Last-Updated: jul 25 2025 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 1441
+##     Update #: 1442
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -312,6 +312,8 @@ estimate.Wald_lmm <- function(x, f, df = x$args$df, level = 0.95, method.numDeri
 ##' One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
 ##' 
 ##' @examples
+##' if(require(lava)){
+##' 
 ##' data(gastricbypassL, package = "LMMstar")
 ##' e.reg <- by(gastricbypassL, gastricbypassL$time, function(iData){
 ##'    iLMM <- lmm(glucagonAUC ~ weight, data = iData, repetition = ~1|id)
@@ -328,6 +330,8 @@ estimate.Wald_lmm <- function(x, f, df = x$args$df, level = 0.95, method.numDeri
 ##' estimate(e.Wald14, function(object){ 
 ##'    coef(object, method = c("none","average"))
 ##' })
+##'
+##' }
 ##' @export
 estimate.rbindWald_lmm <- estimate.Wald_lmm
 

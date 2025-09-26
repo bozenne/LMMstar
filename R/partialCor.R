@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May  1 2022 (17:01) 
 ## Version: 
-## Last-Updated: jul 18 2025 (10:03) 
+## Last-Updated: sep 26 2025 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 554
+##     Update #: 556
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -38,7 +38,7 @@
 ##' @param se [logical] Should the uncertainty about the partial correlation be evaluated? Only relevant for \code{partialCor.lmm}.
 ##' @param df [logical] Should a Student's t-distribution be used to model the distribution of the coefficient. Otherwise a normal distribution is used.
 ##' @param transform.rho [character] scale on which perform statistical inference (e.g. \code{"atanh"})
-##' @param name.short [logical vector of length 2] use short names for the output coefficients (omit the name of the by variable, omit name of the correlation parameter)
+##' @param name.short [logical] use short names for the output coefficients (omit the name of the by variable)
 ##' @param ... arguments passed to \code{confint} for \code{partialCor.list} and  \code{partialCor.formula}. Not used for \code{partialCor.lmm}.
 ##'
 ##' @details Fit a mixed model to estimate the partial correlation with the following variance-covariance pattern:
@@ -140,7 +140,7 @@
 ##' @rdname partialCor
 ##' @export
 partialCor.list <- function(object, data, repetition = NULL, structure = NULL, by = NULL,
-                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, name.short = c(TRUE,FALSE), ...){
+                            effects = NULL, rhs = NULL, method = "none", df = NULL, transform.rho = NULL, name.short = TRUE, ...){
 
     ## ... confidence level
     
@@ -423,7 +423,7 @@ partialCor.list <- function(object, data, repetition = NULL, structure = NULL, b
             }
         }else{
             e.lmm <- mlmm(formula.mean, df = df, repetition = formula.repetition, data = dataL, structure = structure, transform.rho = transform.rho,
-                          by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short, trace = FALSE)
+                          by = by, effects = "correlation", contrast.rbind = effects, name.short = name.short[1], trace = FALSE)
             out <- stats::confint(e.lmm, columns = c("estimate","se","df","lower","upper","p.value"))
         }
     }

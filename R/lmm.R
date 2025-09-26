@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:15) 
+## Last-Updated: sep 26 2025 (15:18) 
 ##           By: Brice Ozenne
-##     Update #: 3186
+##     Update #: 3229
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 ## * lmm (documentation)
 ##' @title Fit Linear Mixed Model
 ##' @description Fit a linear mixed model defined by a mean and a covariance structure.
-##' @name lmm.formula
+##' @name lmm
 ##'
 ##' @param object [formula] Specify the model for the mean.
 ##' On the left hand side the outcome and on the right hand side the covariates affecting the mean value.
@@ -29,7 +29,9 @@
 ##' @param method.fit [character] Should Restricted Maximum Likelihoood (\code{"REML"}) or Maximum Likelihoood (\code{"ML"}) be used to estimate the model parameters?
 ##' @param type.information [character] Should the expected information be computed  (i.e. minus the expected second derivative) or the observed inforamtion (i.e. minus the second derivative).
 ##' @param df [logical] Should the degrees-of-freedom be computed using a Satterthwaite approximation?
-##' @param weights [formula or character] variable in the dataset used to weight the log-likelihood and its derivative. Should be constant within cluster.
+##' @param weights [formula or character vector] variable in the dataset used to weight the log-likelihood (right-hand side of the formula or first element of the vector)
+##' or the residual variance-covariance matrix (left-hand side of the formula or second element of the vector).
+##' Should be constant within cluster.
 ##' @param trace [interger, >0] Show the progress of the execution of the function.
 ##' @param control [list] Control values for the optimization method.
 ##' The element \code{optimizer} indicates which optimizer to use and additional argument will be pass to the optimizer.
@@ -140,26 +142,35 @@
 ##' newd$Y[3] <- NA
 ##' predict(eCS.lmm, newdata = newd, type = "dynamic", keep.data = TRUE)
 ##'
-##' #### EXTRA ####
+##' #### 7- aggregated data (average over m replicates) ####
 ##' if(require(mvtnorm)){
-##' ## model for the average over m replicates
-##' ## (only works with independent replicates)
 ##' Sigma1 <- diag(1,1,1); Sigma5 <- diag(1,5,5)
-##' n <- 100
+##' n <- 1000
 ##' dfW <- rbind(data.frame(id = 1:n, rep = 5, Y = rowMeans(rmvnorm(n, sigma = Sigma5))),
 ##'              data.frame(id = (n+1):(2*n), rep = 1, Y = rmvnorm(n, sigma = Sigma1)))
-##' 
-##' e.lmmW <- lmm(Y~1, data = dfW, weigths=~rep, control = list(optimizer = "FS"))
+##'
+##' ## incorrect uncertainty estimate when ignoring the averaging 
 ##' e.lmm0 <- lmm(Y~1, data = dfW, control = list(optimizer = "FS"))
-##' model.tables(e.lmmW, effects = "all")
-##' model.tables(e.lmm0, effects = "all")
-##' ## TRUE standard error is 1
+##' model.tables(e.lmm0, effects = "all")## TRUE standard deviation is 1
+##' 
+##' ## 'usual' weighting, i.e., replicating the observation m times is not quite right
+##' e.lmmW <- lmm(Y~1, data = dfW, weight = ~rep, control = list(optimizer = "FS"))
+##' model.tables(e.lmmW, effects = "all")## TRUE standard deviation is 1
+##' 
+##' ## inverse 'usual' weighting is closer but still not right
+##' dfW$repM1 <- 1/dfW$rep
+##' e.lmmW2 <- lmm(Y~1, data = dfW, weight = ~repM1, control = list(optimizer = "FS"))
+##' model.tables(e.lmmW2, effects = "all")## TRUE standard deviation is 1
+##'
+##' ## cluster-specific rescaling of the residual variance-covariance matrix is good
+##' e.lmmG <- lmm(Y~1, data = dfW, weight=rep~1, control = list(optimizer = "FS"))
+##' model.tables(e.lmmG, effects = "all") ## TRUE standard error is 1
 ##'
 ##' }
 ##' 
 
 ## * lmm.formula (code)
-##' @rdname lmm.formula
+##' @rdname lmm
 ##' @export
 lmm.formula <- function(object, data, repetition, structure, weights = NULL, 
                         method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
@@ -310,7 +321,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
             control$transform.rho <- "none"
         }
     }else{
-        precompute.moments <- is.na(out$weights$var["Omega"]) && options$precompute.moments        
+        precompute.moments <- options$precompute.moments        
     }
 
     ## *** design matrix
@@ -455,7 +466,7 @@ lmm.mlmm <- lmm.rbindWald_lmm
 ## * .lmmNormalizeArgs 
 ##' @description Normalize all arguments for lmm
 ##' @noRd
-.lmmNormalizeArgs <- function(formula, repetition, structure, data,weights, 
+.lmmNormalizeArgs <- function(formula, repetition, structure, data, weights, 
                               method.fit, df, type.information, trace, control,
                               options){
 
@@ -673,29 +684,42 @@ lmm.mlmm <- lmm.rbindWald_lmm
     if(!is.null(weights)){
         if(is.character(weights)){
             var.weights <- weights
+            if(length(var.weights)==1){
+                var.weights <- c(var.weights, NA)
+            }else if(length(var.weights)!=2){
+                stop("Argument \'weights\' should be NULL or refer to at most two variables. \n")
+            }
         }else if(inherits(weights,"formula")){
-            var.weights <- all.vars(weights)
+            var.weights.right <- all.vars(stats::delete.response(stats::terms(weights)))
+            var.weights.left <- setdiff(all.vars(weights), var.weights.right)
+
+            if(length(var.weights.left)>1){
+                stop("Argument \'weights\' should have at most one variable on the left hand side to weight the residual variance-covariance matrix. \n")
+            }                
+            if(length(var.weights.right)>1){
+                stop("Argument \'weights\' should have at most one variable on the right hand side to weight the log-likelihood. \n")
+            }
+            var.weights <- c(c(var.weights.right,NA)[1], c(var.weights.left,NA)[1])
         }else {
             stop("Argument \'weights\' should be a character or a formula. \n")
         }
-        if(length(var.weights)>1){
-            stop("Can only handle a single weights variable. \n")
-        }
-        if(var.weights %in% names(data)==FALSE){
-            stop("Argument \'weights\' is inconsistent with argument \'data\'. \n",
-                 "Variable \"",var.weights,"\" could not be found in the dataset. \n",
-                 sep = "")
-        }
-        if(any(data[[var.weights]]<=0)){
-            stop("Weights should be strictly positives. \n")
-        }
-        if(!is.na(var.cluster)){
-            if(any(tapply(data[[var.weights]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)){
-                stop("Invalid argument \'weights\': weights should be constant within clusters. \n")
+        names(var.weights) <- c("likelihood","Omega")
+
+        if(any(!is.na(var.weights))){
+            if(any(stats::na.omit(var.weights) %in% names(data)==FALSE)){
+                stop("Argument \'weights\' is inconsistent with argument \'data\'. \n",
+                     "Variable \"",paste(setdiff(stats::na.omit(var.weights),names(data)), collapse = "\", \""),"\" could not be found in the dataset. \n",
+                     sep = "")
+            }
+            if(any(sapply(stats::na.omit(var.weights), function(iVar){any(data[[iVar]]<=0)}))){
+                stop("Argument \'weights\' should take strictly positive values. \n")
+            }
+            if(!is.na(var.cluster) && any(sapply(stats::na.omit(var.weights), function(iVar){any(tapply(data[[iVar]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)}))){
+                stop("Invalid argument \'weights\': values should be constant within clusters. \n")
             }
         }
     }else{
-        var.weights <- NA
+        var.weights <- c(likelihood = as.character(NA), Omega = as.character(NA))
     }
 
     ## ** method.fit
@@ -756,7 +780,7 @@ lmm.mlmm <- lmm.rbindWald_lmm
     
     ## ** export
     return(list(formula = formula, formula.outcome = stats::update(formula,.~1), formula.design = detail.formula$formula$design, ranef = detail.ranef,
-                var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, var.weights = var.weights, 
+                var.outcome = var.outcome, var.X = var.X, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, var.weights = var.weights,
                 method.fit = method.fit,
                 df = df,
                 type.information = type.information,

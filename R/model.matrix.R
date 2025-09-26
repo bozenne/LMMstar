@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: jul 18 2025 (12:20) 
+## Last-Updated: sep 26 2025 (14:24) 
 ##           By: Brice Ozenne
-##     Update #: 3266
+##     Update #: 3309
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -227,8 +227,13 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
 
         ## *** weights
-        if(!simplify && !is.na(object$weight$var[1]) && object$weight$var[1] %in% names(newdata)){ 
-            design$weight <- newdata[[object$weight$var[1]]]
+        if(!simplify){
+            if(!is.na(object$weight$var["likelihood"]) && object$weight$var["likelihood"] %in% names(newdata)){
+                design$weight.likelihood <- newdata[[object$weight$var["likelihood"]]]
+            }
+            if(!is.na(object$weight$var["Omega"]) && object$weight$var["Omega"] %in% names(newdata)){
+                design$weight.Omega <- newdata[[object$weight$var["Omega"]]]
+            }
         }
         
         ## *** mean
@@ -586,23 +591,28 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                 sep = options$sep["pattern"])
 
     ## ** prepare calculation of the score
-    if(precompute.moments){
-        if(is.na(var.weights)){
+    if(precompute.moments){        
+        if(is.na(var.weights["likelihood"])){
             precompute.weights <- stats::setNames(structure$Upattern$n.cluster, structure$Upattern$name)
         }else{
             precompute.weights <- stats::setNames(sapply(structure$Upattern$name, function(iPattern){
                 iCluster <- attr(structure$pattern,"list")[[iPattern]] ## cluster corresponding to the pattern
                 iIndex <- sapply(index.cluster[iCluster],"[[",1)  ##  first occurence of the cluster corresponding to the pattern (as the weights are duplicated within individuals)n
-                return(sum(data[iIndex,var.weights])) ## sum weights 
+                return(sum(data[iIndex,var.weights["likelihood"]])) ## sum weights 
             }), structure$Upattern$name)
         }
         if(NCOL(X.mean)>0){
-            if(is.na(var.weights)){
+            if(all(is.na(var.weights))){
                 wX.mean <- X.mean
                 wY <- cbind(data[[var.outcome]])
             }else{
-                wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(data[[var.weights]]))
-                wY <- cbind(data[[var.outcome]]*sqrt(data[[var.weights]]))
+                if(all(!is.na(var.weights))){ ## weights (for each observation, i.e., duplicated over clusters)
+                    w <- data[[var.weights[1]]]*data[[var.weights[2]]]
+                }else{
+                    w <- data[[stats::na.omit(var.weights)]]
+                }
+                wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(w))
+                wY <- cbind(data[[var.outcome]]*sqrt(w))
             }
 
             precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
@@ -612,6 +622,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, pattern = structure$Upattern$name,
                                             pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
                                             pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
+
         }else{
             precompute.XX <- NULL
             precompute.XY <- NULL
@@ -674,16 +685,28 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 drop.X = drop.X
                 )
 
-    ## ** weights
-    if(!is.na(var.weights)){
-        ## NOTE: only take first weight for each cluster as weights should be constant within cluster
-        out$weights <- sapply(index.cluster, function(iIndex){data[iIndex[1],var.weights]})
-        attr(out$weights, "user-defined") <- TRUE ## user-defined
+    ## ** weights (cluster-specific)
+    ## prod: use to rescale X and residuals when evaluating the moments in the log-likelihood, score, information, df
+    ## id.log: use to evaluate a term of the log-likelihood -0.5*\sum_i w1_i \log|w2_i\Omega_i|
+    if(all(is.na(var.weights))){
+        out$weights <- cbind(likelihood = rep(1, length = length(U.cluster)),
+                             Omega = rep(1, length = length(U.cluster)))
+        attr(out$weights,"user-defined") <- FALSE
+        attr(out$weights,"logLik") <- 0
     }else{
-        out$weights <- rep(1, length(U.cluster))
-        attr(out$weights, "user-defined") <- FALSE ## automatically-generative
+        index.cluster1 <- sapply(index.cluster,"[",1)        
+        if(all(is.na(var.weights))){
+            out$weights <- cbind(likelihood = data[index.cluster1,var.weights["likelihood"]],
+                                 Omega = data[index.cluster1,var.weights["Omega"]])
+        }else if(is.na(var.weights["likelihood"])){
+            out$weights <- cbind(likelihood = 1,
+                                 Omega = data[index.cluster1,var.weights["Omega"]])
+        }else if(is.na(var.weights["Omega"])){
+            out$weights <- cbind(likelihood = data[index.cluster1,var.weights["likelihood"]],
+                                 Omega = 1)
+        }        
+        attr(out$weights,"user-defined") <- TRUE
     }
-
     return(out)
 }
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:13) 
+## Last-Updated: sep 26 2025 (16:50) 
 ##           By: Brice Ozenne
-##     Update #: 587
+##     Update #: 590
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -64,7 +64,8 @@
 ##' 
 ##' d <- rbind(d1,d2,d3)
 ##' 
-##' e.mlmm <- mlmm(Y~X1, data = d, by = "group", effects = "X1=0")
+##' e.mlmm <- mlmm(Y~X1, data = d, repetition = ~1|id,
+##'                by = "group", effects = "X1=0")
 ##' summary(e.mlmm)
 ##' summary(e.mlmm, method = "single-step")
 ##' summary(e.mlmm, method = "single-step2")

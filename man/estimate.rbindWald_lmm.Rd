@@ -33,6 +33,8 @@ Compared to \code{estimate.lmm}, the \code{f} argument cannot take \code{p} as a
 One should instead explicitely request the estimated contrasts in the function \code{f} using \code{coef(object)}.
 }
 \examples{
+if(require(lava)){
+
 data(gastricbypassL, package = "LMMstar")
 e.reg <- by(gastricbypassL, gastricbypassL$time, function(iData){
    iLMM <- lmm(glucagonAUC ~ weight, data = iData, repetition = ~1|id)
@@ -49,5 +51,7 @@ estimate(e.Wald14, function(object){
 estimate(e.Wald14, function(object){ 
    coef(object, method = c("none","average"))
 })
+
+}
 }
 \keyword{mhtest}

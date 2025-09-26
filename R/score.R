@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt  3 2024 (10:54) 
+## Last-Updated: sep 26 2025 (15:52) 
 ##           By: Brice Ozenne
-##     Update #: 939
+##     Update #: 978
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -368,7 +368,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     name.effects <- attr(effects,"original.names")
     n.effects <- length(name.effects)
     if(compute.indiv){
-        Score <- matrix(NA, nrow = n.cluster, ncol = n.effects,
+        Score <- matrix(0, nrow = n.cluster, ncol = n.effects,
                         dimnames = list(NULL, name.effects))
     }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating score at parameter values where the residual variance-covariance matrix is singular
         return(stats::setNames(rep(NA, n.effects), name.effects))
@@ -405,12 +405,11 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
             REML.num <- stats::setNames(replicate(n.varcoef, matrix(0, nrow = n.mucoef, ncol = n.mucoef), simplify = FALSE), name.varcoef)
             for(iId in 1:n.cluster){ ## iId <- 1
                 iX <- X[index.cluster[[iId]],,drop=FALSE]
-                iOmegaM1 <- precision[[pattern[iId]]]
-                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]]
-                iWeights <- weights[iId]
-                X.OmegaM1.X <- X.OmegaM1.X + iWeights * t(iX) %*% iOmegaM1 %*% iX
+                iOmegaM1 <- precision[[pattern[iId]]] * weights[iId,"Omega"]
+                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]] * weights[iId,"Omega"]
+                X.OmegaM1.X <- X.OmegaM1.X + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1 %*% iX
                 for(iParam in intersect(names(iOmegaM1.dOmega.OmegaM1), name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
-                    REML.num[[iParam]] <- REML.num[[iParam]] + iWeights * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
+                    REML.num[[iParam]] <- REML.num[[iParam]] + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1.dOmega.OmegaM1[[iParam]] %*% iX
                 }
             }
             REML.denom <- solve(X.OmegaM1.X)
@@ -420,7 +419,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
         }
     }
 
-    ## ** compute score
+    ## ** compute score    
     if(compute.indiv){
         ## *** looping over individuals
         if(REML && test.vcov){
@@ -428,33 +427,31 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
                 array(iO, dim = c(sqrt(NROW(iO)),sqrt(NROW(iO)),NCOL(iO)), dimnames = list(NULL,NULL,colnames(iO)))
             })
         }
-                        
+        
         for(iId in 1:n.cluster){ ## iId <- 7
             iIndex <- index.cluster[[iId]]
             iPattern <- pattern[iId]
-            iWeights <- weights[iId]
             iResidual <- residuals[iIndex,,drop=FALSE]
             iX <- t(X[iIndex,,drop=FALSE])
-            iOmegaM1 <- precision[[iPattern]]
+            iOmegaM1 <- precision[[iPattern]] * weights[iId,"Omega"]
 
             if(test.mean){
-                Score[iId,name.mucoef] <- weights[iId] * (iX %*% iOmegaM1 %*% iResidual)
+                Score[iId,name.mucoef] <- weights[iId,"likelihood"] * (iX %*% iOmegaM1 %*% iResidual)
             }
             if(test.vcov){
                 iVarcoef <- names(precompute$Omega$tr.OmegaM1.dOmega[[pattern[iId]]])
-                Score[iId,iVarcoef] <- 0.5 * iWeights * (-precompute$Omega$tr.OmegaM1.dOmega[[iPattern]] + as.vector(tcrossprod(iResidual)) %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]])
+                iOmegaM1.dOmega.OmegaM1 <- precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]] * weights[iId,"Omega"]
+                Score[iId,iVarcoef] <- 0.5 * weights[iId,"likelihood"] * (-precompute$Omega$tr.OmegaM1.dOmega[[iPattern]] + as.vector(tcrossprod(iResidual)) %*% iOmegaM1.dOmega.OmegaM1)
                 ## second term is the same as
                 ## iResidual[,1] %*% matrix(precompute$Omega$OmegaM1.dOmega.OmegaM1[[pattern[iId]]][,2], nrow = length(iIndex), ncol = length(iIndex)) %*% iResidual 
 
                 if(REML){
                     ## APPROXIMATION: the REML score w.r.t. variance parameter is not linear in the individual contribution tr(\sum_i a_i / \sum_i b_i)/2
                     ## first order expansion:  tr(a_j / \sum_i b_i)/2
-
-                    for(iParam in intersect(dimnames(OmegaM1.dOmega.OmegaM1[[iPattern]])[[3]], name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"
-                        iREML.num <- iWeights * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam] %*% t(iX)
-                        ## iREML.num <- iWeights * iX %*% iOmegaM1 %*% dOmega[[iPattern]][[iParam]] %*% iOmegaM1 %*% t(iX)
-                        ## iREML.denom <- iWeights * iX %*% dOmega[[iPattern]][[iParam]] %*% t(iX)
+                    for(iParam in intersect(dimnames(OmegaM1.dOmega.OmegaM1[[iPattern]])[[3]], name.varcoef)){ ## intersect to handle when argument effects is only "variance" or "correlation"                        
+                        iREML.num <- prod(weights[iId,]) * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam] %*% t(iX)
                         Score[iId,iParam] <-  Score[iId,iParam] + 0.5 * sum(iREML.num * REML.denom)
+                        
                     }
                 }
 

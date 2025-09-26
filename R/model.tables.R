@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 18 2025 (12:08) 
+## Last-Updated: jul 24 2025 (18:34) 
 ##           By: Brice Ozenne
-##     Update #: 417
+##     Update #: 418
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -499,7 +499,7 @@ model.tables.effect_lmm <- function(x, effects = "Wald", columns, ...){
              "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
     }
     if(effects %in% c("contrast","param")){
-        return(model.tables.Wald_lmm(x, ...))
+        return(model.tables.Wald_lmm(x, effects = effects, ...))
     }
     
     ## ** usual model.tables

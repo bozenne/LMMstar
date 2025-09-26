@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 18 2024 (12:17) 
 ## Version: 
-## Last-Updated: sep 30 2024 (13:44) 
+## Last-Updated: sep 26 2025 (09:37) 
 ##           By: Brice Ozenne
-##     Update #: 10
+##     Update #: 13
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,7 +18,7 @@
 ## * collapse (documentation)
 ##' @title Aggregate Dataset by Columns
 ##' @description Alternative to \code{\link{interaction}} (which can be quite slow) to aggregate columns of a dataset. 
-##' @name collapse
+##' @noRd
 ##'
 ##' @param object dataset
 ##' @param sep [character] character strings used to concatenate values from different columns.
@@ -40,7 +40,6 @@
 ##' GS <- interaction(df3, sep = ".", drop = TRUE)
 
 ## * collapse.data.frame (code)
-##' @rdname collapse
 collapse.data.frame <- function(object, sep = ".", as.factor = TRUE, ...){
 
     ## case of single column (fast)
@@ -66,11 +65,11 @@ collapse.data.frame <- function(object, sep = ".", as.factor = TRUE, ...){
 }
 
 ## * collapse.list (code)
-##' @rdname collapse
+##' @keywords internal
 collapse.list <- collapse.data.frame
 
 ## * collapse.matrix (code)
-##' @rdname collapse
+##' @keywords internal
 collapse.matrix <- function(object, ...){
     return(nlme::collapse(as.data.frame(object), ...))
 }

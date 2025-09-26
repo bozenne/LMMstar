@@ -87,7 +87,7 @@ e.YbyX1 <- effects(eUN.lmm, variable = "X1")
 e.YbyX1
 summary(e.YbyX1)
 model.tables(e.YbyX1)
-coef(e.YbyX1, type = "contrast")
+coef(e.YbyX1)
 effects(eUN.lmm, effects = "difference", variable = "X1")
 effects(eUN.lmm, effects = "difference", variable = "X1", repetition = "3")
 

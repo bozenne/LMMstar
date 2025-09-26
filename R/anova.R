@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:09) 
+## Last-Updated: sep 26 2025 (16:35) 
 ##           By: Brice Ozenne
-##     Update #: 2194
+##     Update #: 2200
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -411,8 +411,12 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
         }
 
         if(any(table.type$overall=="all")){
-
-            type.all <- names(which(colSums(table.type[table.type$overall=="all",c("mu","sigma","k","rho"),drop=FALSE])>0))
+            type.sum <- colSums(table.type[table.type$overall=="all",c("mu","sigma","k","rho"),drop=FALSE])
+            if(all(type.sum==0)){
+                type.all <- "mu"
+            }else{
+                type.all <- names(which(type.sum>0))
+            }
             transform2.all <- unique(c(mu = "none", sigma = transform.sigma, k = transform.k, rho = transform.rho)[type.all])
             if(backtransform && length(transform2.all)>1){
                 stop("Cannot move from the original scale to the transformed scale when testing linear hypothesis involving parameters with different transformations. \n",
@@ -639,8 +643,7 @@ anova.mlmm <- function(object, effects = NULL, rhs = NULL, ...){
 
     ## ** test linear combinations
     robust <- object$args$robust
-    df <- object$args$df 
-    ci <- object$args$ci
+    df <- object$args$df
 
     transform.sigma <- if(is.na(object$args$transform.sigma)){NULL}else{object$args$transform.sigma}
     transform.k <- if(is.na(object$args$transform.k)){NULL}else{object$args$transform.k}
@@ -648,14 +651,15 @@ anova.mlmm <- function(object, effects = NULL, rhs = NULL, ...){
 
     ls.lmm <- object$model
     name.lmm <- names(ls.lmm)
+
     ls.anova <- stats::setNames(lapply(name.lmm, function(iName){ ## iName <- name.lmm[1]
-        anova(ls.lmm[[iName]], effects = effects, rhs = rhs, df = df, ci = ci, robust = robust,
-              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
+        anova(ls.lmm[[iName]], effects = effects, rhs = rhs, df = df, robust = robust,
+              transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, simplify = FALSE)
     }), name.lmm)
 
     ## ** regenerate a new mlmm object
     out <- do.call("rbind.Wald_lmm",
-                   args = c(list(model = ls.anova[[1]], effects = constraint, rhs = rhs, name = names(object$model), sep = object$args$sep), unname(ls.anova[-1]))
+                   args = c(list(model = ls.anova[[1]], effects = constraint, rhs = rhs, name = names(object$model), sep = ":"), unname(ls.anova[-1]))
                    )
     
     return(out)

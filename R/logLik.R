@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt  3 2024 (11:05) 
+## Last-Updated: sep 26 2025 (14:30) 
 ##           By: Brice Ozenne
-##     Update #: 439
+##     Update #: 510
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,28 +175,20 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
     n.mucoef <- NCOL(X)
 
     ## ** prepare output
-    compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$RR)
+    compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$RR) || (REML & is.null(precompute$REML))
+    compute.indiv <- TRUE
     if(compute.indiv){
         ll <- rep(NA, n.cluster)
     }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating log-likelihood at parameter values where the residual variance-covariance matrix is singular
         return(NA)
+    }else if(attr(weights,"user-defined")){
+        ll <- -0.5*sum(weights[,"likelihood"]*lengths(index.cluster)*log(weights[,"Omega"]))
     }else{
         ll <- 0
     }
 
-    ## ** REML contribution
-    if(REML){
-        if(is.null(precompute$REML)){
-            X.OmegaM1.X <- matrix(0, nrow = n.mucoef, ncol = n.mucoef)
-            for(iId in 1:n.cluster){ ## iId <- 1
-                iX <- X[index.cluster[[iId]],,drop=FALSE]
-                iOmegaM1 <- precision[[pattern[iId]]]
-                iWeights <- weights[iId]
-                X.OmegaM1.X <- X.OmegaM1.X + iWeights * t(iX) %*% iOmegaM1 %*% iX               
-            }
-            precompute$REML <- log(det(X.OmegaM1.X))
-        }
-        ll <- ll - precompute$REML$logdet_X.OmegaM1.X/2 + n.mucoef * log2pi/2            
+    if(REML & is.null(precompute$REML)){        
+        X.OmegaM1.X <- matrix(0, nrow = n.mucoef, ncol = n.mucoef)
     }
 
     ## ** compute log-likelihood
@@ -204,10 +196,17 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
         ## *** looping over individuals
         for (iId in 1:n.cluster){ ## iId <- 1
+            ## logdet is the log det of Omega^-1 instead of log det of Omega thus the minus sign
             iResidual <- residuals[index.cluster[[iId]], , drop = FALSE]
-            iOmegaM1 <- precision[[pattern[iId]]]
-            ll[iId] <- - weights[iId] * (NCOL(iOmegaM1) * log2pi - attr(iOmegaM1,"logdet") + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
+            iOmegaM1 <- precision[[pattern[iId]]] * weights[iId,"Omega"]
+            ll[iId] <- - weights[iId,"likelihood"] * (NCOL(iOmegaM1) * log2pi + NCOL(iOmegaM1) * log(weights[iId,"Omega"]) - attr(iOmegaM1,"logdet") + t(iResidual) %*% iOmegaM1 %*% iResidual)/2
+
+            if(REML & is.null(precompute$REML)){
+                iX <- X[index.cluster[[iId]],,drop=FALSE]
+                X.OmegaM1.X <- X.OmegaM1.X + weights[iId,"likelihood"] * t(iX) %*% iOmegaM1 %*% iX               
+            }
         }
+        
         if(!indiv){
             ll <- sum(ll)
         }
@@ -217,10 +216,18 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
         ## *** looping over covariance patterns
         for (iPattern in 1:length(precision)) { ## iPattern <- 1
             ## precompute$RR has already been weigthed
+            ## logdet is the log det of Omega^-1 instead of log det of Omega thus the minus sign
             iOmegaM1 <- precision[[iPattern]]
             ll <- ll - 0.5 * unname(precompute$weights[iPattern]) * (NCOL(iOmegaM1) * log2pi - attr(iOmegaM1,"logdet")) - 0.5 * sum(precompute$RR[[iPattern]] * attr(iOmegaM1,"vectorize"))
         }
+    }
 
+    ## ** REML contribution
+    if(REML){
+        if(is.null(precompute$REML)){
+            precompute$REML$logdet_X.OmegaM1.X <- log(det(X.OmegaM1.X))
+        }
+        ll <- ll - precompute$REML$logdet_X.OmegaM1.X/2 + n.mucoef * log2pi/2            
     }
 
     ## ** export

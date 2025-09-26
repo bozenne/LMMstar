@@ -73,7 +73,8 @@ d3$id <- 1:NROW(d3)
 
 d <- rbind(d1,d2,d3)
 
-e.mlmm <- mlmm(Y~X1, data = d, by = "group", effects = "X1=0")
+e.mlmm <- mlmm(Y~X1, data = d, repetition = ~1|id,
+               by = "group", effects = "X1=0")
 summary(e.mlmm)
 summary(e.mlmm, method = "single-step")
 summary(e.mlmm, method = "single-step2")

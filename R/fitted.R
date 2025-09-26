@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: sep 26 2025 (09:36) 
 ##           By: Brice Ozenne
-##     Update #: 434
+##     Update #: 437
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,10 +115,11 @@
 ##' armd.long$week <- factor(armd.long$week, 
 ##'                          level = paste0("visual",c(0,4,12,24,52)),
 ##'                          labels = c(0,4,12,24,52))
-##'
+##' armd.longNNA <- armd.long[!is.na(armd.long$lesion),]
+##' 
 ##' eUN2.lmm <- lmm(visual ~ treat.f*week + lesion,
 ##'                repetition = ~week|subject, structure = "UN",
-##'                data = armd.long)
+##'                data = armd.longNNA)
 ##' 
 ##' ## fitted outcome value (conditional on covariates and covariates)
 ##' armd.O <- fitted(eUN2.lmm, type = "outcome", keep.data = TRUE)
@@ -141,7 +142,7 @@
 ##' 
 ##' coef(eUN2.lmm)
 ##' effects(eUN2.lmm, type = "change", variable = "treat.f")
-##' effects(eUN2.lmm, type = c("change","difference"), variable = "treat.f")
+##' effects(eUN2.lmm, effects = "difference", type = "change", variable = "treat.f")
 ##'
 ##' ## fitted auc (conditional on covariates and covariates)
 ##' armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.data = TRUE)
@@ -152,7 +153,7 @@
 ##'
 ##' aggregate(visual ~ treat.f, data = armd.AUC, FUN = "mean")
 ##' effects(eUN2.lmm, type = "auc", variable = "treat.f") ## adjusted for lesion
-##' effects(eUN2.lmm, type = c("auc","difference"), variable = "treat.f")
+##' effects(eUN2.lmm, effects = "difference", type = "auc", variable = "treat.f")
 ##' }}
 
 ## * fitted.lmm (code)
@@ -248,7 +249,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     ## *** se and df
     if(type == "impute"){
         if(is.null(se)){
-            se <- TRUE
+            se <- object$args$df
         }else if(all(se == FALSE)){
             stop("Argument \'se\' should not be FALSE when argument \'type\' equals to \"impute\". \n",
                  "The standard error of the fitted outcome is needed to perform imputation. \n")
@@ -259,10 +260,10 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     }else if(is.null(se)){
         se <- (!simplify || keep.data) && !(format == "wide")
         if(is.null(df)){
-            df <- se[1]
+            df <- object$args$df & se[1]
         }
     }else if(is.null(df)){
-        df <- se[1]
+        df <- object$args$df & se[1]
     }
 
     ## *** format
@@ -288,7 +289,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
 
     ## ** extract fitted values
     e.pred <- do.call(stats::predict,
-                      args = c(list(object,newdata = newdata,se = se,type = type.prediction,df = df,keep.data = TRUE,format = "long",simplify = FALSE,options = options), dots))
+                      args = c(list(object, newdata = newdata, se = se, type = type.prediction, df = df, keep.data = TRUE, format = "long", simplify = FALSE, options = options), dots))
 
     ## ** evaluate the different types
     if(type == "mean"){

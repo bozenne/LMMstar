@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 18 2025 (11:30) 
+## Last-Updated: jul 24 2025 (18:34) 
 ##           By: Brice Ozenne
-##     Update #: 1826
+##     Update #: 1829
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,15 +63,17 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
             cat("\t\t",contrast.txt," counterfactual ",outcome.txt,"\n\t\t w.r.t \'",object$args$variable,"\' values \n\n", sep = "")
         }
     }
-
+    
     ## ** contrast
-    contrast <- stats::coef(object, effects = "Wald")
     if(max(print)>=1){
+        contrast <- model.tables(object, effects = "contrast")
         cat("\tPlanned contrast: \n")
         contrast.print <- contrast
         rownames(contrast.print) <- paste0("   ",rownames(contrast.print))
         print(contrast.print[,colSums(abs(contrast))>0,drop=FALSE])
         cat("\n")
+    }else{
+        contrast <- NULL
     }
 
 
@@ -95,7 +97,8 @@ summary.effect_lmm <- function(object, columns = NULL, print = TRUE, ...){
     }
 
     ## ** export
-    return(invisible(contrast))
+    return(invisible(list(contrast = contrast,
+                          table = out)))
 }
 
 ## * summary.lmm (documentation)

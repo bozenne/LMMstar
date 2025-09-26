@@ -126,10 +126,11 @@ armd.long <- melt(armd.wide,
 armd.long$week <- factor(armd.long$week, 
                          level = paste0("visual",c(0,4,12,24,52)),
                          labels = c(0,4,12,24,52))
+armd.longNNA <- armd.long[!is.na(armd.long$lesion),]
 
 eUN2.lmm <- lmm(visual ~ treat.f*week + lesion,
                repetition = ~week|subject, structure = "UN",
-               data = armd.long)
+               data = armd.longNNA)
 
 ## fitted outcome value (conditional on covariates and covariates)
 armd.O <- fitted(eUN2.lmm, type = "outcome", keep.data = TRUE)
@@ -152,7 +153,7 @@ gg.change
 
 coef(eUN2.lmm)
 effects(eUN2.lmm, type = "change", variable = "treat.f")
-effects(eUN2.lmm, type = c("change","difference"), variable = "treat.f")
+effects(eUN2.lmm, effects = "difference", type = "change", variable = "treat.f")
 
 ## fitted auc (conditional on covariates and covariates)
 armd.AUC <- fitted(eUN2.lmm, type = "auc", keep.data = TRUE)
@@ -163,7 +164,7 @@ gg.auc
 
 aggregate(visual ~ treat.f, data = armd.AUC, FUN = "mean")
 effects(eUN2.lmm, type = "auc", variable = "treat.f") ## adjusted for lesion
-effects(eUN2.lmm, type = c("auc","difference"), variable = "treat.f")
+effects(eUN2.lmm, effects = "difference", type = "auc", variable = "treat.f")
 }}
 }
 \keyword{methods}
