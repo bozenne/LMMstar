@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 26 2025 (14:24) 
+## Last-Updated: sep 29 2025 (17:09) 
 ##           By: Brice Ozenne
-##     Update #: 3309
+##     Update #: 3328
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -351,35 +351,36 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         out$var$data <- .updateFactor(data, xfactor = structure$var$xfactor)
     }else{ ## from .model.matrix
         out$var$data <- data
-    }
+        col2factor.var <- switch(structure.class,
+                                 "ID" = all.vars(structure$formula$var),
+                                 "IND" = all.vars(structure$formula$var),
+                                 "CS" = all.vars(structure$formula$var),
+                                 "RE" = all.vars(structure$formula$var),
+                                 "UN" = all.vars(structure$formula$var),
+                                 "TOEPLITZ" = all.vars(structure$formula$var),
+                                 stats::na.omit(structure$name$strata))
 
-    if(structure.class %in% c("ID","IND","CS","RE","UN","TOEPLITZ")){
-        col2factor.var <- all.vars(structure$formula$var)
-    }else if(!is.na(structure$name$strata)){
-        col2factor.var <- structure$name$strata
-    }else{
-        col2factor.var <- NULL
-    }
-    for(iVar in col2factor.var){
-        out$var$data[[iVar]] <- as.factor(data[[iVar]])
-    }
+        for(iVar in col2factor.var){
+            out$var$data[[iVar]] <- as.factor(data[[iVar]])
+        }
+    }        
 
     ## *** correlation: convert variable to numeric/factor according to the structure
     if("xfactor" %in% names(structure$cor)){ ## from model.matrix.lmm
         out$cor$data <- .updateFactor(data, xfactor = structure$cor$xfactor)
+        col2factor.cor <- names(structure$cor$xfactor)
     }else{ ## from .model.matrix
         out$cor$data <- data
-    }
-
-    if(structure.class == "UN" || (structure.class == "CS" && structure.type %in% "heterogeneous")){
-        col2factor.cor <- all.vars(structure$formula$cor)
-    }else if(!is.na(structure$name$strata)){
-        col2factor.cor <- structure$name$strata
-    }else{
-        col2factor.cor <- NULL
-    }
-    for(iVar in col2factor.cor){
-        out$cor$data[[iVar]] <- as.factor(data[[iVar]])
+        if(structure.class == "UN" || (structure.class == "CS" && structure.type %in% "heterogeneous")){
+            col2factor.cor <- all.vars(structure$formula$cor)
+        }else if(!is.na(structure$name$strata)){
+            col2factor.cor <- structure$name$strata
+        }else{
+            col2factor.cor <- NULL
+        }
+        for(iVar in col2factor.cor){
+            out$cor$data[[iVar]] <- as.factor(data[[iVar]])
+        }
     }
 
     if(structure.class %in% c("RE","TOEPLITZ") || (structure.class == "CS" && structure.type %in% "homogeneous")){
@@ -422,7 +423,6 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             if(!is.null(iFormula)){
                 iAttr.X <- structure[[iMoment]]$X.attr
                 iKeep.attr <- setdiff(names(iAttr.X), c("dim","dimnames"))
-
                 out[[iMoment]]$X <- stats::model.matrix(iFormula, data = iData)[,iAttr.X$original.colnames,drop=FALSE]
                 colnames(out[[iMoment]]$X) <- iAttr.X$dimnames[[2]]
                 for(iAssign in iKeep.attr){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:19) 
+## Last-Updated: sep 29 2025 (17:14) 
 ##           By: Brice Ozenne
-##     Update #: 1536
+##     Update #: 1545
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -535,7 +535,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                 ## if not all necessary timepoint will be set to NA at the end
                 iM.varcontrast <- M.contrast[index.clusterTime[[iC]][iIndex.varcontrast],index.clusterTime[[iC]],drop=FALSE]
             }
-            
+
             if(length(iPos.con)>0 && length(iPos.pred)==0 && type.prediction %in% c("change","auc","auc-b")){ ## no prediction but contrast observations
                 ##-- compute predictions
                 prediction[iPos.contrast] <- iM.contrast %*% iNewdata[[name.Y]]

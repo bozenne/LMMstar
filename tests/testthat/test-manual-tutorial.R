@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 13 2021 (16:47) 
 ## Version: 
-## Last-Updated: May 12 2024 (22:34) 
+## Last-Updated: sep 29 2025 (17:16) 
 ##           By: Brice Ozenne
-##     Update #: 32
+##     Update #: 33
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -141,7 +141,8 @@ test_that("Dynamic predictions", {
                          total = predict(fit.main, newdata = newd, type = "dynamic", se = c(TRUE,TRUE), keep.data = TRUE)[newd$time=="-1 week",c("estimate","lower","upper")]),
                    by.x = "id", by.y = "res.id")
 
-    dfData <- reshape2::dcast(data = long[long$time %in% c("-3 month","-1 week"),], formula = id~time, value.var = "weight")
+    dfData <- reshape(data = long[long$time %in% c("-3 month","-1 week"),c("id","weight","time")], direction = "wide",
+                      idvar = "id", v.names = "weight", timevar = "time")
     colnames(dfData) <- c("id","w1","w2")
 
     ggDyn <- ggplot()
@@ -154,8 +155,8 @@ test_that("Dynamic predictions", {
     ggDyn <- ggDyn + labs(x = "weight 3 months before", y = "weight 1 week before", color = "95% prediction limit accounting for")
     ggDyn <- ggDyn + theme(legend.position = "bottom", legend.direction = "vertical",
                            text = element_text(size=15),
-                           axis.line = element_line(size = 1.25),
-                           axis.ticks = element_line(size = 2),
+                           axis.line = element_line(linewidth = 1.25),
+                           axis.ticks = element_line(linewidth = 2),
                            axis.ticks.length=unit(.25, "cm"))
     ggDyn
     ## ggsave(ggDyn, filename = "figures/gg-dynamic-prediction.png", width = 10)
