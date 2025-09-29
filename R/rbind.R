@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 26 2025 (16:50) 
+## Last-Updated: sep 29 2025 (13:52) 
 ##           By: Brice Ozenne
-##     Update #: 1374
+##     Update #: 1375
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -58,7 +58,7 @@
 ##' 
 ##' @examples
 ##' ## simulate data
-##' set.seed(10)
+##' set.seed(1)
 ##' dL <- sampleRem(1e2, n.times = 3, format = "long")
 ##'
 ##' ## estimate mixed models

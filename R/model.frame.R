@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: sep 29 2025 (13:14) 
 ##           By: Brice Ozenne
-##     Update #: 253
+##     Update #: 254
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,7 +29,7 @@
 ##' Not relevant when argument type is \code{"unique"}.
 ##' @param ... not used. For compatibility with the generic method.
 ##'
-##' @details Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm}}).
+##' @details Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm.formula}}).
 ##' When adding rows relative to missing repetitions, since there is no row in the original dataset, a negative sign is used.
 ##' 
 ##' @keywords methods

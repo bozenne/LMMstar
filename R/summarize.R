@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:48) 
+## Last-Updated: sep 29 2025 (14:51) 
 ##           By: Brice Ozenne
-##     Update #: 784
+##     Update #: 792
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -117,7 +117,7 @@
 ##'
 ##' ## add correlation (see correlate function)
 ##' e.S <- summarize(Y ~ time + X1, data = dL, repetition = ~time|id,
-##'                  na.rm = TRUE, columns = add("correlation"), na.rm = TRUE)
+##'                  na.rm = TRUE, columns = add("correlation"))
 ##' e.S
 ##' 
 ##' #### summarize (long format, missing lines) ####
@@ -168,7 +168,15 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
             newcolumns <- columns
         }
     }
-    columns <- match.arg(newcolumns, choices = valid.columns, several.ok = TRUE)
+    if(!is.character(newcolumns)){
+        stop("Argument \'columns\' should be a character vector. \n")
+    }
+    if(any(newcolumns %in% valid.columns == FALSE) ){
+        stop("Argument \'columns\' cannot take value(s) \"",paste(setdiff(newcolumns, valid.columns), collapse = "\", \""),"\". \n",
+             "Possible values: \"",paste(setdiff(valid.columns, newcolumns), collapse = "\", \""),"\". \n")
+    }else{
+        columns <- newcolumns
+    }
 
     ## *** data (column names)
     name.all <- names(data)
@@ -390,7 +398,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
 
         ## *** mean
         if("mean" %in% columns && any(!is.na(iDataY))){ ## otherwise colMeans outputs NaN instead of NA
-                iOut$mean <- colMeans(iDataY, na.rm = na.rm)
+            iOut$mean <- colMeans(iDataY, na.rm = na.rm)
         }
         
         if("mean.lower" %in% columns || "mean.upper" %in% columns || "predict.lower" %in% columns || "predict.upper" %in% columns){

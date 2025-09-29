@@ -7,8 +7,8 @@
 \method{confint}{resample}(
   object,
   parm = NULL,
-  null = NULL,
   level = 0.95,
+  null = NULL,
   method = NULL,
   columns = NULL,
   correction = TRUE,
@@ -20,10 +20,10 @@
 
 \item{parm}{Not used. For compatibility with the generic method.}
 
+\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
+
 \item{null}{[numeric vector] the value of the null hypothesis relative to each coefficient.
 Only relevant for when using bootstrap.}
-
-\item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
 \item{method}{[character] method used to compute the confidence intervals and p-values: \code{"percentile"}, \code{"gaussian"}, or \code{"studentized"}.}
 

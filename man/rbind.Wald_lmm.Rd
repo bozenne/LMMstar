@@ -66,7 +66,7 @@ In presence of measurements from the same cluster across
 }
 \examples{
 ## simulate data
-set.seed(10)
+set.seed(1)
 dL <- sampleRem(1e2, n.times = 3, format = "long")
 
 ## estimate mixed models

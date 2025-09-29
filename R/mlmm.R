@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: sep 26 2025 (16:50) 
+## Last-Updated: sep 29 2025 (13:14) 
 ##           By: Brice Ozenne
-##     Update #: 590
+##     Update #: 591
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @title Fit Multiple Linear Mixed Model
 ##' @description Fit several linear mixed models, extract relevant coefficients, and combine them into a single table. 
 ##'
-##' @param ... arguments passed to \code{\link{lmm}}.
+##' @param ... arguments passed to \code{\link{lmm.formula}}.
 ##' @param data [data.frame] dataset (in the long format) containing the observations.
 ##' @param by [character] variable used to split the dataset. On each split a seperate linear mixed model is fit.
 ##' @param effects [character or numeric matrix] Linear combinations of coefficients relative to which Wald test should be computed.

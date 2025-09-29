@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Oct 11 2022 (10:56) 
 ## Version: 
-## Last-Updated: jul 17 2025 (16:42) 
+## Last-Updated: sep 29 2025 (15:03) 
 ##           By: Brice Ozenne
-##     Update #: 67
+##     Update #: 70
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -35,8 +35,11 @@
 ##' data(gastricbypassL)
 ##'
 ##' #### linear mixed model ####
-##' e.lmm <- lmm(formula = glucagonAUC ~ 0 + weight + visit, data = gastricbypassL, repetition = ~visit | id)
-##' Wald_mu <- anova(e.lmm, effects = c("visit4 - visit1 = 0", "visit2 - visit1 = 0", "visit3 - visit1 = 0"))
+##' e.lmm <- lmm(glucagonAUC ~ 0 + weight + visit,
+##'              data = gastricbypassL, repetition = ~visit | id)
+##' Wald_mu <- anova(e.lmm, effects = c("visit4 - visit1 = 0",
+##'                                     "visit2 - visit1 = 0",
+##'                                     "visit3 - visit1 = 0"))
 ##' weights(Wald_mu, method = c("average","pool.se"))
 ##' weights(Wald_mu, method = c("average","pool.se"), effects = "all")
 ##'

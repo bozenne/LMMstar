@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:40) 
+## Last-Updated: sep 29 2025 (13:15) 
 ##           By: Brice Ozenne
-##     Update #: 1360
+##     Update #: 1361
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -858,7 +858,7 @@ confint.effect_lmm <- function(object, parm, level = 0.95, method = "none", ...)
 
 ## * confint.resample (code)
 ## '@export
-confint.resample <-  function(object, parm = NULL, null = NULL, level = 0.95, method = NULL, columns = NULL, correction = TRUE, ...){
+confint.resample <-  function(object, parm = NULL, level = 0.95, null = NULL, method = NULL, columns = NULL, correction = TRUE, ...){
 
     mycall <- match.call()
     type <- object$args$type

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 26 2025 (15:18) 
+## Last-Updated: sep 29 2025 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 3229
+##     Update #: 3245
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -859,9 +859,15 @@ lmm.mlmm <- lmm.rbindWald_lmm
         stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
              "Could not find column \"",paste(var.cluster, collapse = "\" \""),"\" indicating the cluster in argument \'data\'. \n", sep="")
     }
+    if(any(!is.na(var.cluster)) && any(is.na(data[[var.cluster]]))){
+        stop("The cluster variable (here ",var.cluster,") should not contain any missing value. \n")
+    }
     if(any(!is.na(var.time)) && any(var.time %in% names.data == FALSE)){
         stop("Argument \'repetition\' is inconsistent with argument \'data\'. \n",
              "Could not find column \"",paste(var.time, collapse = "\" \""),"\" indicating the time in argument \'data\'. \n", sep="")
+    }
+    if(any(!is.na(var.time)) && any(sapply(var.time, function(iVar){sum(is.na(data[[iVar]]))})>0)){
+        stop("The cluster variable (here ",paste(var.time, collapse=", ")," should not contain any missing value. \n")
     }
     if(length(var.strata)>1){
         stop("Incorrect specification of argument \'structure\': too many strata variables. \n",
@@ -1056,9 +1062,9 @@ lmm.mlmm <- lmm.rbindWald_lmm
                 data$XXstrata.indexXX <- as.numeric(droplevels(data$XXstrataXX))
             }
 
-            loss.cluster <- keep$nlevel.cluster - max(data$XXcluster.indexXX)
-            loss.time <- keep$nlevel.time - max(data$XXtime.indexXX) 
-            loss.strata <- keep$nlevel.strata - max(data$XXstrata.indexXX)
+            loss.cluster <- keep$nlevel.cluster - n.cluster
+            loss.time <- keep$nlevel.time - n.time
+            loss.strata <- keep$nlevel.strata - n.strata
             if(loss.cluster>0){
                 warning <- TRUE
                 text.warning <- c(text.warning,paste0("  ",loss.cluster," cluster",ifelse(loss.cluster==1," has","s have")," been removed. \n"))

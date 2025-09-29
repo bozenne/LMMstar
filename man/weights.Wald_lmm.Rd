@@ -29,8 +29,11 @@ Extract weights used to pool estimates.
 data(gastricbypassL)
 
 #### linear mixed model ####
-e.lmm <- lmm(formula = glucagonAUC ~ 0 + weight + visit, data = gastricbypassL, repetition = ~visit | id)
-Wald_mu <- anova(e.lmm, effects = c("visit4 - visit1 = 0", "visit2 - visit1 = 0", "visit3 - visit1 = 0"))
+e.lmm <- lmm(glucagonAUC ~ 0 + weight + visit,
+             data = gastricbypassL, repetition = ~visit | id)
+Wald_mu <- anova(e.lmm, effects = c("visit4 - visit1 = 0",
+                                    "visit2 - visit1 = 0",
+                                    "visit3 - visit1 = 0"))
 weights(Wald_mu, method = c("average","pool.se"))
 weights(Wald_mu, method = c("average","pool.se"), effects = "all")
 

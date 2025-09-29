@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: sep 26 2025 (09:36) 
+## Last-Updated: sep 29 2025 (13:23) 
 ##           By: Brice Ozenne
-##     Update #: 437
+##     Update #: 438
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,17 +104,12 @@
 ##' 
 ##' #### two arm trial ####
 ##' \dontrun{
-##' if(require(nlmeU) & require(reshape2)){
+##' if(require(nlmeU)){
 ##' data(armd.wide, package = "nlmeU")
-##' armd.long <- melt(armd.wide,
-##'                   measure.vars = paste0("visual",c(0,4,12,24,52)),
-##'                   id.var = c("subject","lesion","treat.f","miss.pat"),
-##'                   variable.name = "week",
-##'                   value.name = "visual")
-##' 
-##' armd.long$week <- factor(armd.long$week, 
-##'                          level = paste0("visual",c(0,4,12,24,52)),
-##'                          labels = c(0,4,12,24,52))
+##' armd.long <- reshape(armd.wide, direction  = "long",
+##'       idvar = "subject", varying = paste0("visual",c(0,4,12,24,52)),
+##'      times = c(0,4,12,24,52), timevar =  "week", v.names = "visual")
+##' armd.long$week <- factor(armd.long$week, levels = c(0,4,12,24,52))
 ##' armd.longNNA <- armd.long[!is.na(armd.long$lesion),]
 ##' 
 ##' eUN2.lmm <- lmm(visual ~ treat.f*week + lesion,

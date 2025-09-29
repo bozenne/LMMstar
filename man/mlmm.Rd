@@ -22,7 +22,7 @@ mlmm(
 )
 }
 \arguments{
-\item{...}{arguments passed to \code{\link{lmm}}.}
+\item{...}{arguments passed to \code{\link{lmm.formula}}.}
 
 \item{data}{[data.frame] dataset (in the long format) containing the observations.}
 

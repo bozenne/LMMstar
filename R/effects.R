@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:51) 
+## Last-Updated: sep 29 2025 (13:35) 
 ##           By: Brice Ozenne
-##     Update #: 1147
+##     Update #: 1157
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -276,7 +276,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     }else{
         data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE, na.rm = FALSE, options = options)
     }
-    data.augmented$XXstrataXX <- 1
+    ## data.augmented$XXstrataXX <- 1
 
     ## ref.repetition
     if(is.character(ref.repetition)){
@@ -517,9 +517,10 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 iStrata <- droplevels(factor(paste0(iData$XXtimeXX, sep.var, iData$XXstrataXX),
                                              levels = paste0(attr(M.contrast,"time.col"), sep.var, attr(M.contrast,"strata.col"))))
             }
+
             if(NROW(iX)!=NROW(iData)){
                 ## handle missing values in covariates, i.e. rows removed by model.matrix
-                iStrata <- iStrata[as.numeric(rownames(iX))]
+                iStrata <- iStrata[match(rownames(iX),rownames(iData))]
             }
 
             ## empirical average of the covariate values and apply contrast

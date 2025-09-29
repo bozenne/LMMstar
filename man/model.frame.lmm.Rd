@@ -34,7 +34,7 @@ Not relevant when argument type is \code{"unique"}.}
 Contruct a data frame containing all the variables involved in a Linear Mixed Model.
 }
 \details{
-Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm}}).
+Column \code{"XXindexXX"} refers to the row of the original dataset (i.e. passed to argument \code{data} when calling \code{\link{lmm.formula}}).
 When adding rows relative to missing repetitions, since there is no row in the original dataset, a negative sign is used.
 }
 \examples{

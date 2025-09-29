@@ -128,7 +128,7 @@ summarize(Y ~ id, data = dL, FUN = myAUC, na.rm = TRUE)
 
 ## add correlation (see correlate function)
 e.S <- summarize(Y ~ time + X1, data = dL, repetition = ~time|id,
-                 na.rm = TRUE, columns = add("correlation"), na.rm = TRUE)
+                 na.rm = TRUE, columns = add("correlation"))
 e.S
 
 #### summarize (long format, missing lines) ####

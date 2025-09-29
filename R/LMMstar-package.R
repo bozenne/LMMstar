@@ -11,7 +11,7 @@
 ##' Statistical inference can be performed for arbitrary linear or non-linear combination(s) of model coefficients.
 ##' Predictions can be computed conditional to covariates only or also to outcome values. \cr \cr
 ##'
-##' @details \strong{Notations}: the linear mixed model estimated by \code{\link{lmm}} is denoted:
+##' @details \strong{Notations}: the linear mixed model estimated by \code{\link{lmm.formula}} is denoted:
 ##' \deqn{ \mathbf{Y}_{i} = \mathbf{X}_{i}\beta+\boldsymbol{\varepsilon}_i }
 ##' where
 ##' \itemize{
@@ -39,7 +39,7 @@
 ##' It is possible to use other optimizer inferfaced by \code{optimx::optimx}.
 ##' 
 ##' \strong{Keywords}: documented methods/functions are classified according to the following keywords \itemize{
-##' \item models: function fitting a statistical model based on a dataset (e.g. \code{\link{lmm}}, \code{\link{lmmCC}}, \code{\link{mlmm}}, \code{\link{mt.test}}, \code{\link{partialCor}})
+##' \item models: function fitting a statistical model based on a dataset (e.g. \code{\link{lmm.formula}}, \code{\link{lmmCC}}, \code{\link{mlmm}}, \code{\link{mt.test}}, \code{\link{partialCor}})
 ##' \item htest: methods performing statistical inference based on an existing model (e.g. \code{\link{anova.lmm}}, \code{\link{estimate.lmm}}, \code{\link{effects.lmm}}, \code{\link{profile.lmm}}, \code{\link{aggregate.Wald_lmm}}, \code{\link{rbind.Wald_lmm}}, \code{\link{resample.lmm}})
 ##' \item methods: extractors (e.g. \code{\link{coef.lmm}}, \code{\link{confint.lmm}}, \code{\link{df.residual.lmm}}, \code{\link{fitted.lmm}}, \code{\link{iid.lmm}}, \code{\link{information.lmm}}, \code{\link{levels.lmm}}, \code{\link{logLik.lmm}}, \code{\link{model.frame.lmm}}, \code{\link{model.matrix.lmm}}, \code{\link{model.tables.lmm}}, \code{\link{nobs.lmm}}, \code{\link{predict.lmm}}, \code{\link{ranef.lmm}}, \code{\link{residuals.lmm}}, \code{\link{score.lmm}}, \code{\link{sigma.lmm}}, \code{\link{summary.lmm}}, \code{\link{variable.names.lmm}}, \code{\link{vcov.lmm}}, \code{\link{weights.Wald_lmm}})
 ##' \item utilities: function used to facilitate the user interface (e.g. \code{\link{add}}, \code{\link{baselineAdjustment}}, \code{\link{LMMstar.options}}, \code{\link{remove}}, \code{\link{scatterplot}}, \code{\link{summarize}}, \code{\link{summarizeNA}})
