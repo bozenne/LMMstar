@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: sep 29 2025 (17:14) 
+## Last-Updated: okt  9 2025 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 1545
+##     Update #: 1555
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -568,7 +568,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
                 iY[index.clusterTime[[iC]]] <- iNewdata[[name.Y]]
                 iY[-index.clusterTime[[iC]]] <- 0 ## make sure no confusion between individuals
 
-                iY.con <- iY[iIndex.con]
+                iY.con <- iY[index.clusterTime[[iC]][iIndex.con]]
                 iOmegaM1.con <- solve(iOmega[iIndex.con,iIndex.con,drop=FALSE])
                 iResiduals.norm <- iOmegaM1.con %*% (iY.con - iX.con %*% mu)
                 iOmega.predcon <- iOmega[iIndex.pred,iIndex.con,drop=FALSE]
