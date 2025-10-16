@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 29 2025 (14:57) 
+## Last-Updated: okt 16 2025 (18:38) 
 ##           By: Brice Ozenne
-##     Update #: 3245
+##     Update #: 3260
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -672,8 +672,15 @@ lmm.mlmm <- lmm.rbindWald_lmm
             }
             ## Covariates from certain structures contains missing time variables
             test.timecluster <- length(var.time)==1 && !is.na(var.time) && length(var.cluster)==1 && !is.na(var.cluster)
-            if(test.timecluster && !inherits(structure,"CUSTOM") && identical(structure$name$var,structure$name$cor) && length(structure$name$var[[1]]==1)){
-                if(any(tapply(data[[var.time]],data[[var.cluster]], function(iVec){any(duplicated(iVec))}))){
+            test.structure <- !inherits(structure,"CUSTOM") & !inherits(structure,"ID")
+            if(test.timecluster && test.structure && identical(structure$name$var,structure$name$cor) && length(structure$name$var[[1]]==1) && !identical(structure$name$var[[1]], var.time)){
+                if(is.factor(data[[var.cluster]])){ ## var.cluster may or may not be a factor at this point
+                    ## use droplevels in case the cluster variable contains empty levels --> leads to NA in the tapply
+                    test.duplicate <- tapply(data[[var.time]],droplevels(data[[var.cluster]]), function(iVec){any(duplicated(iVec))})
+                }else{
+                    test.duplicate <- tapply(data[[var.time]],data[[var.cluster]], function(iVec){any(duplicated(iVec))})
+                }
+                if(any(test.duplicate)){
                     var.time <- c(structure$name$var[[1]], var.time)
                 }                
             }

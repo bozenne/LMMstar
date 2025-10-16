@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:52) 
+## Last-Updated: okt 16 2025 (18:26) 
 ##           By: Brice Ozenne
-##     Update #: 1375
+##     Update #: 1381
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -358,7 +358,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
     ## *** vcov
     all.vcov <- .rbind.vcov(ls.model, robust = table.args$robust[1], type.information = table.args$type.information[1], keep.grad = table.args$df[1], p = p,
                             transform.sigma = table.args$transform.sigma[1], transform.k = table.args$transform.k[1], transform.rho = table.args$transform.rho[1], 
-                            seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence,
+                            seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence, df = table.args$df[1],
                             all.table.param = all.table.param, all.coefUnames = all.coefUnames, all.coefUnamesO = all.coefUnamesO, options = options)
     all.iid <- attr(all.vcov,"iid")
     all.dVcov <- attr(all.vcov,"gradient")
@@ -492,7 +492,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
 ## * .rbind.vcov (code)
 .rbind.vcov <- function(object, robust, type.information, transform.sigma, transform.k, transform.rho, keep.grad, p,
-                        seq.cluster, n.cluster, independence, all.table.param, all.coefUnames, all.coefUnamesO, options){
+                        seq.cluster, n.cluster, independence, df, all.table.param, all.coefUnames, all.coefUnamesO, options){
     
     ## ** prepare
     effects <- list("all",c("all","gradient"))[[keep.grad+1]]
@@ -500,13 +500,13 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     ## ** vcov
     ls.vcov <- lapply(1:length(object), FUN = function(iO){
-        stats::vcov(object[[iO]], effects = effects, robust = robust, type.information = type.information,
+        stats::vcov(object[[iO]], effects = effects, df = df, robust = robust, type.information = type.information,
                     transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p[[iO]],
                     options = options)
     })
     vcov.sparse <- do.call(Matrix::bdiag,ls.vcov)
     dimnames(vcov.sparse) <- list(all.coefUnamesO, all.coefUnamesO)
-    
+
     if(independence){
         out <- as.matrix(vcov.sparse)
         all.iid <- NULL
@@ -539,7 +539,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         
     }
 
-
+    if(df){
+        attr(out,"df") <- stats::setNames(unlist(lapply(ls.vcov,attr,"df")), all.coefUnamesO)
+    }
+    
     ## ** dVcov
     if(keep.grad){
         attr(out,"gradient") <- array(0, dim = rep(NROW(all.table.param),3),
@@ -554,7 +557,7 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ## add model-based vcov when robust=1, i.e., compute df from model-based vcov even though one uses robust vcov
         if(robust==1){
             out.model <- .rbind.vcov(object, robust = FALSE, type.information = type.information, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p,
-                                     keep.grad = FALSE, seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence,
+                                     keep.grad = FALSE, seq.cluster = seq.cluster, n.cluster = n.cluster, independence = independence, df = FALSE,
                                      all.table.param = all.table.param, all.coefUnames = all.coefUnames, all.coefUnamesO = all.coefUnamesO, options = options)
             attr(out.model,"iid") <- NULL
             attr(attr(out,"gradient"),"vcov") <- out.model

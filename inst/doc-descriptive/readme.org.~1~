@@ -1,0 +1,29 @@
+Instructions to run to prepare the vignette (to run before installing the package)
+
+- export R code
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## devtools::build_vignettes("LMMstar", quiet = FALSE) ## generate the META & DOC folder
+library(butils.base)
+setwd(pathGitHub())
+extractRchunk(file = "./LMMstar/inst/doc-overview/overview.org",
+              newfile = "./LMMstar/vignettes/overview.pdf.asis",
+              header = c("%\\VignetteIndexEntry{LMMstar: overview}",
+                         "%\\VignetteEngine{R.rsp::asis}",
+                         "%\\VignetteKeyword{PDF}",
+                         "%\\VignetteKeyword{vignette}",
+                         "%\\VignetteKeyword{package}",
+                         ""),
+              overwrite = TRUE)
+#+END_SRC
+
+#+RESULTS:
+
+- move to directory containing the package, compress vignette pdf file, and copy to =doc= and =vignettes= directories
+#+BEGIN_SRC shell
+cd ~/Documents/GitHub/LMMstar/inst/doc-overview/
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/printer -dNOPAUSE -dQUIET -dBATCH -sOutputFile=overview-compress.pdf overview.pdf
+cp overview-compress.pdf ../../vignettes/overview.pdf 
+#+END_SRC
+
+#+RESULTS:
+

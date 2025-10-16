@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: jul 18 2025 (11:31) 
+## Last-Updated: okt 16 2025 (15:26) 
 ##           By: Brice Ozenne
-##     Update #: 343
+##     Update #: 352
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -565,5 +565,50 @@ sdiag <- function (A, k = 0){
     else j <- j[1:length(i)]
     return(i + (j - 1) * n)
 }
+
+## * findQ.trans2origin
+##' @title Map to vectors w.r.t. a value
+##' @description Find the value in the orginal vector whose corresponding element in the transformed vector equal a certain value.
+##' @param value [numeric]
+##' @param transformed [numeric vector] 
+##' @param original [numeric vector]
+##'
+##' @details Argument transformed and original should have the same length.
+##' @noRd
+##' @examples
+##' X <- rnorm(10000)
+##' Y <- X + 5
+##' findQ.trans2origin(5, transformed = Y, original = X)
+findQ.trans2origin <- function(value, transformed, original){
+
+    ## ** normalize user input
+    if(!is.matrix(transformed)){
+       transformed <- cbind(transformed)
+    }
+    if(!is.matrix(original)){
+       original <- cbind(original)
+    }
+    if(length(value) != NCOL(transformed)){
+        stop("Incompatible dimensions between arguments \'value\' and \'transformed\'. \n")
+    }
+    if(length(value) != NCOL(original)){
+        stop("Incompatible dimensions between arguments \'value\' and \'transformed\'. \n")
+    }
+    if(NROW(original) != NROW(transformed)){
+        stop("Incompatible dimensions between arguments \'original\' and \'transformed\'. \n")
+    }
+    out <- rep(NA, length(value))
+    for(iI in 1:length(value)){
+        iDiff <- transformed[,iI] - value[iI]
+        if(all(c(-1,1) %in% sign(iDiff)) || all(abs(iDiff)<1e-10)){
+            out[iI] <- original[which.min(abs(iDiff))[1]]
+        }
+    }
+
+    ## ** export
+    return(out)
+}
+
+
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

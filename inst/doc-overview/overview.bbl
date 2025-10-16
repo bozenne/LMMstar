@@ -19,10 +19,23 @@ Lakens, D. (2013).
   science: a practical primer for t-tests and anovas.
 \newblock {\em Frontiers in psychology}, 4:863.
 
+\bibitem[Lipsitz et~al., 2002]{lipsitz2002parameter}
+Lipsitz, S.~R., Fitzmaurice, G.~M., Ibrahim, J.~G., Gelber, R., and Lipshultz,
+  S. (2002).
+\newblock Parameter estimation in longitudinal studies with outcome-dependent
+  follow-up.
+\newblock {\em Biometrics}, 58(3):621--630.
+
 \bibitem[Oldford, 2016]{oldford2016self}
 Oldford, R.~W. (2016).
 \newblock Self-calibrating quantile--quantile plots.
 \newblock {\em The American Statistician}, 70(1):74--90.
+
+\bibitem[Ozenne et~al., 2025]{ozenne2025sensitivity}
+Ozenne, B., N{\o}rgaard, M., Pernet, C., and Ganz, M. (2025).
+\newblock A sensitivity analysis of preprocessing pipelines: Toward a solution
+  for multiverse analyses.
+\newblock {\em Imaging Neuroscience}, 3:imag\_a\_00523.
 
 \bibitem[Pipper et~al., 2012]{pipper2012versatile}
 Pipper, C.~B., Ritz, C., and Bisgaard, H. (2012).
@@ -30,5 +43,11 @@ Pipper, C.~B., Ritz, C., and Bisgaard, H. (2012).
   covariate in multiple models.
 \newblock {\em Journal of the Royal Statistical Society: Series C (Applied
   Statistics)}, 61(2):315--326.
+
+\bibitem[Thomadakis et~al., 2023]{thomadakis2023issues}
+Thomadakis, C., Pantazis, N., and Touloumi, G. (2023).
+\newblock Issues with the expected information matrix of linear mixed models
+  provided by popular statistical packages under missingness at random dropout.
+\newblock {\em Statistics in Medicine}, 42(16):2873--2885.
 
 \end{thebibliography}

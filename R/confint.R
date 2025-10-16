@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:15) 
+## Last-Updated: okt 16 2025 (18:14) 
 ##           By: Brice Ozenne
-##     Update #: 1361
+##     Update #: 1604
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -511,6 +511,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     transform.k <- object$args$transform.k
     transform.rho <- object$args$transform.rho
 
+    backtransform.original <- backtransform
     if(is.null(backtransform)){
         backtransform <- any(object$univariate$tobacktransform)
     }else if(is.character(backtransform)){
@@ -547,7 +548,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         iTable <- out[iIndex.table,,drop=FALSE]
         iN.test <- NROW(iTable)
 
-        ## *** method 
+        ## *** method
         if(is.null(method)){
             if(NROW(iTable$df)==1 || all(is.na(iTable$statistic))){
                 iMethod  <- "none"
@@ -556,20 +557,20 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             }else{
                 iMethod <- "single-step2"
             }
+        }else if(NROW(iTable)==1){
+            iMethod  <- "none"
         }else{
-            if(NROW(iTable$df)==1){
-                iMethod  <- "none"
-            }else{
-                iMethod <- method
-            }
+            iMethod <- method
         }
         iMethod.adj <- intersect(iMethod, adj.method)
 
         ## *** adjustment for multiple comparisons
         if(length(iMethod.adj)>0 && iMethod.adj %in% c("Westfall","Shaffer","free","single-step","single-step2")){
             iGlht <- object$glht[[grid[iGrid]]]
-            iGlht$df <- max(iGlht$df, min(out$df)) ## update df: cannot be smaller than the smaller df in the table
-            ## may happen when df=FALSE and all df in the table have been set to Inf
+            if(iMethod.adj %in% c("Westfall","Shaffer","free","single-step")){
+                iGlht$df <- max(iGlht$df, min(out$df)) ## update df: cannot be smaller than the smaller df in the table
+                ## may happen when df=FALSE and all df in the table have been set to Inf
+            }
         }
         if(length(iMethod.adj)>0){
             out[iIndex.table,"method"] <-  iMethod.adj
@@ -609,35 +610,66 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             }
 
         }else if(length(iMethod.adj)>0 && iMethod.adj == "single-step2"){
+            
+            if(!identical(backtransform.original,FALSE) & (object$args$transform.rho=="atanh" && any(out[iIndex.table,"type"]=="rho" & out[iIndex.table,"n.param"] > 1 & out[iIndex.table,"tobacktransform"]==FALSE))){
+                ## special case with correlation coefficients: pairwise difference in correlation = 0
+                ## (only elligible case under automatic back-transformation)                
+                myMvd <- copula::mvdc(copula = copula::normalCopula(param=stats::cov2cor(iGlht$vcov)[lower.tri(iGlht$vcov)], dim = NROW(iGlht$vcov), dispstr = "un"),
+                                      margins = rep("t", NROW(iGlht$vcov)),
+                                      paramMargins = as.list(stats::setNames(iGlht$df,rep("df",NROW(iGlht$vcov)))))
+                myMvd.param0 <- sweep(copula::rMvdc(n.sample, myMvd), MARGIN = 2, FUN = "*", STATS = sqrt(diag(iGlht$vcov)))
+                myMvd.linfct0 <- t(iGlht$linfct %*% t(myMvd.param0)) ## no backtransformation when evaluating p-value
+                myMvd.statistic0 <- sweep(myMvd.linfct0, MARGIN = 2, FUN = "/", STATS = out[iIndex.table,"se"])
+                maxH0 <- apply(abs(myMvd.statistic0), 1, max)
 
-            sigma.linfct <- iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct)
-            index.n0sigma <- which(diag(sigma.linfct)>0) ## handles no variance (e.g. no treatment effect at baseline)
-            rho.linfct <- stats::cov2cor(sigma.linfct[index.n0sigma,index.n0sigma,drop=FALSE])
+                out[iIndex.table,"estimate"] <- (iGlht$linfct %*% tanh(iGlht$coef))[,1]
 
-            if(all(rho.linfct>=(1-1e-6))){ ## handles perfectly colinear case (e.g. same treatment effect at all timepoints)
-                maxH0 <- abs(stats::rt(n.sample, df = mean(iTable$df[index.n0sigma])))
-            }else{
-                myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
-                                      margins = rep("t", NROW(rho.linfct)),
-                                      paramMargins = as.list(stats::setNames(iTable$df[index.n0sigma],rep("df",NROW(rho.linfct)))))
-                maxH0 <- apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max)
+                if(any(c("lower","upper","quantile") %in% columns) || is.character(qt)){
+                    cH0 <- stats::quantile(maxH0, 1-alpha)
+                    out[iIndex.table,"quantile"] <- cH0
+                    if(any(c("lower","upper") %in% columns)){
+                        myMvd.param <- sweep(myMvd.param0, MARGIN = 2, FUN = "+", STATS = iGlht$coef)
+                        myMvd.linfct <- t(iGlht$linfct %*% t(tanh(myMvd.param))) ## backtransformation when evaluating CI
+                        cH0.alpha <- (1-stats::pt(cH0, df = out$df)) ## approximate df: would have been better to get those from the original scale                        
+                        out[iIndex.table,c("lower","upper")] <- do.call(rbind,lapply(iIndex.table, function(iIndex){
+                            stats::quantile(myMvd.linfct[,iIndex], probs = c(cH0.alpha[iIndex]/2, 1-cH0.alpha[iIndex]/2))
+                        }))
+                    }
+                }
+
+                out[iIndex.table,"tobacktransform"] <- FALSE
+
+            }else{ ## normal case: resample linear combination of parameters
+                
+                sigma.linfct <- iGlht$linfct %*% iGlht$vcov %*% t(iGlht$linfct)
+                index.n0sigma <- which(diag(sigma.linfct)>0) ## handles no variance (e.g. no treatment effect at baseline)
+                rho.linfct <- stats::cov2cor(sigma.linfct[index.n0sigma,index.n0sigma,drop=FALSE])
+
+                if(all(rho.linfct>=(1-1e-6))){ ## handles perfectly colinear case (e.g. same treatment effect at all timepoints)
+                    maxH0 <- abs(stats::rt(n.sample, df = mean(iTable$df[index.n0sigma])))
+                }else{
+                    myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.linfct[lower.tri(rho.linfct)], dim = NROW(rho.linfct), dispstr = "un"),
+                                          margins = rep("t", NROW(rho.linfct)),
+                                          paramMargins = as.list(stats::setNames(iTable$df[index.n0sigma],rep("df",NROW(rho.linfct)))))
+                    maxH0 <- apply(abs(copula::rMvdc(n.sample, myMvd)), 1, max)
+                }
+
+                if(any(c("lower","upper","quantile") %in% columns) || is.character(qt)){
+                    cH0 <- stats::quantile(maxH0, 1-alpha) 
+                    out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
+                    out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
+                    out[iIndex.table,"quantile"] <- cH0
+                }
             }
-
+            
             if("p.value" %in% columns){
                 out[iIndex.table,"p.value"] <- sapply(abs(iTable$statistic), function(iT){(sum(iT <= maxH0)+1)/(n.sample+1)})
-            }
-
-            if(any(c("lower","upper","quantile") %in% columns) || is.character(qt)){
-                cH0 <- stats::quantile(maxH0, 1-alpha) 
-                out[iIndex.table,"lower"] <- iTable$estimate - iTable$se * cH0
-                out[iIndex.table,"upper"] <- iTable$estimate + iTable$se * cH0                
-                out[iIndex.table,"quantile"] <- cH0
             }
 
             attr(out, "n.sample") <-  n.sample
             
         }else if(length(iMethod.adj)>0 && iMethod.adj %in% c("none",stats::p.adjust.methods)){
-            
+
             if("p.value" %in% columns){
                 out[iIndex.table,"p.value"] <- 2*(1-stats::pt(abs(iTable$statistic), df = iTable$df))
                 if(iMethod.adj %in% stats::p.adjust.methods){
@@ -674,39 +706,107 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
     }
 
     ## ** back-transformation
-    if(is.function(backtransform) || identical(backtransform,TRUE)){
+    if(is.function(backtransform)){
 
-        if(is.function(backtransform)){
+        out <- .backtransform(out, type.param = out$type,
+                              backtransform = TRUE, backtransform.names = NULL,
+                              transform.mu = backtransform,
+                              transform.sigma = backtransform,
+                              transform.k = backtransform,
+                              transform.rho = backtransform)
 
-            out <- .backtransform(out, type.param = out$type,
-                                  backtransform = TRUE, backtransform.names = NULL,
-                                  transform.mu = backtransform,
-                                  transform.sigma = backtransform,
-                                  transform.k = backtransform,
-                                  transform.rho = backtransform)
+    }else{
 
-        }else{
-
-            ## force no back-transform, e.g. when comparing two correlation coefficients
+        if(any(out$tobacktransform) & backtransform){
             out <- .backtransform(out,
-                                  type.param = ifelse(out$tobacktransform,out$type,"mu"),  
+                                  type.param = out$type,  
                                   backtransform = TRUE, backtransform.names = NULL,
                                   transform.mu = "none",
                                   transform.sigma = object$args$transform.sigma,
                                   transform.k = object$args$transform.k,
                                   transform.rho = object$args$transform.rho)
+            
+        }
+        
+        ## Unless the user explicitely set backtransform to FALSE
+        ## when contrasting correlation coefficients, e.g. rho:male vs rho:female, under atanh transformation
+        ## the back-transformation, e.g. tanh(atanh(rho:male) - atanh(rho:female), will not match the original contrast, e.g. rho:male - rho:female,
+        ## so NA as put instead to not be mis-interpreted
+        if(!identical(backtransform.original,FALSE) & (object$args$transform.rho=="atanh" && any(out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE))){
 
-            if(object$args$transform.rho=="atanh" && any(out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE)){
-                ## case where a contrast is performed on transformed coefficients (e.g. rho:male vs rho:female)
-                ## the back transformed version tanh(atanh(rho:male) - atanh(rho:female)) differs from the original version rho:male - rho:female
-                ## thus without further indication the original version is output
-                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"se"] <- NA
-                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"lower"] <- NA
-                out[out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE,"upper"] <- NA
+            index.noback <- which(out$type=="rho" & out$n.param > 1 & out$tobacktransform==FALSE)            
+            for(iIndex in index.noback){ ## original estimate
+                out[iIndex,"estimate"] <- object$glht[[out$term[iIndex]]]$linfct[rownames(out)[iIndex],,drop=FALSE] %*% tanh(object$glht[[out$term[iIndex]]]$coef)
             }
+            out[index.noback, "df"] <- NA
 
+            if(any(columns %in% c("se","lower","upper")) && any(out[index.noback, "method"]!="single-step2")){
+
+                name.noback <- rownames(out)[index.noback]
+                contrast.noback <- object$glht$user$linfct[name.noback,,drop=FALSE]
+                param.noback <- names(which(colSums(contrast.noback!=0)>0))
+                nparam.noback <- length(param.noback)
+                estimate.noback <- object$glht$user$coef[param.noback]
+                vcov.noback <- object$glht$user$vcov[param.noback,param.noback,drop=FALSE]
+                df.noback <- object$glht$user$df[param.noback]
+                method.noback <- paste(unique(out[index.noback,"method"]), collapse=", ")
+                if(method.noback=="none"){
+                    multiplicity.noback <- 1
+                }else if(method.noback=="bonferroni"){
+                    multiplicity.noback <- sapply(out[index.noback,"name"], function(iName){sum(iName==out$name)})
+                }else{
+                    multiplicity.noback <- NA
+                }
+                if(all(abs(vcov.noback-diag(diag(vcov.noback)))<1e-15)){ ## independent parameters
+                    
+                    sim0.noback <- do.call(cbind,lapply(1:nparam.noback, function(iP){
+                        stats::rt(n.sample, df = df.noback[iP])*sqrt(vcov.noback[iP,iP])  
+                    }))
+                    colnames(sim0.noback) <- param.noback                        
+                }else{
+                    rho.noback <- vcov.noback
+                    myMvd <- copula::mvdc(copula = copula::normalCopula(param=rho.noback[lower.tri(rho.noback)], dim = nparam.noback, dispstr = "un"),
+                                          margins = rep("t", nparam.noback),
+                                          paramMargins = as.list(stats::setNames(df.noback,rep("df",nparam.noback))))
+                    sim0.noback <- sweep(copula::rMvdc(n.sample, myMvd), MARGIN = 2, FUN = "*", STATS = sqrt(diag(vcov.noback)))
+                }
+                sim.noback <- sweep(sim0.noback, MARGIN = 2, FUN = "+", STATS = estimate.noback)
+
+                simLinfct.noback0 <- t(contrast.noback %*% t(sim0.noback)) ## under the global null, i.e., all coefficients equal to 0.
+                ## - when testing \alpha - \beta = 0 being under the global null or under a null that attributes the same non-0 mean value to both leads to the same contrast.
+                ## - more general tests are not elligible for the automatic back-transformation (see restriction in anova).
+                simLinfct.back <- t(contrast.noback %*% t(tanh(sim.noback)))
+
+                ## Sanity check:
+                ## out[index.noback, "estimate"] - colMeans(simLinfct.back)
+                ## out[index.noback, "null"] - colMeans(simLinfct.back0) ## because of restrictions when calling anova, null=0
+                out[index.noback, "se"] <- apply(simLinfct.back, MARGIN = 2, FUN = stats::sd)
+                if(all(out[index.noback, "null"]==0 && method.noback %in% c("none","bonferroni")) && any(columns %in% c("lower","upper"))){
+                    ## P-value is evaluated under the global null on the transformed scale
+                    count.extreme <- colSums(sweep(abs(simLinfct.noback0), MARGIN = 2, FUN = ">", STATS = abs(object$univariate[index.noback, "estimate"])))                    
+                    attr(out, "error") <- pmin(1,multiplicity.noback*(count.extreme+1)/(n.sample+1)) - out[index.noback, "p.value"]
+                    out[index.noback, "p.value"] <- pmin(1,multiplicity.noback*(count.extreme+1)/(n.sample+1))
+                    ## from examples using the original scale leads to inaccurate results
+                    ## simLinfct.back0 <- t(contrast.noback %*% t(tanh(sim0.noback)))
+                    ## (colSums(sweep(abs(simLinfct.back0), MARGIN = 2, FUN = ">", STATS = abs(out[index.noback, "estimate"])))+1)/(n.sample+1)
+                    out[index.noback, "lower"] <- apply(simLinfct.back, MARGIN = 2, FUN = stats::quantile, probs = alpha/(2*multiplicity.noback))                
+                    out[index.noback, "upper"] <- apply(simLinfct.back, MARGIN = 2, FUN = stats::quantile, probs = 1-alpha/(2*multiplicity.noback))                
+                }else{
+                    out[index.noback, "lower"] <- NA
+                    out[index.noback, "upper"] <- NA
+                }
+
+                if(is.null(attr(out, "backtransform"))){
+                    attr(out, "backtransform") <- data.frame(estimate = TRUE, se = TRUE, lower = TRUE, upper = TRUE, null = TRUE, FUN = "tanh", n.sample = n.sample)
+                    rownames(attr(out, "backtransform")) <- "rho"
+                }else{                    
+                    attr(out, "backtransform")$n.sample <-  ifelse(attr(out, "backtransform")$FUN=="tanh",n.sample,NA)
+                }
+            }
         }
     }
+
+    
 
     ## ** export
     Umethod <- unique(out$method)
@@ -737,6 +837,7 @@ confint.LRT_lmm <- function(object, parm, level = 0.95, ...){
     message("No confidence interval available for likelihood ratio tests.")
     return(NULL)
 }
+
 ## * confint.rbindWald_lmm
 ##' @title Confidence Intervals From Combined Wald Tests
 ##' @description Combine pointwise or simultaneous confidence intervals relative to linear contrasts of parameters from different linear mixed models. 
@@ -816,7 +917,16 @@ confint.rbindWald_lmm <- function(object, parm, level = 0.95, df = NULL, method 
 ##' @inheritParams confint.rbindWald_lmm
 ##'
 ##' @export
-confint.mlmm <- confint.rbindWald_lmm
+confint.mlmm <- function(object, parm, level = 0.95, df = NULL, method = NULL, columns = NULL, ordering = NULL, backtransform = NULL, ...){
+
+    if(is.null(method) && "method" %in% names(match.call()) == FALSE){
+        method <- "none"
+    }
+    out <- confint.rbindWald_lmm(object, level = level, df = df, method = method, columns = columns, ordering = ordering, backtransform = backtransform, ...)
+
+    return(out)
+
+}
 
 ## * confint.effect_lmm
 ##' @export

@@ -11,36 +11,108 @@ library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 #+END_SRC
 
 This vignette describes the main functionalities of the *LMMstar*
-package. This package implements specific types of linear mixed
-models, mainly useful when having repeated observations over a
-discrete variable: \(\VY=(Y_1,\ldots,Y_T)\) where \(T\) can be
-for example be time (chronological ordering of the repetitions) or
-brain region (arbitrary ordering of the repetitions). Denoting by
-\(\VX\) the associated covariates and \(\boldsymbol{\varepsilon} =
-(\varepsilon_1,\ldots,\varepsilon_T)\), the model can be written:
-#+BEGIN_EXPORT latex
-\[ \VY = \VX \beta + \boldsymbol{\varepsilon} \text{ where } \varepsilon \sim \Gaus(0,\Omega) \]
-#+END_EXPORT
-where \(\beta\) are the mean parameters and the residual
-variance-covariance matrix, \(\Omega\), depends on a set of
-variance-covariance parameters (say \(\gamma\)) distinct of
-\(\beta\). Key assumptions are:
-- we observe \(n\) independent replicates of
-  \(\mathcal{O}=(\VY,\VX)\), i.e. at the cluster level,
-  observations \(\left(\mathcal{O}_1,\ldots,\mathcal{O}_n\right)\) are
-  independent. The replicates should also be identically distributed
-  up to a categorical variable (called strata variable in the following).
-- the residual variance is independent of the mean value.
-Additional assumptions are necessary in presence of missing values,
-typically correct specification of the conditional mean to have
-consistent estimates of the mean parameters. This case will sometimes
-be examplified by considering that only last outcome may be missing:
-the conditional mean \(\Esp[Y_T|Y_1,Y_2,\ldots,Y_{T-1}]\) is then
-abreviated as \(\Esp[Y_T|Y_{T-1}]\). Note that we do not require the
-residuals to be normally distributed to have valid estimates or
-statistical inference in large samples.
+package.
 
-\bigskip
+* Statistical background
+
+The LMMstar package implements a specific class of linear mixed models,
+mainly useful when having repeated observations over a discrete
+variable: \(\VY=(Y_1,\ldots,Y_T)\) where \(T\) can be for example be
+time (chronological ordering of the repetitions) or brain region
+(arbitrary ordering of the repetitions). Denoting by \(\VX\) and
+\(\VZ\) two, possibly empty or distinct or overlapping, sets of
+covariates, the model can be written:
+#+BEGIN_EXPORT latex
+\[ \VY = \VX \beta + \boldsymbol{\varepsilon} \text{ where } \varepsilon \sim \Gaus(0,\Omega(\VZ,\gamma)) \]
+#+END_EXPORT
+where \(\boldsymbol{\varepsilon} =
+(\varepsilon_1,\ldots,\varepsilon_T)\) are residuals, \(\beta\) mean
+parameters, \(\gamma\) variance-covariance parameters leading to the
+modeled residual variance-covariance matrix \(\Omega\) and. The model
+parameters \(\Theta = (\beta,\gamma)\) can be estimated using Maximum
+Likelihood (ML) or Restricted Maximum Likelihood (REML) - see appendix
+[[#SM:likelihood:log]]. Key assumptions are:
+- \(\beta\) and \(\gamma\) are distinct sets of parameters and the
+  residual variance is independent of the mean value.
+- we observe \(n\) independent replicates of
+  \(\mathcal{O}=(\VY,\VX,\VZ)\), i.e. at the cluster level,
+  observations \(\left(\mathcal{O}_1,\ldots,\mathcal{O}_n\right)\) are
+  independent. Given \(\VX\) and \(\VZ\) the replicates are
+  identically distributed.
+
+Additional assumptions are necessary in presence of missing values to
+obtain consistent estimates of the mean parameters:
+- correct specification of the conditional mean
+- time elapsed between follow-up times are independent of current and
+  previously unobserved outcomes given previously observed outcomes
+  and covariates citep:lipsitz2002parameter. 
+
+\noindent Fitted mean and variance can be obtained conditionally on
+covariates only, or also conditionnally on previous outcomes (say
+\(Y_1,\ldots,Y_s\)), assuming in the latter case a joint Gaussian
+distribution. For instance:
+#+BEGIN_EXPORT latex
+\begin{align*}
+\Esp[Y_t | Y_{1:s}, \VX, \VZ] &= X_t \beta + \Omega_{t;1:s}(\gamma,\VZ) \Omega^{-1}_{1:s;1:s}(\gamma,\VZ) \left(Y_{1:s} - X_{1:s} \beta\right) \\
+\Var[Y_t | Y_{1:s}, \VX, \VZ] &= \Omega_{t,t}(\gamma,\VZ)-\Omega_{t,1:s}(\gamma,\VZ)\Omega^{-1}_{1:s,1:s}(\gamma,\VZ)\Omega_{1:s,t}(\gamma,\VZ)
+\end{align*}
+#+END_EXPORT
+Multiple imputation of the missing outcomes can then be performed,
+still under Gaussian distribution assumption.
+
+\clearpage
+
+Wald tests can be used to perform statistical inference on linear
+combination(s) of model parameters or smooth non-linear combination(s)
+using a first order delta-method:
+- by default 'model-based' standard errors are evaluated, as the
+  square root of the diagonal elements of the inverse of the observed
+  information: \(\Information(\Theta)=-\Hessian(\Theta)\). Here
+  \(\Hessian(\Theta)\) refers to the Hessian, see appendix
+  [[#SM:likelihood:hessian]] for an explicit formula. Using the observed
+  information has been recommended citep:thomadakis2023issues over the
+  expected information,
+  \(\Information(\Theta)=-\Esp[\Hessian(\Theta)|\VX]\), in presence of
+  missing data. The expected information is also implemented to match
+  results of software.
+- 'robust' standard error are evaluated as the square root of the
+  diagonal elements of \newline \({\Information(\Theta)^{-1} \Big(\sum_{i=1}^n
+  \Score_i(\Theta)\trans{\Score}_i(\Theta)\Big)\Information(\Theta)^{-1}}
+  \). \Warning Inflated type 1 error rate is expect in small samples
+  as no small sample correction is currently implemented.
+- degrees of freedom are computed using a Satterthwaite approximation,
+  using numerical derivative of the information.
+- adjustment for multiple comparisons can be performed using various
+  methods, including a max-test adjustment either by numerical
+  integration (via the multcomp package) or by random sampling in the
+  join distribution of the test statistics under the null (via the
+  copula package)
+
+The package also supports test on parameters originating from separate
+linear mixed models, as soon as a common 'cluster' and 'time' variable
+is used.
+- parameters can be pooled, e.g., based on standard errors
+  (meta-analysis), standard error and correlation
+  citep:ozenne2025sensitivity, using Rubin's rule (multiple
+  imputation).
+- statistical inference is performed by combining the influence
+  functions originating from each model citep:pipper2012versatile. 
+
+The influence function is computed as \(\Information^{-1}
+\Score_i(\Theta)\):
+- by default it is rescaled by the ratio between the 'robust' and the
+  'model-based' standard errors so that its sum of square equals the
+  'model-based' and not the 'robust' standard errors.
+- the REML term in \(\Score_i(\Theta)\) is evaluated as: \(tr \left(
+  \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam)
+  \trans{\VX}_i\right)^{-1} \left(w_i \VX_i \Omega_i^{-1}(\Vparam)
+  \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1}
+  \trans{\VX}_i\right) \right)\), i.e. treating the denominator as a
+  fixed quantity.
+
+\clearpage
+
+* Summary of the user-interface
 
 To get start, one should load the *LMMstar* package in the \Rlogo session:
 #+BEGIN_SRC R :exports code :results silent :session *R* :cache no
@@ -196,203 +268,6 @@ gastricbypassL.NNA <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
 \clearpage
 
 * Visualization & descriptive statistics
-** Graphical display
-
-A scatterplot of the data can obtained by specifying which columns to
-display when using the wide format:
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-scatterplot(gastricbypassW, ## left panel
-            columns = c("weight1","weight2","weight3","weight4")) 
-#+END_SRC
-
-#+RESULTS:
-
-\noindent When using the long format, a formula should describe the
-structure of the data: =outcome ~ order|cluster=
-- the left hand side indicates the values to be displayed (here weight)
-- the right hand side indicates the ordering of the repetitions (here over time) and
-  how the repetitions are grouped within clusters (here within subject).
-
-When calling =scatterplot=, the argument =group= leads to different
-color per group and the argument =type.diag= enables to use histograms
-(or density plots) instead of boxplots:
-#+BEGIN_SRC R :exports code :results output :session *R* :cache no
-scatterplot(weight~time|id, data = gastricbypassL, ## right panel
-            type.diag = "hist", group = "group")
-#+END_SRC
-
-#+RESULTS:
-
-
-\bigskip
-
-#+LaTeX: \begin{minipage}{0.48\linewidth} 
-#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/scatterplot.pdf]]
-#+LaTeX: \end{minipage}
-#+LaTeX: \begin{minipage}{0.48\linewidth} 
-#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/scatterplot-group.pdf]]
-#+LaTeX: \end{minipage}
-
-
-#+RESULTS:
-
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pdf("./figures/scatterplot.pdf", width = 6.5, height = 6)
-scatterplot(weight~time|id, data = gastricbypassL, size.cor = 6)
-dev.off()
-
-pdf("./figures/scatterplot-group.pdf", width = 6.5, height = 6)
-scatterplot(weight~time|id, data = gastricbypassL, size.cor = 6, type.diag = "hist", group = "group")
-dev.off()
-#+END_SRC
-
-
-#+RESULTS:
-: null device 
-:           1
-: null device 
-:           1
-
-\bigskip
-
-By default the resulting object will be of class =list=. A =ggplot2=
-object can be obtained by setting the argument =facet= to
-="grid2"=. This requires to have installed the package ggh4x and will
-produce a slightly different graphical display.
-
-\bigskip
-
-There is (currently) not dedicated function to obtain spaghetti
-plots. Instead one can use the ggplot2 package with the long format, e.g.:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gg.spa <- ggplot(gastricbypassL, aes(x=time,y=weight,group=id,color=id))
-gg.spa <- gg.spa + geom_point() + geom_line()
-gg.spa
-#+END_SRC
-
-#+RESULTS:
-
-\clearpage
-
-** Missing data patterns
-
-The =summarizeNA= function identifies the possible combinations of
-observed/missing data:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-mp <- summarizeNA(gastricbypassL)
-mp
-#+END_SRC
-
-#+RESULTS:
-:  frequency missing.pattern n.missing id visit time weight glucagonAUC group baseline
-:         78         0000000         0  0     0    0      0           0     0        0
-:          2         0000100         1  0     0    0      0           1     0        0
-
-A graphical representation can be obtained using =plot=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(mp)
-#+END_SRC
-
-#+RESULTS:
-
-See =help(plot.summarizeNA)= for options to customize the graphical
-display.
-
-#+RESULTS:
-
-#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/summarizeNA.pdf]]
-
-
-
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-ggsave(autoplot(mp)$plot, filename = "./figures/summarizeNA.pdf", width = 12)
-#+END_SRC
-#+RESULTS:
-
-\clearpage
-
-** Summary statistics
-
-Mean, standard deviation, and other summary statistic can be computed
-with respect to a categorical variable (typically time) using the
-=summarize= function: \newline (\Warning this function has the same
-name as a function from the dplyr package. If you have loaded dplyr,
-you should use =LMMstar:::summarize=)
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-sss <- summarize(weight+glucagonAUC ~ time, data = gastricbypassL, na.rm = TRUE)
-print(sss, digits = 3)
-#+END_SRC
-
-#+RESULTS:
-:       outcome time observed missing  mean   sd    min    q1 median    q3   max
-: 1      weight  -13       20       0 129.0 20.3 100.90 115.3  123.1 139.8 173.0
-: 2               -1       20       0 121.2 18.9  95.70 107.8  114.5 134.5 162.2
-: 3                1       20       0 115.7 18.3  89.90 102.2  110.6 128.4 155.0
-: 4               13       20       0 102.4 17.1  78.80  90.4   98.5 108.2 148.0
-: 5 glucagonAUC  -13       20       0  32.3 15.5  10.28  21.3   27.9  42.5  69.1
-: 6               -1       19       1  29.7 13.7   9.87  21.2   25.8  33.6  67.7
-: 7                1       19       1  76.9 27.9  35.85  56.5   73.8  91.9 135.9
-: 8               13       20       0  52.0 21.0  21.37  37.2   51.2  57.9 109.2
-
-\noindent Specifying a cluster (=id=) and ordering variable (=time=)
-enable to output correlation matrices: \newline (\Warning there should be
-no duplicated value of the ordering variable within cluster)
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-sss2 <- summarize(weight ~ time|id, data = gastricbypassL, na.rm = TRUE)
-print(sss2, digits = 3)
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-  time observed missing mean   sd   min    q1 median  q3 max
-1  -13       20       0  129 20.3 100.9 115.3  123.1 140 173
-2   -1       20       0  121 18.9  95.7 107.8  114.5 135 162
-3    1       20       0  116 18.3  89.9 102.2  110.6 128 155
-4   13       20       0  102 17.1  78.8  90.4   98.5 108 148
-
- Pearson's correlation: 
-      -13    -1     1    13
--13 1.000 0.990 0.986 0.946
--1  0.990 1.000 0.997 0.959
-1   0.986 0.997 1.000 0.966
-13  0.946 0.959 0.966 1.000
-#+end_example
-
-Graphical displays of the summary statistics can be obtained via the
-=plot= method, where the argument =type= specifies the summary
-statistic to be displayed:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-plot(sss2, type = "mean") ## left panel
-plot(sss2, type = "sd") ## middle panel
-plot(sss2, type = "cor") ## right panel
-#+END_SRC
-
-#+RESULTS:
-
-See =help(plot.summarize)= for options to customize the graphical
-display.
-
-#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
-[[./figures/summarize.pdf]]
-
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pdf("./figures/summarize.pdf", width = 12)
-ggarrange(autoplot(sss2,type="mean")$plot + ggtitle("mean"),
-          autoplot(sss2,type="sd")$plot + ggtitle("sd"),
-          autoplot(sss2,type="cor")$plot + ggtitle("cor") + theme(legend.position ="bottom"),
-          nrow = 1)
-dev.off()
-#+END_SRC
-
-#+RESULTS:
-: X11cairo 
-:        2
-
-\clearpage
-
 ** Correlation and partial correlations
 
 The =partialCor= function can be used to evaluate group-specific
@@ -3773,7 +3648,6 @@ vcov           x   x        x             x
 weights            x
 #+end_example
 					
-
 * Likelihood in a linear mixed model
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood
@@ -3787,6 +3661,9 @@ consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
 \(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
 
 ** Log-likelihood
+:PROPERTIES:
+:CUSTOM_ID: SM:likelihood:log
+:END:
 
 The restricted log-likelihood in a linear mixed model can then be
 written:
@@ -3843,6 +3720,9 @@ score is obtained by derivating once the log-likelihood, i.e., for
 \clearpage
 
 ** Hessian
+:PROPERTIES:
+:CUSTOM_ID: SM:likelihood:hessian
+:END:
 
 Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element[fn::if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)]:
 #+BEGIN_EXPORT LaTeX
@@ -5271,4 +5151,8 @@ coefficient in the design matrix.
 #+LaTeX_HEADER:\newcommand{\Vy}{\boldsymbol{y}}
 #+LaTeX_HEADER:\newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
 
+#+LaTeX_HEADER:\newcommand{\Z}{Z}
+#+LaTeX_HEADER:\newcommand{\z}{z}
+#+LaTeX_HEADER:\newcommand{\VZ}{\boldsymbol{Z}}
+#+LaTeX_HEADER:\newcommand{\Vz}{\boldsymbol{z}}
 

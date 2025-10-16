@@ -1,0 +1,438 @@
+#+TITLE: Analyzing cross-over trial with the package LMMstar
+#+Author: Brice Ozenne
+#+BEGIN_SRC R :exports none :results silent :session *R* :cache no
+options(width = 100, digits = 5)
+if(system("whoami",intern=TRUE)=="bozenne"){  
+  setwd("~/Documents/GitHub/LMMstar/inst/doc-cross-over/")
+}else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
+  setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-cross-over/")
+}
+library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+#+END_SRC
+
+This vignette discusses how mixed model generalizes t-test and
+modeling choices when analyzing cross-over trial. We start by loading
+the necessary packages:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+library(LMMstar)
+library(ggplot2)
+#+END_SRC
+
+#+RESULTS:
+
+and the illustrating dataset =bloodpressureL=. As indicated in the
+documentation this is a cross-over trial comparing the impact of three
+formulations of a drug on the blood pressure. The study was conducted
+on 12 male volunteers randomly divided into tree groups (=sequence=)
+and receiving each of the three formulations (=treatment=) with a
+wash-out period of one week. The outcome variable is =duration= where
+a larger duration indicate a better outcome as the blood pressure is
+under control for a longer time.
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data(bloodpressureL, package = "LMMstar")
+head(bloodpressureL)
+#+END_SRC
+
+#+RESULTS:
+:   id sequence treatment period duration
+: 1  1      ABC         A      1      1.9
+: 2  1      ABC         B      2      2.9
+: 3  1      ABC         C      3      4.3
+: 4  2      ABC         A      1      1.4
+: 5  2      ABC         B      2      2.3
+: 6  2      ABC         C      3      3.0
+
+While there are not missing values in this dataset:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sum(is.na(bloodpressureL))
+#+END_SRC
+
+#+RESULTS:
+: [1] 0
+
+only 3 out of the 6 possible sequences of treatment have been studies:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+levels(bloodpressureL$sequence)
+#+END_SRC
+
+#+RESULTS:
+: [1] "ABC" "BCA" "CAB"
+
+A spaghetti plot can provide a graphical representation of the
+dataset, either with time on the x-axis:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ggTime <- ggplot(bloodpressureL, aes(x = period, y = duration, group = id))
+ggTime <- ggTime + geom_line() + geom_point(aes(color = treatment), size = 2)
+ggTime
+#+END_SRC
+
+or
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ggTreat <- ggplot(bloodpressureL, aes(x = treatment, y = duration, group = id))
+ggTreat <- ggTreat + geom_line() + geom_point(aes(color = period), size = 2)
+ggTreat
+#+END_SRC
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+library(ggpubr)
+pdf("figures/gg-spaghetti.pdf", width = 9, height = 6)
+ggarrange(ggTime,ggTreat, legend = "bottom")
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: windows 
+:       2
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-spaghetti.pdf]]
+
+
+bloodpressureS <- summarize(duration~treatment+period, data = bloodpressureL)
+bloodpressureS
+##   treatment period observed missing  mean        sd min    q1 median    q3 max
+## 1         A      1        4       0 1.325 0.5377422 0.6 1.200   1.40 1.525 1.9
+## 2         B               4       0 2.050 0.2380476 1.7 2.000   2.15 2.200 2.2
+## 3         C               4       0 2.725 0.4716991 2.4 2.400   2.55 2.875 3.4
+## 4         A      2        4       0 1.850 0.5507571 1.2 1.500   1.90 2.250 2.4
+## 5         B               4       0 2.525 0.3862210 2.1 2.250   2.55 2.825 2.9
+## 6         C               4       0 2.800 0.5830952 2.2 2.575   2.70 2.925 3.6
+## 7         A      3        4       0 2.000 0.5477226 1.3 1.750   2.05 2.300 2.6
+## 8         B               4       0 2.325 0.3095696 1.9 2.200   2.40 2.525 2.6
+## 9         C               4       0 3.425 0.6396614 2.9 2.975   3.25 3.700 4.3
+
+## *** empirical mean and variance per treatment
+summarize(duration~treatment, data = bloodpressureL)
+##   treatment observed missing     mean        sd min    q1 median    q3 max
+## 1         A       12       0 1.725000 0.5785955 0.6 1.375   1.75 2.200 2.6
+## 2         B       12       0 2.300000 0.3516196 1.7 2.100   2.25 2.525 2.9
+## 3         C       12       0 2.983333 0.6102657 2.2 2.625   2.80 3.425 4.3
+
+## same with a mixed model
+e0.treatment <- lmm(duration ~ 0 + treatment, repetition = ~treatment|id, data = bloodpressureL)
+model.tables(e0.treatment, effects = c("mean","variance"), transform.k = "sd")
+##             estimate         se        df       lower     upper      p.value
+## treatmentA 1.7250000 0.16702613 11.006096  1.35740281 2.0925972 5.326379e-07
+## treatmentB 2.3000000 0.10150384 11.015815  2.07663067 2.5233693 1.362719e-10
+## treatmentC 2.9833333 0.17616854 11.011209  2.59563715 3.3710295 3.116341e-09
+## sigma.A    0.5785955 0.12335697  1.758177 -0.02864535 1.1858363           NA
+## sigma.B    0.3516196 0.07496556  1.739819 -0.02186537 0.7251046           NA
+## sigma.C    0.6102657 0.13010909  1.738564 -0.03848838 1.2590198           NA
+
+## modeling a period-specific variance/correlation leads to a different result
+e0.period <- lmm(duration ~ 0 + treatment, repetition = ~period|id, data = bloodpressureL)
+model.tables(e0.period)
+##            estimate        se       df    lower    upper      p.value
+## treatmentA 1.687545 0.2034935 4.714546 1.154777 2.220313 5.504570e-04
+## treatmentB 2.275209 0.2059416 4.672785 1.734473 2.815946 1.588685e-04
+## treatmentC 2.853111 0.1990882 4.324518 2.316335 3.389888 8.266719e-05
+
+
+Omega <- sigma(e0.period)
+X <- model.matrix(e0.period)
+Y <- bloodpressureL$duration
+
+Omega.all <- as.matrix(Matrix::bdiag(sigma(e0.period, cluster = as.character(unique(bloodpressureL$id)))))
+solve(t(X) %*% solve(Omega.all) %*% X) %*% t(X) %*% solve(Omega.all) %*% Y
+
+mu <- bloodpressureS[bloodpressureS$treatment == "A","mean"]
+M.id <- cbind(1/3,1/3,1/3)
+solve(M.id %*% solve(Omega) %*% t(M.id)) %*% M.id %*% solve(Omega) %*% mu
+
+
+
+Omega <- sigma(e0.period)
+lambda <- eigen(Omega)$values
+Q <- eigen(Omega)$vectors
+Qbar <- colSums(Q)
+weight.GLS <- rowSums(sweep(Q, MARGIN = 2, FUN = "*", STATS = Qbar/lambda))/sum(weight)
+
+weighted.mean(bloodpressureS[bloodpressureS$treatment == "A","mean"], weight.GLS) ## [1] (explicit) inverse variance weighting: 1.698241
+
+
+## intuition: treatment A observed at different timepoints so when modeling a timepoint-specific variance they will get different weights
+mean(bloodpressureS[bloodpressureS$treatment == "A","mean"]) ## no weighting: 1.725
+
+e00.period <- lmm(duration ~ 0 + treatment, repetition = ~period|id, structure = "IND", data = bloodpressureL)
+coef(e00.period) ## inverse variance weighting: 1.698241 
+weighted.mean(bloodpressureS[bloodpressureS$treatment == "A","mean"], 1/diag(sigma(e00.period))) ## [1] (explicit) inverse variance weighting: 1.698241
+
+
+
+
+## *** empirical mean and variance per timepoint
+summarize(duration~period, data = bloodpressureL)
+##   period observed missing     mean        sd min    q1 median    q3 max
+## 1      1       12       0 2.033333 0.7152029 0.6 1.625   2.15 2.400 3.4
+## 2      2       12       0 2.391667 0.6244391 1.2 2.175   2.35 2.725 3.6
+## 3      3       12       0 2.583333 0.7906652 1.3 2.125   2.55 2.925 4.3
+
+## same with a mixed model
+e0.period <- lmm(duration ~ 0 + period, repetition = ~period|id, data = bloodpressureL)
+model.tables(e0.period, effects = c("mean","variance"), transform.k = "sd")
+##          estimate        se        df       lower    upper      p.value
+## period1 2.0333333 0.2064613 11.004363  1.57893709 2.487730 8.582081e-07
+## period2 2.3916667 0.1802601 11.005392  1.99494068 2.788393 4.094850e-08
+## period3 2.5833333 0.2282454 11.004222  2.08099212 3.085675 2.109659e-07
+## sigma.1 0.7152029 0.1524818  1.754566 -0.03716584 1.467572           NA
+## sigma.2 0.6244391 0.1331309  1.761476 -0.02952278 1.278401           NA
+## sigma.3 0.7906652 0.1685704  1.760378 -0.03796728 1.619298           NA
+
+## note that look over  leads to a (slightly different result)
+model.tables(lmm(duration ~ 0 + period, repetition = ~treatment|id, data = bloodpressureL))
+##            estimate        se       df    lower    upper      p.value
+## treatmentA 1.687545 0.2034935 4.714546 1.154777 2.220313 5.504570e-04
+## treatmentB 2.275209 0.2059416 4.672785 1.734473 2.815946 1.588685e-04
+## treatmentC 2.853111 0.1990882 4.324518 2.316335 3.389888 8.266719e-05
+
+* CONFIG                                                           :noexport:
+#+LANGUAGE:  en
+#+LaTeX_CLASS: org-article
+#+LaTeX_CLASS_OPTIONS: [12pt]
+#+OPTIONS:   title:t author:t toc:nil todo:nil
+#+OPTIONS:   H:3 num:t 
+#+OPTIONS:   TeX:t LaTeX:t
+** Display of the document
+# ## space between lines
+#+LATEX_HEADER: \RequirePackage{setspace} % to modify the space between lines - incompatible with footnote in beamer
+#+LaTeX_HEADER:\renewcommand{\baselinestretch}{1.1}
+# ## margins
+#+LaTeX_HEADER: \geometry{a4paper, left=10mm, right=10mm, top=10mm}
+# ## personalize the prefix in the name of the sections
+#+LaTeX_HEADER: \usepackage{titlesec}
+# ## fix bug in titlesec version
+# ##  https://tex.stackexchange.com/questions/299969/titlesec-loss-of-section-numbering-with-the-new-update-2016-03-15
+#+LaTeX_HEADER: \usepackage{etoolbox}
+#+LaTeX_HEADER: 
+#+LaTeX_HEADER: \makeatletter
+#+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+#+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\noindent}{}{}{}
+#+LaTeX_HEADER: \makeatother
+** Color
+# ## define new colors
+#+LATEX_HEADER: \RequirePackage{colortbl} % arrayrulecolor to mix colors
+#+LaTeX_HEADER: \definecolor{myorange}{rgb}{1,0.2,0}
+#+LaTeX_HEADER: \definecolor{mypurple}{rgb}{0.7,0,8}
+#+LaTeX_HEADER: \definecolor{mycyan}{rgb}{0,0.6,0.6}
+#+LaTeX_HEADER: \newcommand{\lightblue}{blue!50!white}
+#+LaTeX_HEADER: \newcommand{\darkblue}{blue!80!black}
+#+LaTeX_HEADER: \newcommand{\darkgreen}{green!50!black}
+#+LaTeX_HEADER: \newcommand{\darkred}{red!50!black}
+#+LaTeX_HEADER: \definecolor{gray}{gray}{0.5}
+# ## change the color of the links
+#+LaTeX_HEADER: \hypersetup{
+#+LaTeX_HEADER:  citecolor=[rgb]{0,0.5,0},
+#+LaTeX_HEADER:  urlcolor=[rgb]{0,0,0.5},
+#+LaTeX_HEADER:  linkcolor=[rgb]{0,0,0.5},
+#+LaTeX_HEADER: }
+** Font
+# https://tex.stackexchange.com/questions/25249/how-do-i-use-a-particular-font-for-a-small-section-of-text-in-my-document
+#+LaTeX_HEADER: \newenvironment{note}{\small \color{gray}\fontfamily{lmtt}\selectfont}{\par}
+#+LaTeX_HEADER: \newenvironment{activity}{\color{orange}\fontfamily{qzc}\selectfont}{\par}
+** Symbols
+# ## valid and cross symbols
+#+LaTeX_HEADER: \RequirePackage{pifont}
+#+LaTeX_HEADER: \RequirePackage{relsize}
+#+LaTeX_HEADER: \newcommand{\Cross}{{\raisebox{-0.5ex}%
+#+LaTeX_HEADER:		{\relsize{1.5}\ding{56}}}\hspace{1pt} }
+#+LaTeX_HEADER: \newcommand{\Valid}{{\raisebox{-0.5ex}%
+#+LaTeX_HEADER:		{\relsize{1.5}\ding{52}}}\hspace{1pt} }
+#+LaTeX_HEADER: \newcommand{\CrossR}{ \textcolor{red}{\Cross} }
+#+LaTeX_HEADER: \newcommand{\ValidV}{ \textcolor{green}{\Valid} }
+# ## warning symbol
+#+LaTeX_HEADER: \usepackage{stackengine}
+#+LaTeX_HEADER: \usepackage{scalerel}
+#+LaTeX_HEADER: \newcommand\Warning[1][3ex]{%
+#+LaTeX_HEADER:   \renewcommand\stacktype{L}%
+#+LaTeX_HEADER:   \scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
+#+LaTeX_HEADER:   \xspace
+#+LaTeX_HEADER: }
+
+** Code
+:PROPERTIES:
+:ID: 2ec77c4b-f83d-4612-9a89-a96ba1b7bf70
+:END:
+# Documentation at https://org-babel.readthedocs.io/en/latest/header-args/#results
+# :tangle (yes/no/filename) extract source code with org-babel-tangle-file, see http://orgmode.org/manual/Extracting-source-code.html 
+# :cache (yes/no)
+# :eval (yes/no/never)
+# :results (value/output/silent/graphics/raw/latex)
+# :export (code/results/none/both)
+#+PROPERTY: header-args :session *R* :tangle yes :cache no ## extra argument need to be on the same line as :session *R*
+# Code display:
+#+LATEX_HEADER: \RequirePackage{fancyvrb}
+#+LATEX_HEADER: \DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+# ## change font size input (global change)
+# ## doc: https://ctan.math.illinois.edu/macros/latex/contrib/listings/listings.pdf
+# #+LATEX_HEADER: \newskip kipamount    kipamount =6pt plus 0pt minus 6pt
+# #+LATEX_HEADER: \lstdefinestyle{code-tiny}{basicstyle=\ttfamily\tiny, aboveskip =  kipamount, belowskip =  kipamount}
+# #+LATEX_HEADER: \lstset{style=code-tiny}
+# ## change font size input (local change, put just before BEGIN_SRC)
+# ## #+ATTR_LATEX: :options basicstyle=\ttfamily\scriptsize
+# ## change font size output (global change)
+# ## \RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\tiny,formatcom = {\color[rgb]{0.5,0,0}}}
+** Rlogo
+#+LATEX_HEADER:\definecolor{grayR}{HTML}{8A8990}
+#+LATEX_HEADER:\definecolor{grayL}{HTML}{C4C7C9}
+#+LATEX_HEADER:\definecolor{blueM}{HTML}{1F63B5}   
+#+LATEX_HEADER: \newcommand{\Rlogo}[1][0.07]{
+#+LATEX_HEADER: \begin{tikzpicture}[scale=#1]
+#+LATEX_HEADER: \shade [right color=grayR,left color=grayL,shading angle=60] 
+#+LATEX_HEADER: (-3.55,0.3) .. controls (-3.55,1.75) 
+#+LATEX_HEADER: and (-1.9,2.7) .. (0,2.7) .. controls (2.05,2.7)  
+#+LATEX_HEADER: and (3.5,1.6) .. (3.5,0.3) .. controls (3.5,-1.2) 
+#+LATEX_HEADER: and (1.55,-2) .. (0,-2) .. controls (-2.3,-2) 
+#+LATEX_HEADER: and (-3.55,-0.75) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white] 
+#+LATEX_HEADER: (-2.15,0.2) .. controls (-2.15,1.2) 
+#+LATEX_HEADER: and (-0.7,1.8) .. (0.5,1.8) .. controls (2.2,1.8) 
+#+LATEX_HEADER: and (3.1,1.2) .. (3.1,0.2) .. controls (3.1,-0.75) 
+#+LATEX_HEADER: and (2.4,-1.45) .. (0.5,-1.45) .. controls (-1.1,-1.45) 
+#+LATEX_HEADER: and (-2.15,-0.7) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[blueM] 
+#+LATEX_HEADER: (1.75,1.25) -- (-0.65,1.25) -- (-0.65,-2.75) -- (0.55,-2.75) -- (0.55,-1.15) -- 
+#+LATEX_HEADER: (0.95,-1.15)  .. controls (1.15,-1.15) 
+#+LATEX_HEADER: and (1.5,-1.9) .. (1.9,-2.75) -- (3.25,-2.75)  .. controls (2.2,-1) 
+#+LATEX_HEADER: and (2.5,-1.2) .. (1.8,-0.95) .. controls (2.6,-0.9) 
+#+LATEX_HEADER: and (2.85,-0.35) .. (2.85,0.2) .. controls (2.85,0.7) 
+#+LATEX_HEADER: and (2.5,1.2) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white]  (1.4,0.4) -- (0.55,0.4) -- (0.55,-0.3) -- (1.4,-0.3).. controls (1.75,-0.3) 
+#+LATEX_HEADER: and (1.75,0.4) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \end{tikzpicture}
+#+LATEX_HEADER: }
+** Image and graphs
+#+LATEX_HEADER: \RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
+#+LATEX_HEADER: \RequirePackage{capt-of} % 
+#+LATEX_HEADER: \RequirePackage{caption} % newlines in graphics
+#+LaTeX_HEADER: \RequirePackage{tikz-cd} % graph
+# ## https://tools.ietf.org/doc/texlive-doc/latex/tikz-cd/tikz-cd-doc.pdf
+** Table
+#+LATEX_HEADER: \RequirePackage{booktabs} % for nice lines in table (e.g. toprule, bottomrule, midrule, cmidrule)
+** Inline latex
+# @@latex:any arbitrary LaTeX code@@
+** Algorithm
+#+LATEX_HEADER: \RequirePackage{amsmath}
+#+LATEX_HEADER: \RequirePackage{algorithm}
+#+LATEX_HEADER: \RequirePackage[noend]{algpseudocode}
+** Math
+#+LATEX_HEADER: \RequirePackage{dsfont}
+#+LATEX_HEADER: \RequirePackage{amsmath,stmaryrd,graphicx}
+#+LATEX_HEADER: \RequirePackage{prodint} % product integral symbol (\PRODI)
+# ## lemma
+# #+LaTeX_HEADER: \RequirePackage{amsthm}
+# #+LaTeX_HEADER: \newtheorem{theorem}{Theorem}
+# #+LaTeX_HEADER: \newtheorem{lemma}[theorem]{Lemma}
+*** Template for shortcut
+#+LATEX_HEADER: \usepackage{ifthen}
+#+LATEX_HEADER: \usepackage{xifthen}
+#+LATEX_HEADER: \usepackage{xargs}
+#+LATEX_HEADER: \usepackage{xspace}
+#+LATEX_HEADER: \newcommand\defOperator[7]{%
+#+LATEX_HEADER:	\ifthenelse{\isempty{#2}}{
+#+LATEX_HEADER:		\ifthenelse{\isempty{#1}}{#7{#3}#4}{#7{#3}#4 \left#5 #1 \right#6}
+#+LATEX_HEADER:	}{
+#+LATEX_HEADER:	\ifthenelse{\isempty{#1}}{#7{#3}#4_{#2}}{#7{#3}#4_{#1}\left#5 #2 \right#6}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommand\defUOperator[5]{%
+#+LATEX_HEADER: \ifthenelse{\isempty{#1}}{
+#+LATEX_HEADER:		#5\left#3 #2 \right#4
+#+LATEX_HEADER: }{
+#+LATEX_HEADER:	\ifthenelse{\isempty{#2}}{\underset{#1}{\operatornamewithlimits{#5}}}{
+#+LATEX_HEADER:		\underset{#1}{\operatornamewithlimits{#5}}\left#3 #2 \right#4}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommand{\defBoldVar}[2]{	
+#+LATEX_HEADER:	\ifthenelse{\equal{#2}{T}}{\boldsymbol{#1}}{\mathbf{#1}}
+#+LATEX_HEADER: }
+**** Probability
+#+LATEX_HEADER: \newcommandx\Esp[2][1=,2=]{\defOperator{#1}{#2}{E}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Prob[2][1=,2=]{\defOperator{#1}{#2}{P}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Qrob[2][1=,2=]{\defOperator{#1}{#2}{Q}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Var[2][1=,2=]{\defOperator{#1}{#2}{V}{ar}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Cov[2][1=,2=]{\defOperator{#1}{#2}{C}{ov}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Binom[2][1=,2=]{\defOperator{#1}{#2}{B}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Gaus[2][1=,2=]{\defOperator{#1}{#2}{N}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Wishart[2][1=,2=]{\defOperator{#1}{#2}{W}{ishart}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
+#+LATEX_HEADER: \newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
+**** Operators
+#+LATEX_HEADER: \newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Ind[1][1=]{\defOperator{}{#1}{1}{}{(}{)}{\mathds}}
+#+LATEX_HEADER: \newcommandx\Max[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{min}}
+#+LATEX_HEADER: \newcommandx\Min[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{max}}
+#+LATEX_HEADER: \newcommandx\argMax[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmax}}
+#+LATEX_HEADER: \newcommandx\argMin[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmin}}
+#+LATEX_HEADER: \newcommandx\cvD[2][1=D,2=n \rightarrow \infty]{\xrightarrow[#2]{#1}}
+#+LATEX_HEADER: \newcommandx\Hypothesis[2][1=,2=]{
+#+LATEX_HEADER:         \ifthenelse{\isempty{#1}}{
+#+LATEX_HEADER:         \mathcal{H}
+#+LATEX_HEADER:         }{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#2}}{
+#+LATEX_HEADER: 		\mathcal{H}_{#1}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\mathcal{H}^{(#2)}_{#1}
+#+LATEX_HEADER:         }
+#+LATEX_HEADER:         }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommandx\dpartial[4][1=,2=,3=,4=\partial]{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#3}}{
+#+LATEX_HEADER: 		\frac{#4 #1}{#4 #2}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\left.\frac{#4 #1}{#4 #2}\right\rvert_{#3}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommandx\dTpartial[3][1=,2=,3=]{\dpartial[#1][#2][#3][d]}
+#+LATEX_HEADER: \newcommandx\ddpartial[3][1=,2=,3=]{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#3}}{
+#+LATEX_HEADER: 		\frac{\partial^{2} #1}{\partial #2^2}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\frac{\partial^2 #1}{\partial #2\partial #3}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: } 
+**** General math
+#+LATEX_HEADER: \newcommand\Real{\mathbb{R}}
+#+LATEX_HEADER: \newcommand\Rational{\mathbb{Q}}
+#+LATEX_HEADER: \newcommand\Natural{\mathbb{N}}
+#+LATEX_HEADER: \newcommand\trans[1]{{#1}^\intercal}%\newcommand\trans[1]{{\vphantom{#1}}^\top{#1}}
+#+LATEX_HEADER: \newcommand{\independent}{\mathrel{\text{\scalebox{1.5}{$\perp\mkern-10mu\perp$}}}}
+#+LaTeX_HEADER: \newcommand\half{\frac{1}{2}}
+#+LaTeX_HEADER: \newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
+#+LaTeX_HEADER: \newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
+#+LATEX_HEADER: \newcommand\Veta{\boldsymbol{\eta}}
+
+** Notations
+
+#+LaTeX_HEADER:\newcommand{\Model}{\mathcal{M}}
+#+LaTeX_HEADER:\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+
+#+LaTeX_HEADER:\newcommand{\param}{\Theta}
+#+LaTeX_HEADER:\newcommand{\paramHat}{\widehat{\param}}
+#+LaTeX_HEADER:\newcommand{\paramCon}{\widetilde{\param}}
+
+#+LaTeX_HEADER:\newcommand{\Vparam}{\boldsymbol{\param}}
+#+LaTeX_HEADER:\newcommand{\VparamT}{\Vparam_0}
+#+LaTeX_HEADER:\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+#+LaTeX_HEADER:\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+
+#+LaTeX_HEADER:\newcommand{\X}{X}
+#+LaTeX_HEADER:\newcommand{\x}{x}
+#+LaTeX_HEADER:\newcommand{\VZ}{\boldsymbol{Z}}
+#+LaTeX_HEADER:\newcommand{\VX}{\boldsymbol{X}}
+#+LaTeX_HEADER:\newcommand{\Vx}{\boldsymbol{x}}
+
+#+LaTeX_HEADER:\newcommand{\Y}{Y}
+#+LaTeX_HEADER:\newcommand{\y}{y}
+#+LaTeX_HEADER:\newcommand{\VY}{\boldsymbol{Y}}
+#+LaTeX_HEADER:\newcommand{\Vy}{\boldsymbol{y}}
+#+LaTeX_HEADER:\newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
+
+

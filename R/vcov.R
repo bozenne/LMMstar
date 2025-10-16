@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:16) 
+## Last-Updated: okt 16 2025 (18:18) 
 ##           By: Brice Ozenne
-##     Update #: 1237
+##     Update #: 1238
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -534,7 +534,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
         seq.cluster <- .rbind.cluster(ls.model)
         all.vcov <- .rbind.vcov(ls.model, robust = object$args$robust, type.information = object$args$type.information, keep.grad = "gradient" %in% effects, p = p,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                                seq.cluster = seq.cluster, n.cluster = length(seq.cluster), independence = object$args$independence,
+                                seq.cluster = seq.cluster, n.cluster = length(seq.cluster), independence = object$args$independence, df = FALSE,
                                 all.table.param = object$param, all.coefUnames = object$param$trans.Uname, all.coefUnamesO = object$param$Uname, options = options)
         
     }

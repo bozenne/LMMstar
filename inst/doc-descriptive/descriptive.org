@@ -1,0 +1,826 @@
+#+TITLE: Descriptive statistics with LMMstar
+#+Author: Brice Ozenne
+#+BEGIN_SRC R :exports none :results silent :session *R* :cache no
+options(width = 100, digits = 5)
+if(system("whoami",intern=TRUE)=="bozenne"){  
+  setwd("~/Documents/GitHub/LMMstar/inst/doc-descriptive/")
+}else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
+  setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-descriptive/")
+}
+library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(LMMstar, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+#+END_SRC
+
+This vignette describes how to obtain descriptive statistics and
+graphical displays:
+- =summarize=: mean, standard deviation, number of missing data per timepoint
+- =correlate=: correlation or heatmap of the correlation of the endpoint over time
+- =summarizeNA=: missing data patterns
+- =scatterplot=: bivariate scatterplots for each pair of variable
+  along with univariate histogram or boxplot for each variable.
+
+All can be performed separately in each treatment arm, using a wide or
+long format. There is no dedicated function to create spaghetti plot -
+other packages such as =ggplot2= can be used instead.
+
+\bigskip
+
+The vignette has been run with LMMstar version:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(LMMstar)
+packageVersion("LMMstar")
+#+END_SRC
+
+#+RESULTS:
+: [1] '1.2.0'
+
+\clearpage
+
+* Illustrative dataset
+
+A dataset from a two-arm randomized clinical trial will be used for
+illustration:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data(calciumW, package = "LMMstar")
+calciumW$dropout <- NULL
+calciumW$dropvisit <- NULL
+head(calciumW)
+#+END_SRC
+
+#+RESULTS:
+:   girl grp bmd1 bmd2 bmd3 bmd4 bmd5 time.obs1 time.obs2 time.obs3 time.obs4 time.obs5
+: 1  101   C  815  875  911  952  970         0   0.51472   0.98015    1.4976    1.9959
+: 2  102   P  813  833  855  881  901         0   0.51472   0.95551    1.4730    1.9521
+: 3  103   P  812  812  843  855  895         0   0.51198   0.95825    1.4757    1.9548
+: 4  104   C  804  847  885  920  948         0   0.51198   0.97194    1.5086    2.1136
+: 5  105   C  904  927  952  955 1002         0   0.57495   0.97741    1.4757    1.9548
+: 6  106   P  831  855  890  908  933         0   0.53388   1.01300    1.5907    2.1684
+
+The outcome is bone mineral density measured in mg/cm3 at different
+timepoints: =bmd1= refers to the baseline measurement and =bmd2=,
+\ldots, =bmd5= refers to post-intervention measurements. Each arm
+(=grp=) received a different intervention: =C= calcium supplement or
+=P= placebo. Visits were planned every 6 months and =time.obs1=,
+\ldots, =time.obs5= refer to the time elpased from baseline
+measurement in years.
+
+\bigskip
+
+The corresponding long format can also be loaded from
+the package:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data(calciumL, package = "LMMstar")
+calciumL$dropvisit <- NULL
+calciumL <- calciumL[order(calciumL$girl,calciumL$visit),]
+rownames(calciumL) <- NULL
+head(calciumL)
+#+END_SRC
+
+#+RESULTS:
+:   girl grp dropout visit time.obs bmd
+: 1  101   C       0     1  0.00000 815
+: 2  101   C       0     2  0.51472 875
+: 3  101   C       0     3  0.98015 911
+: 4  101   C       0     4  1.49760 952
+: 5  101   C       0     5  1.99589 970
+: 6  102   P       0     1  0.00000 813
+
+The corresponding complete case dataset are:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+calciumW.NNA <- calciumW[rowSums(is.na(calciumW))==0,]
+calciumL.NNA <- calciumL[calciumL$girl %in% calciumW.NNA$girl,]
+#+END_SRC
+
+#+RESULTS:
+
+leading to
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+table(calciumW.NNA$grp)
+#+END_SRC
+
+#+RESULTS:
+: 
+:  C  P 
+: 44 47
+
+subjects per treatment group.
+
+\clearpage
+
+* Summary statistics
+
+Mean, standard deviation, and other summary statistics can be computed
+with respect to a categorical variable (typically time) using the
+=summarize= function: \newline \Warning If you have loaded dplyr, you
+should use =LMMstar:::summarize= to avoid confusion with =dplyr::summarize=
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summarize(bmd ~ visit + grp, data = calciumL, na.rm = TRUE)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+   visit grp observed missing   mean     sd min     q1 median      q3  max
+1      1   C       55       0 880.45 59.689 762 836.00  879.0  911.00 1028
+2      2           52       3 903.27 59.327 769 869.25  905.0  935.50 1051
+3      3           48       7 938.25 58.782 816 898.25  938.5  969.75 1080
+4      4           46       9 964.50 65.101 830 923.25  955.0  999.00 1114
+5      5           44      11 988.16 62.872 849 951.00  985.5 1017.75 1126
+6      1   P       57       0 870.07 65.770 746 819.00  861.0  923.00 1014
+7      2           53       4 889.68 75.099 748 833.00  869.0  955.00 1055
+8      3           51       6 914.16 78.028 756 857.50  904.0  977.00 1067
+9      4           48       9 941.65 75.305 809 891.75  924.5 1003.75 1096
+10     5           47      10 958.23 73.639 816 912.50  950.0 1011.50 1119
+#+end_example
+
+\noindent The =summarize= function can simultaneously produce the summary
+statistics for several outcome variables:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summarize(bmd5 + time.obs5 ~ grp, data = calciumW, na.rm = TRUE)
+#+END_SRC
+
+#+RESULTS:
+:     outcome grp observed missing     mean        sd      min       q1   median        q3       max
+: 1      bmd5   C       44      11 988.1591 62.871942 849.0000 951.0000 985.5000 1017.7500 1126.0000
+: 2             P       47      10 958.2340 73.639313 816.0000 912.5000 950.0000 1011.5000 1119.0000
+: 3 time.obs5   C       44      11   1.9763  0.077755   1.8398   1.9281   1.9576    2.0212    2.1465
+: 4             P       47      10   1.9759  0.084232   1.7960   1.9329   1.9548    2.0342    2.2341
+
+\noindent User-defined summary statistics can be passed via the =FCT= argument, e.g.:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+myAUC <- function(time.obs, bmd){
+  approxAUC(x = time.obs, y = bmd, from = 0, to = 1.5)
+}
+
+armd.auc <- summarize(bmd ~ girl, FUN = myAUC, na.rm = TRUE,
+                      data = calciumL.NNA) ## subset to subject without missing value.
+head(armd.auc)
+#+END_SRC
+
+#+RESULTS:
+:   outcome girl observed missing pc.missing  mean     sd min  q1 median  q3  max    AUC
+: 1     bmd  101        5       0          0 904.6 62.188 815 875    911 952  970 1334.9
+: 2     bmd  102        5       0          0 856.6 35.451 813 833    855 881  901 1268.6
+: 3     bmd  103        5       0          0 843.4 34.530 812 812    843 855  895 1245.1
+: 4     bmd  104        5       0          0 880.8 57.251 804 847    885 920  948 1297.4
+: 5     bmd  105        5       0          0 948.0 36.599 904 927    952 955 1002 1402.8
+: 6     bmd  106        5       0          0 883.4 40.808 831 855    890 908  933 1305.2
+
+\noindent \Warning In some datasets, lines with missing outcome values (here ="visual"=)
+have been removed:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+calciumL2 <- calciumL[!is.na(calciumL$bmd),]
+calciumL2[35:40,] ## only 2 lines for subject 108
+#+END_SRC
+
+#+RESULTS:
+:    girl grp dropout visit time.obs bmd
+: 35  107   P       0     5  1.94935 823
+: 36  108   C       1     1  0.00000 792
+: 37  108   C       1     2  0.53114 814
+: 41  109   C       0     1  0.00000 821
+: 42  109   C       0     2  0.53114 850
+: 43  109   C       0     3  0.95277 865
+
+A naive application of the summarize function will not count correctly
+the number of missing values:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summarize(bmd ~ visit + grp, data = calciumL2, na.rm = TRUE)$missing
+#+END_SRC
+
+#+RESULTS:
+:  [1] 0 0 0 0 0 0 0 0 0 0
+
+\noindent To fix that one should use the long format and inform about
+the data structure: cluster (=subject=) and ordering variable
+(=week=): \newline \Warning there should be no duplicated value of the
+ordering variable within cluster
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+sss <- summarize(bmd ~ visit + grp, data = calciumL2, na.rm = TRUE,
+                 repetition = ~visit|girl)
+sss
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+   visit grp observed missing   mean     sd min     q1 median      q3  max
+1      1   C       55       0 880.45 59.689 762 836.00  879.0  911.00 1028
+2      2           52       3 903.27 59.327 769 869.25  905.0  935.50 1051
+3      3           48       7 938.25 58.782 816 898.25  938.5  969.75 1080
+4      4           46       9 964.50 65.101 830 923.25  955.0  999.00 1114
+5      5           44      11 988.16 62.872 849 951.00  985.5 1017.75 1126
+6      1   P       57       0 870.07 65.770 746 819.00  861.0  923.00 1014
+7      2           53       4 889.68 75.099 748 833.00  869.0  955.00 1055
+8      3           51       6 914.16 78.028 756 857.50  904.0  977.00 1067
+9      4           48       9 941.65 75.305 809 891.75  924.5 1003.75 1096
+10     5           47      10 958.23 73.639 816 912.50  950.0 1011.50 1119
+#+end_example
+
+This also enables to obtain graphical displays where summary
+statistics about an outcome variable (here =visual=) are displayed
+across values of the ordering variable (here =week=):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(sss, type = "mean") ## left panel
+plot(sss, type = "sd") ## middle panel
+plot(sss, type = "pc.missing") ## right panel
+#+END_SRC
+
+#+RESULTS:
+
+See =help(plot.summarize)= for options to customize the graphical
+display.
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/summarize.pdf]]
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/summarize.pdf", width = 12)
+ggarrange(autoplot(sss,type="mean")$plot + ggtitle("Mean"),
+          autoplot(sss,type="sd")$plot + ggtitle("Standard deviation"),
+          autoplot(sss,type="pc.missing")$plot + ggtitle("Missing (%)"),
+          nrow = 1, common.legend = TRUE, legend = "bottom")
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: null device 
+:           1
+
+\clearpage 
+
+* Correlation
+
+
+The =correlate= function facilitate the estimation of the correlation:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+rrr <- correlate(bmd ~ grp, repetition = ~visit | girl,
+                 data = calciumL, use = "pairwise")
+rrr
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Pearson correlation: 
+$`grp=C`
+           1       2       3       4       5
+   1 1.00000 0.95829 0.90808 0.88136 0.85965
+   2 0.95829 1.00000 0.95946 0.94590 0.92935
+   3 0.90808 0.95946 1.00000 0.97232 0.94427
+   4 0.88136 0.94590 0.97232 1.00000 0.96245
+   5 0.85965 0.92935 0.94427 0.96245 1.00000
+
+$`grp=P`
+           1       2       3       4       5
+   1 1.00000 0.97557 0.95640 0.94445 0.91701
+   2 0.97557 1.00000 0.97832 0.96333 0.94437
+   3 0.95640 0.97832 1.00000 0.98537 0.96597
+   4 0.94445 0.96333 0.98537 1.00000 0.98305
+   5 0.91701 0.94437 0.96597 0.98305 1.00000
+#+end_example
+
+By default Pearson's correlation is computed (argument =method=). A
+graphical representation can be obtained using:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(rrr)
+#+END_SRC
+
+#+RESULTS:
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/correlation.pdf]]
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+ggsave(autoplot(rrr)$plot, filename = "./figures/correlation.pdf", width = 12, height = 6)
+#+END_SRC
+#+RESULTS:
+
+
+\clearpage
+
+
+* Missing data patterns
+
+The =summarizeNA= function identifies the possible combinations of
+observed/missing data:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+mp <- summarizeNA(calciumL, repetition = ~visit | girl)
+mp
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+variable frequency missing.pattern n.missing 1 2 3 4 5
+      grp       112           00000         0 0 0 0 0 0
+  dropout       112           00000         0 0 0 0 0 0
+ time.obs        91           00000         0 0 0 0 0 0
+                  3           00001         1 0 0 0 0 1
+                  5           00011         2 0 0 0 1 1
+                  6           00111         3 0 0 1 1 1
+                  7           01111         4 0 1 1 1 1
+      bmd        91           00000         0 0 0 0 0 0
+                  3           00001         1 0 0 0 0 1
+                  5           00011         2 0 0 0 1 1
+                  6           00111         3 0 0 1 1 1
+                  7           01111         4 0 1 1 1 1
+#+end_example
+
+A graphical representation can be obtained using =plot=. Since there
+are several variables, one has to specifying the variable relative to
+which the missing data pattern should be displayed:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(mp, variable = "bmd")
+#+END_SRC
+
+#+RESULTS:
+
+See =help(plot.summarizeNA)= for options to customize the graphical
+display.
+
+#+RESULTS:
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/summarizeNA.pdf]]
+
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+ggsave(autoplot(mp, variable = "bmd")$plot, filename = "./figures/summarizeNA.pdf", height = 6, width = 12)
+#+END_SRC
+#+RESULTS:
+
+\clearpage
+
+A formula should be specified to stratify the missing data pattern per group:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+mpS <- summarizeNA(bmd ~ grp, repetition = ~visit | girl, data = calciumL)
+mpS
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+variable grp frequency missing.pattern n.missing 1 2 3 4 5
+      bmd   C        44           00000         0 0 0 0 0 0
+            C         2           00001         1 0 0 0 0 1
+            C         2           00011         2 0 0 0 1 1
+            C         4           00111         3 0 0 1 1 1
+            C         3           01111         4 0 1 1 1 1
+            P        47           00000         0 0 0 0 0 0
+            P         1           00001         1 0 0 0 0 1
+            P         3           00011         2 0 0 0 1 1
+            P         2           00111         3 0 0 1 1 1
+            P         4           01111         4 0 1 1 1 1
+#+end_example
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+plot(mpS, labeller = "label_both")
+#+END_SRC
+
+#+RESULTS:
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/summarizeNA-stratified.pdf]]
+
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+ggsave(autoplot(mpS, labeller = "label_both")$plot,
+       filename = "./figures/summarizeNA-stratified.pdf", height = 6, width = 12)
+#+END_SRC
+#+RESULTS:
+
+\clearpage
+
+* Spaghetti plot
+
+There is (currently) not dedicated function to obtain spaghetti
+plots. Instead one can use the ggplot2 package with the long format, e.g.:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+gg.spa <- ggplot(calciumL, aes(x = visit, y = bmd, group = girl, color = grp))
+gg.spa <- gg.spa + geom_point() + geom_line()
+gg.spa
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 59 rows containing missing values or values outside the scale range (`geom_point()`). 
+: 2: [1m[22mRemoved 59 rows containing missing values or values outside the scale range (`geom_line()`).
+
+#+ATTR_LaTeX: :width 1\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/spaghetti.pdf]]
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/spaghetti.pdf", width = 6.5, height = 5)
+gg.spa
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 59 rows containing missing values or values outside the scale range (`geom_point()`). 
+: 2: [1m[22mRemoved 59 rows containing missing values or values outside the scale range (`geom_line()`).
+: windows 
+:       2
+
+\clearpage
+
+* Scatterplot
+
+
+A scatterplot of the data can obtained by specifying which columns to
+display when using the wide format. 
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+scatterplot(calciumW, columns = c("bmd1","bmd2","bmd3","bmd4","bmd5")) 
+#+END_SRC
+
+#+ATTR_LaTeX: :width 0.5\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplot.pdf]]
+
+By default and if available, =scatterplot= will use the =facet_grid2=
+function from the ggh4x package to combine the different panels of the
+graphical display. It outputs a =ggplot= that can be further
+customized:
+
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+gg.sca <- scatterplot(calciumW, columns = c("bmd1","bmd2","bmd3","bmd4","bmd5")) 
+class(gg.sca)
+gg.sca + theme_minimal() ## right panel
+#+END_SRC
+
+#+ATTR_LaTeX: :width 0.5\textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplotMin.pdf]]
+
+
+
+xxx
+
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplot-grid.pdf]]
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/scatterplot.pdf", width = 6.5, height = 6)
+scatterplot(calciumW,
+            columns = c("bmd1","bmd2","bmd3","bmd4","bmd5"),
+            size.cor = 4, size.axis = 6)
+dev.off()
+
+pdf("./figures/scatterplotMin.pdf", width = 6.5, height = 6)
+scatterplot(calciumW,
+            columns = c("bmd1","bmd2","bmd3","bmd4","bmd5"),
+            size.cor = 4, size.axis = 6) + theme_minimal()
+dev.off()
+
+pdf("./figures/scatterplot-grid.pdf", width = 6.5, height = 6)
+scatterplot(calciumW,
+            columns = c("bmd1","bmd2","bmd3","bmd4","bmd5"),
+            size.cor = 4, size.axis = 6, facet = "grid")
+dev.off()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Advarselsbeskeder:
+1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+windows 
+      2
+Advarselsbeskeder:
+1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+windows 
+      2
+Der var 14 advarsler (brug warnings() for at se dem)
+windows 
+      2
+#+end_example
+
+\noindent When using the long format, a formula should describe the
+structure of the data: =outcome ~ order|cluster=
+- the left hand side indicates the values to be displayed (here =bmd=)
+- the right hand side indicates the ordering of the repetitions (here over =visit=) and
+  how the repetitions are grouped within clusters (here within =girl=).
+
+When calling =scatterplot=, the argument =group= leads to different
+color per group and the argument =type.diag= enables to use histograms
+(or density plots) instead of boxplots:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+gg.sca2 <- scatterplot(bmd ~ visit | girl, data = calciumL, ## left panel
+                       type.diag = "hist", group = "grp", size.cor = 3)
+gg.sca2
+#+END_SRC
+
+#+RESULTS:
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+: 2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+
+
+\bigskip
+
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplot-group.pdf]]
+#+LaTeX: \end{minipage}
+#+LaTeX: \begin{minipage}{0.48\linewidth} 
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/scatterplotMin-group.pdf]]
+#+LaTeX: \end{minipage}
+
+
+#+RESULTS:
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pdf("./figures/scatterplot-group.pdf", width = 6.5, height = 6)
+gg.sca2
+dev.off()
+
+pdf("./figures/scatterplotMin-group.pdf", width = 6.5, height = 6)
+gg.sca2 + theme_minimal()
+dev.off()
+#+END_SRC
+
+
+#+RESULTS:
+#+begin_example
+Advarselsbeskeder:
+1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+windows 
+      2
+Advarselsbeskeder:
+1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+windows 
+      2
+#+end_example
+
+The argument =size.cor= was used to adjust the font size used when
+displaying the estimated correlation and number of missing
+values. When the package =ggh4x= is installed, =scatterplot= will
+output an =ggplot2= object that can be customized:
+
+#+RESULTS:
+: [1] "ggplot2::ggplot" "ggplot"          "ggplot2::gg"     "S7_object"       "gg"
+: Advarselsbeskeder:
+: 1: [1m[22mRemoved 59 rows containing non-finite outside the scale range (`stat_bin()`). 
+: 2: [1m[22mRemoved 171 rows containing missing values or values outside the scale range (`geom_point()`).
+
+\bigskip
+
+
+* CONFIG                                                           :noexport:
+#+LANGUAGE:  en
+#+LaTeX_CLASS: org-article
+#+LaTeX_CLASS_OPTIONS: [12pt]
+#+OPTIONS:   title:t author:t toc:nil todo:nil
+#+OPTIONS:   H:3 num:t 
+#+OPTIONS:   TeX:t LaTeX:t
+** Display of the document
+# ## space between lines
+#+LATEX_HEADER: \RequirePackage{setspace} % to modify the space between lines - incompatible with footnote in beamer
+#+LaTeX_HEADER:\renewcommand{\baselinestretch}{1.1}
+# ## margins
+#+LaTeX_HEADER: \geometry{a4paper, left=10mm, right=10mm, top=10mm}
+# ## personalize the prefix in the name of the sections
+#+LaTeX_HEADER: \usepackage{titlesec}
+# ## fix bug in titlesec version
+# ##  https://tex.stackexchange.com/questions/299969/titlesec-loss-of-section-numbering-with-the-new-update-2016-03-15
+#+LaTeX_HEADER: \usepackage{etoolbox}
+#+LaTeX_HEADER: 
+#+LaTeX_HEADER: \makeatletter
+#+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+#+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\noindent}{}{}{}
+#+LaTeX_HEADER: \makeatother
+** Color
+# ## define new colors
+#+LATEX_HEADER: \RequirePackage{colortbl} % arrayrulecolor to mix colors
+#+LaTeX_HEADER: \definecolor{myorange}{rgb}{1,0.2,0}
+#+LaTeX_HEADER: \definecolor{mypurple}{rgb}{0.7,0,8}
+#+LaTeX_HEADER: \definecolor{mycyan}{rgb}{0,0.6,0.6}
+#+LaTeX_HEADER: \newcommand{\lightblue}{blue!50!white}
+#+LaTeX_HEADER: \newcommand{\darkblue}{blue!80!black}
+#+LaTeX_HEADER: \newcommand{\darkgreen}{green!50!black}
+#+LaTeX_HEADER: \newcommand{\darkred}{red!50!black}
+#+LaTeX_HEADER: \definecolor{gray}{gray}{0.5}
+# ## change the color of the links
+#+LaTeX_HEADER: \hypersetup{
+#+LaTeX_HEADER:  citecolor=[rgb]{0,0.5,0},
+#+LaTeX_HEADER:  urlcolor=[rgb]{0,0,0.5},
+#+LaTeX_HEADER:  linkcolor=[rgb]{0,0,0.5},
+#+LaTeX_HEADER: }
+** Font
+# https://tex.stackexchange.com/questions/25249/how-do-i-use-a-particular-font-for-a-small-section-of-text-in-my-document
+#+LaTeX_HEADER: \newenvironment{note}{\small \color{gray}\fontfamily{lmtt}\selectfont}{\par}
+#+LaTeX_HEADER: \newenvironment{activity}{\color{orange}\fontfamily{qzc}\selectfont}{\par}
+** Symbols
+# ## valid and cross symbols
+#+LaTeX_HEADER: \RequirePackage{pifont}
+#+LaTeX_HEADER: \RequirePackage{relsize}
+#+LaTeX_HEADER: \newcommand{\Cross}{{\raisebox{-0.5ex}%
+#+LaTeX_HEADER:		{\relsize{1.5}\ding{56}}}\hspace{1pt} }
+#+LaTeX_HEADER: \newcommand{\Valid}{{\raisebox{-0.5ex}%
+#+LaTeX_HEADER:		{\relsize{1.5}\ding{52}}}\hspace{1pt} }
+#+LaTeX_HEADER: \newcommand{\CrossR}{ \textcolor{red}{\Cross} }
+#+LaTeX_HEADER: \newcommand{\ValidV}{ \textcolor{green}{\Valid} }
+# ## warning symbol
+#+LaTeX_HEADER: \usepackage{stackengine}
+#+LaTeX_HEADER: \usepackage{scalerel}
+#+LaTeX_HEADER: \newcommand\Warning[1][3ex]{%
+#+LaTeX_HEADER:   \renewcommand\stacktype{L}%
+#+LaTeX_HEADER:   \scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
+#+LaTeX_HEADER:   \xspace
+#+LaTeX_HEADER: }
+
+** Code
+:PROPERTIES:
+:ID: 2ec77c4b-f83d-4612-9a89-a96ba1b7bf70
+:END:
+# Documentation at https://org-babel.readthedocs.io/en/latest/header-args/#results
+# :tangle (yes/no/filename) extract source code with org-babel-tangle-file, see http://orgmode.org/manual/Extracting-source-code.html 
+# :cache (yes/no)
+# :eval (yes/no/never)
+# :results (value/output/silent/graphics/raw/latex)
+# :export (code/results/none/both)
+#+PROPERTY: header-args :session *R* :tangle yes :cache no ## extra argument need to be on the same line as :session *R*
+# Code display:
+#+LATEX_HEADER: \RequirePackage{fancyvrb}
+#+LATEX_HEADER: \DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+# ## change font size input (global change)
+# ## doc: https://ctan.math.illinois.edu/macros/latex/contrib/listings/listings.pdf
+# #+LATEX_HEADER: \newskip kipamount    kipamount =6pt plus 0pt minus 6pt
+# #+LATEX_HEADER: \lstdefinestyle{code-tiny}{basicstyle=\ttfamily\tiny, aboveskip =  kipamount, belowskip =  kipamount}
+# #+LATEX_HEADER: \lstset{style=code-tiny}
+# ## change font size input (local change, put just before BEGIN_SRC)
+# ## #+ATTR_LATEX: :options basicstyle=\ttfamily\scriptsize
+# ## change font size output (global change)
+# ## \RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\tiny,formatcom = {\color[rgb]{0.5,0,0}}}
+** Rlogo
+#+LATEX_HEADER:\definecolor{grayR}{HTML}{8A8990}
+#+LATEX_HEADER:\definecolor{grayL}{HTML}{C4C7C9}
+#+LATEX_HEADER:\definecolor{blueM}{HTML}{1F63B5}   
+#+LATEX_HEADER: \newcommand{\Rlogo}[1][0.07]{
+#+LATEX_HEADER: \begin{tikzpicture}[scale=#1]
+#+LATEX_HEADER: \shade [right color=grayR,left color=grayL,shading angle=60] 
+#+LATEX_HEADER: (-3.55,0.3) .. controls (-3.55,1.75) 
+#+LATEX_HEADER: and (-1.9,2.7) .. (0,2.7) .. controls (2.05,2.7)  
+#+LATEX_HEADER: and (3.5,1.6) .. (3.5,0.3) .. controls (3.5,-1.2) 
+#+LATEX_HEADER: and (1.55,-2) .. (0,-2) .. controls (-2.3,-2) 
+#+LATEX_HEADER: and (-3.55,-0.75) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white] 
+#+LATEX_HEADER: (-2.15,0.2) .. controls (-2.15,1.2) 
+#+LATEX_HEADER: and (-0.7,1.8) .. (0.5,1.8) .. controls (2.2,1.8) 
+#+LATEX_HEADER: and (3.1,1.2) .. (3.1,0.2) .. controls (3.1,-0.75) 
+#+LATEX_HEADER: and (2.4,-1.45) .. (0.5,-1.45) .. controls (-1.1,-1.45) 
+#+LATEX_HEADER: and (-2.15,-0.7) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[blueM] 
+#+LATEX_HEADER: (1.75,1.25) -- (-0.65,1.25) -- (-0.65,-2.75) -- (0.55,-2.75) -- (0.55,-1.15) -- 
+#+LATEX_HEADER: (0.95,-1.15)  .. controls (1.15,-1.15) 
+#+LATEX_HEADER: and (1.5,-1.9) .. (1.9,-2.75) -- (3.25,-2.75)  .. controls (2.2,-1) 
+#+LATEX_HEADER: and (2.5,-1.2) .. (1.8,-0.95) .. controls (2.6,-0.9) 
+#+LATEX_HEADER: and (2.85,-0.35) .. (2.85,0.2) .. controls (2.85,0.7) 
+#+LATEX_HEADER: and (2.5,1.2) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \fill[white]  (1.4,0.4) -- (0.55,0.4) -- (0.55,-0.3) -- (1.4,-0.3).. controls (1.75,-0.3) 
+#+LATEX_HEADER: and (1.75,0.4) .. cycle;
+#+LATEX_HEADER: 
+#+LATEX_HEADER: \end{tikzpicture}
+#+LATEX_HEADER: }
+** Image and graphs
+#+LATEX_HEADER: \RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
+#+LATEX_HEADER: \RequirePackage{capt-of} % 
+#+LATEX_HEADER: \RequirePackage{caption} % newlines in graphics
+#+LaTeX_HEADER: \RequirePackage{tikz-cd} % graph
+# ## https://tools.ietf.org/doc/texlive-doc/latex/tikz-cd/tikz-cd-doc.pdf
+** Table
+#+LATEX_HEADER: \RequirePackage{booktabs} % for nice lines in table (e.g. toprule, bottomrule, midrule, cmidrule)
+** Inline latex
+# @@latex:any arbitrary LaTeX code@@
+** Algorithm
+#+LATEX_HEADER: \RequirePackage{amsmath}
+#+LATEX_HEADER: \RequirePackage{algorithm}
+#+LATEX_HEADER: \RequirePackage[noend]{algpseudocode}
+** Math
+#+LATEX_HEADER: \RequirePackage{dsfont}
+#+LATEX_HEADER: \RequirePackage{amsmath,stmaryrd,graphicx}
+#+LATEX_HEADER: \RequirePackage{prodint} % product integral symbol (\PRODI)
+# ## lemma
+# #+LaTeX_HEADER: \RequirePackage{amsthm}
+# #+LaTeX_HEADER: \newtheorem{theorem}{Theorem}
+# #+LaTeX_HEADER: \newtheorem{lemma}[theorem]{Lemma}
+*** Template for shortcut
+#+LATEX_HEADER: \usepackage{ifthen}
+#+LATEX_HEADER: \usepackage{xifthen}
+#+LATEX_HEADER: \usepackage{xargs}
+#+LATEX_HEADER: \usepackage{xspace}
+#+LATEX_HEADER: \newcommand\defOperator[7]{%
+#+LATEX_HEADER:	\ifthenelse{\isempty{#2}}{
+#+LATEX_HEADER:		\ifthenelse{\isempty{#1}}{#7{#3}#4}{#7{#3}#4 \left#5 #1 \right#6}
+#+LATEX_HEADER:	}{
+#+LATEX_HEADER:	\ifthenelse{\isempty{#1}}{#7{#3}#4_{#2}}{#7{#3}#4_{#1}\left#5 #2 \right#6}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommand\defUOperator[5]{%
+#+LATEX_HEADER: \ifthenelse{\isempty{#1}}{
+#+LATEX_HEADER:		#5\left#3 #2 \right#4
+#+LATEX_HEADER: }{
+#+LATEX_HEADER:	\ifthenelse{\isempty{#2}}{\underset{#1}{\operatornamewithlimits{#5}}}{
+#+LATEX_HEADER:		\underset{#1}{\operatornamewithlimits{#5}}\left#3 #2 \right#4}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommand{\defBoldVar}[2]{	
+#+LATEX_HEADER:	\ifthenelse{\equal{#2}{T}}{\boldsymbol{#1}}{\mathbf{#1}}
+#+LATEX_HEADER: }
+**** Probability
+#+LATEX_HEADER: \newcommandx\Esp[2][1=,2=]{\defOperator{#1}{#2}{E}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Prob[2][1=,2=]{\defOperator{#1}{#2}{P}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Qrob[2][1=,2=]{\defOperator{#1}{#2}{Q}{}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Var[2][1=,2=]{\defOperator{#1}{#2}{V}{ar}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Cov[2][1=,2=]{\defOperator{#1}{#2}{C}{ov}{\lbrack}{\rbrack}{\mathbb}}
+#+LATEX_HEADER: \newcommandx\Binom[2][1=,2=]{\defOperator{#1}{#2}{B}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Gaus[2][1=,2=]{\defOperator{#1}{#2}{N}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Wishart[2][1=,2=]{\defOperator{#1}{#2}{W}{ishart}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
+#+LATEX_HEADER: \newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
+**** Operators
+#+LATEX_HEADER: \newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
+#+LATEX_HEADER: \newcommandx\Ind[1][1=]{\defOperator{}{#1}{1}{}{(}{)}{\mathds}}
+#+LATEX_HEADER: \newcommandx\Max[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{min}}
+#+LATEX_HEADER: \newcommandx\Min[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{max}}
+#+LATEX_HEADER: \newcommandx\argMax[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmax}}
+#+LATEX_HEADER: \newcommandx\argMin[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmin}}
+#+LATEX_HEADER: \newcommandx\cvD[2][1=D,2=n \rightarrow \infty]{\xrightarrow[#2]{#1}}
+#+LATEX_HEADER: \newcommandx\Hypothesis[2][1=,2=]{
+#+LATEX_HEADER:         \ifthenelse{\isempty{#1}}{
+#+LATEX_HEADER:         \mathcal{H}
+#+LATEX_HEADER:         }{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#2}}{
+#+LATEX_HEADER: 		\mathcal{H}_{#1}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\mathcal{H}^{(#2)}_{#1}
+#+LATEX_HEADER:         }
+#+LATEX_HEADER:         }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommandx\dpartial[4][1=,2=,3=,4=\partial]{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#3}}{
+#+LATEX_HEADER: 		\frac{#4 #1}{#4 #2}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\left.\frac{#4 #1}{#4 #2}\right\rvert_{#3}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommandx\dTpartial[3][1=,2=,3=]{\dpartial[#1][#2][#3][d]}
+#+LATEX_HEADER: \newcommandx\ddpartial[3][1=,2=,3=]{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#3}}{
+#+LATEX_HEADER: 		\frac{\partial^{2} #1}{\partial #2^2}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\frac{\partial^2 #1}{\partial #2\partial #3}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: } 
+**** General math
+#+LATEX_HEADER: \newcommand\Real{\mathbb{R}}
+#+LATEX_HEADER: \newcommand\Rational{\mathbb{Q}}
+#+LATEX_HEADER: \newcommand\Natural{\mathbb{N}}
+#+LATEX_HEADER: \newcommand\trans[1]{{#1}^\intercal}%\newcommand\trans[1]{{\vphantom{#1}}^\top{#1}}
+#+LATEX_HEADER: \newcommand{\independent}{\mathrel{\text{\scalebox{1.5}{$\perp\mkern-10mu\perp$}}}}
+#+LaTeX_HEADER: \newcommand\half{\frac{1}{2}}
+#+LaTeX_HEADER: \newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
+#+LaTeX_HEADER: \newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
+#+LATEX_HEADER: \newcommand\Veta{\boldsymbol{\eta}}
+
+** Notations
+
+#+LaTeX_HEADER:\newcommand{\Model}{\mathcal{M}}
+#+LaTeX_HEADER:\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+
+#+LaTeX_HEADER:\newcommand{\param}{\Theta}
+#+LaTeX_HEADER:\newcommand{\paramHat}{\widehat{\param}}
+#+LaTeX_HEADER:\newcommand{\paramCon}{\widetilde{\param}}
+
+#+LaTeX_HEADER:\newcommand{\Vparam}{\boldsymbol{\param}}
+#+LaTeX_HEADER:\newcommand{\VparamT}{\Vparam_0}
+#+LaTeX_HEADER:\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+#+LaTeX_HEADER:\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+
+#+LaTeX_HEADER:\newcommand{\X}{X}
+#+LaTeX_HEADER:\newcommand{\x}{x}
+#+LaTeX_HEADER:\newcommand{\VX}{\boldsymbol{X}}
+#+LaTeX_HEADER:\newcommand{\Vx}{\boldsymbol{x}}
+
+#+LaTeX_HEADER:\newcommand{\Y}{Y}
+#+LaTeX_HEADER:\newcommand{\y}{y}
+#+LaTeX_HEADER:\newcommand{\VY}{\boldsymbol{Y}}
+#+LaTeX_HEADER:\newcommand{\Vy}{\boldsymbol{y}}
+#+LaTeX_HEADER:\newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
+
+#+LaTeX_HEADER:\newcommand{\Z}{Z}
+#+LaTeX_HEADER:\newcommand{\z}{z}
+#+LaTeX_HEADER:\newcommand{\VZ}{\boldsymbol{Z}}
+#+LaTeX_HEADER:\newcommand{\Vz}{\boldsymbol{z}}
+

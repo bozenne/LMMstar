@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:34) 
+## Last-Updated: okt 15 2025 (16:52) 
 ##           By: Brice Ozenne
-##     Update #: 418
+##     Update #: 422
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -479,7 +479,19 @@ model.tables.rbindWald_lmm <- function(x, effects = "Wald",
 ##' @return A \code{data.frame} object.
 ##' 
 ##' @export
-model.tables.mlmm <- model.tables.rbindWald_lmm
+model.tables.mlmm <- function(x, effects = "Wald",
+                              level = 0.95, df = NULL, method = NULL, columns = NULL, ordering = NULL, backtransform = NULL,
+                              transform.names = TRUE, simplify = TRUE, ...){
+
+    if(is.null(method) && "method" %in% names(match.call()) == FALSE){
+        method <- "none"
+    }
+    out <- model.tables.rbindWald_lmm(x, effects = effects,
+                                      level = level, df = df, method = method, columns = columns, ordering = ordering, backtransform = backtransform,
+                                      transform.names = transform.names, simplify = simplify, ...)
+    return(out)
+
+}
 
 ## * model.tables.effect_lmm
 ##' @export

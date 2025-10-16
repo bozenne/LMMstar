@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb 16 2023 (09:39) 
 ## Version: 
-## Last-Updated: jul 11 2024 (11:05) 
+## Last-Updated: okt 15 2025 (11:46) 
 ##           By: Brice Ozenne
-##     Update #: 754
+##     Update #: 793
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,7 +26,8 @@
 ##' @param format [character] Is the dataset in the long (\code{"long"}) or wide (\code{"wide"}) format?
 ##' @param group [character] optional group variable used to color the points, stratify the histogram/density and correlation.
 ##' @param transform [character or function] optional transformation to be applied on the outcome.
-##' @param facet [character] whether to use \code{ggplot:::facet_grid} (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).
+##' @param facet [character] whether to use the grid package (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).
+##' @param labeller [character] text displayed at the top of each panel: either the value (\code{"label_value"}) or the variable name and value (\code{"label_both"}).
 ##' @param alpha.point [numeric] the transparency level used to display the points in the scatterplot.
 ##' @param type.diag [character] type of graphical display on the diagonal: \code{"boxplot"},  \code{"histogram"}, or \code{"density"}.
 ##' @param bins [character or numeric vector] algorithm or values or number of values used to create the histogram cells.
@@ -39,6 +40,7 @@
 ##' @param method.cor [character] estimator of the correlation. Argument passed to \code{stats::cor}.
 ##' When \code{NA}, the correlation is not displayed.
 ##' @param name.cor [character] character used to represent the correlation. By default \code{"r"} but can be changed to \code{"\u03C1"} to display the greek letter \eqn{\rho}.
+##' @param sep.cor [character] character used between the estimated correlation and the number of missing values. 
 ##' @param size.cor [numeric,>0] size of the font used to display the correlation or information about missing values.
 ##' @param digits [numeric of length 2] number of digits used to display the correlation or round the percentage of missing values.
 ##' @param display.NA [0:2 or "only"] Should the number of missing values be displayed. When taking value 2, will also display the percentage of missing values.
@@ -73,7 +75,7 @@
 ##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
 ##' 
 ##' ## remove variable name in facet
-##' scatterplot(gastricbypassL, formula = weight~time|id, facet = "grid")
+##' scatterplot(gastricbypassL, formula = weight~time|id, labeller = "label_value")
 ##' 
 ##' ## use boxplot instead of histogram
 ##' scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "boxplot")
@@ -104,13 +106,15 @@
 ## * scatterplot (code)
 ##' @export
 scatterplot <- function(data, formula, columns, format = NULL, group = NULL, transform = NULL,
-                        facet = "grid_both", 
+                        facet = NULL, 
                         alpha.point = 1,
                         type.diag = "histogram", bins = NULL, position.bar = "identity", linewidth.density = NULL, alpha.area = NULL,
-                        method.cor = "pearson", name.cor = "r", size.cor = NULL, digits = c(3,2), display.NA = NULL,
-                        color = NULL, xlim = NULL, ylim = NULL, size.axis = NULL, size.legend = NULL, size.facet = NULL){
+                        method.cor = "pearson", name.cor = "r", size.cor = NULL, sep.cor = "\n", digits = c(3,2), display.NA = NULL,
+                        color = NULL, xlim = NULL, ylim = NULL, size.axis = NULL, size.legend = NULL, size.facet = NULL, labeller = "label_both"){
 
     ## ** normalize user input
+    mycall <- match.call()
+    
     ## facet
     type.diag <- match.arg(type.diag, c("hist","histogram","density","boxplot"))
     if(type.diag=="histogram"){
@@ -118,8 +122,21 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     }
 
     ## facet
-    facet <- match.arg(facet, c("grid","grid_both","grid2"))
+    
+    if(is.null(facet)){
 
+        if(requireNamespace("ggh4x", quietly = TRUE)){
+            facet <- "grid2"
+        }else{
+            message("For a faster display, consider installing the ggh4x package using: \n",
+                    "install.packages(\"ggh4x\") \n",
+                    "or set the argument \'facet\' to \"grid\" to avoid this message.")
+            facet <- "grid"
+        }
+    }else{
+        facet <- match.arg(facet, c("grid","grid2"))
+    }
+    
     ## display.NA
     if(identical(display.NA,"only")){
         method.cor <- NA
@@ -148,6 +165,13 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         }
     }
     format <- match.arg(format, c("long","wide"))
+
+    ## labeller
+    if(format == "wide"){
+        labeller <- "label_value"
+    }else{
+        labeller <- match.arg(labeller, c("label_value","label_both"))
+    }
 
     ## data in the right long format
     data <- as.data.frame(data)
@@ -253,6 +277,14 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         dataL[[name.Y]] <- do.call(transform, list(dataL[[name.Y]]))
     }
     if(!is.null(group)){
+        if(length(group)!=1){
+            stop("Argument \'group\' should be NULL or have length 1. \n")
+        }
+        if(group %in% names(dataL) == FALSE){
+            stop("Argument \'group\' is inconsistent with argument \'data\'. \n",
+                 "Variable \"",paste(group, collapse = "\" \""),"\" could not be found in the dataset. \n",
+                 sep = "")
+        }
         if(!is.factor(dataL[[group]])){
             dataL[[group]] <- factor(dataL[[group]])
         }
@@ -319,7 +351,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
     }else{
         dataGrid.lower <- dataGrid[dataGrid$position == "lower",]
     }
-        
+    
     
     ## ** prepare histograms
     dataGrid.diag <- dataGrid[dataGrid$position=="diag",]
@@ -370,9 +402,9 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
         dataCor$label <- paste0(name.cor,"=",round(dataCor$cor, digits[1]))
         ## dataCor$label <- paste0("\u03C1=",round(dataCor$cor, digits[1])) ## NOT DONE BY DEFAULT DUE TO ERROR RUNNING CRAN CHECK ON LINUX
         if(display.NA==1){
-            dataCor$label <- paste0(dataCor$label, "; ",n.NA," NA")
+            dataCor$label <- paste0(dataCor$label, sep.cor, n.NA," NA")
         }else if(display.NA>1){
-            dataCor$label <- paste0(dataCor$label, "; ",n.NA," NA (",round(100*(1-dataCor$n.NNA/dataCor$n), digits[2]),"%)")
+            dataCor$label <- paste0(dataCor$label, sep.cor, n.NA," NA (",round(100*(1-dataCor$n.NNA/dataCor$n), digits[2]),"%)")
         }
     }else if(display.NA==1){
         dataCor$label <- paste0(n.NA," NA")
@@ -389,19 +421,30 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
             size.cor <- 5
         }
     }
-    if(facet %in% c("grid","grid_both")){
+    if(facet == "grid"){
         gg <- .ggscatterplot(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
-                             bins = bins, var.time = ifelse(facet == "grid_both", paste0(name.time,": "), ""), level.time = level.time, n.time = n.time, group = group, 
+                             bins = bins, var.time = ifelse(labeller == "label_both", paste0(name.time,": "), ""), level.time = level.time, n.time = n.time, group = group, 
                              alpha.point = alpha.point, position.bar = position.bar, linewidth.density = linewidth.density,
                              type.diag = type.diag, alpha.area = alpha.area, method.cor = method.cor, size.cor = size.cor, display.NA = display.NA, 
                              color = color, xlim = xlim, ylim = ylim, size.axis = size.axis, size.legend = size.legend, size.facet = size.facet)
         return(invisible(gg))
     }else if(facet == "grid2"){
+        if(labeller == "label_both"){
+            labeller <- function(string){
+                if(is.vector(string)){
+                    out <- paste0(name.time,": ",string)
+                }else if(is.data.frame(string)){
+                    out <- as.data.frame(lapply(string, function(iS){paste0(name.time,": ",iS)}))
+                }
+                return(out)
+            }
+        }
+        
         gg <- .ggscatterplot2(dataGrid.diag = dataGrid.diag, dataGrid.lower = dataGrid.lower, dataCor = dataCor,
                               bins = bins, n.time = n.time, group = group, 
                               alpha.point = alpha.point, position.bar = position.bar, linewidth.density = linewidth.density,
                               type.diag = type.diag, alpha.area = alpha.area, method.cor = method.cor, size.cor = size.cor, display.NA = display.NA, 
-                              color = color, xlim = xlim, ylim = ylim, size.axis = size.axis, size.legend = size.legend, size.facet = size.facet)
+                              color = color, xlim = xlim, ylim = ylim, size.axis = size.axis, size.legend = size.legend, size.facet = size.facet, labeller = labeller)
         return(gg)
     }
 
@@ -649,7 +692,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
 .ggscatterplot2 <- function(dataGrid.diag, dataGrid.lower, dataCor,
                             bins, n.time, group, 
                             alpha.point, position.bar, linewidth.density, type.diag, alpha.area, method.cor, size.cor, display.NA, 
-                            color, xlim, ylim, size.axis, size.legend, size.facet){
+                            color, xlim, ylim, size.axis, size.legend, size.facet, labeller){
 
     requireNamespace("ggh4x")
 
@@ -665,7 +708,7 @@ scatterplot <- function(data, formula, columns, format = NULL, group = NULL, tra
 
     ## ** graphical display
     gg <- ggplot2::ggplot()
-    gg <- gg + ggh4x::facet_grid2(time1~time2, scales = "free", labeller = "label_value", independent = "y") + ggplot2::labs(x = "", y = "")
+    gg <- gg + ggh4x::facet_grid2(time1~time2, scales = "free", labeller = labeller, independent = "y") + ggplot2::labs(x = "", y = "")
     gg <- gg + ggplot2::geom_point(data = dataGrid.lower,
                                    mapping = ggplot2::aes(x = .data$outcome2, y = .data$outcome1, color = .data$group, shape = .data$group),
                                    alpha = alpha.point, show.legend = !is.null(group))

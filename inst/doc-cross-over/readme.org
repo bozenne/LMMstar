@@ -1,0 +1,29 @@
+Instructions to run to prepare the vignette (to run before installing the package)
+
+- export R code
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## devtools::build_vignettes("LMMstar", quiet = FALSE) ## generate the META & DOC folder
+library(butils.base)
+setwd(pathGitHub())
+extractRchunk(file = "./LMMstar/inst/doc-cross-over/cross-over.org",
+              newfile = "./LMMstar/vignettes/cross-over.pdf.asis",
+              header = c("%\\VignetteIndexEntry{LMMstar: cross-over}",
+                         "%\\VignetteEngine{R.rsp::asis}",
+                         "%\\VignetteKeyword{PDF}",
+                         "%\\VignetteKeyword{vignette}",
+                         "%\\VignetteKeyword{package}",
+                         ""),
+              overwrite = TRUE)
+#+END_SRC
+
+#+RESULTS:
+
+- move to directory containing the package, compress vignette pdf file, and copy to =doc= and =vignettes= directories
+#+BEGIN_SRC shell
+cd ~/Documents/GitHub/LMMstar/inst/doc-cross-over/
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/printer -dNOPAUSE -dQUIET -dBATCH -sOutputFile=cross-over-compress.pdf cross-over.pdf
+cp cross-over-compress.pdf ../../vignettes/cross-over.pdf 
+#+END_SRC
+
+#+RESULTS:
+

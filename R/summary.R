@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:34) 
+## Last-Updated: okt 16 2025 (16:26) 
 ##           By: Brice Ozenne
-##     Update #: 1829
+##     Update #: 1833
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1161,7 +1161,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     }else{
         table.print <- table
     }
-   
+    
 
     ## ** round
     columns.num <- setdiff(names(table)[sapply(table,is.numeric)],c("p.value",col.df))
@@ -1354,7 +1354,11 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         if(!is.null(backtransform) && any(!is.na(backtransform$FUN))){
 
             vec.backtransform <- backtransform[!is.na(backtransform$FUN),]
-         
+            if("n.sample" %in% names(vec.backtransform)){
+                vec.backtransform$FUN <- ifelse(!is.na(vec.backtransform$n.sample),
+                                                paste0(vec.backtransform$FUN, " (", vec.backtransform$n.sample," samples)"),
+                                                vec.backtransform$FUN)
+            }
             cat(space,"Back-transformation: ",paste0(paste(rownames(vec.backtransform),collapse = "/")," parameters with ",paste(vec.backtransform$FUN,collapse="/")),".\n",
                 ## " (",paste(intersect(c("estimate","se","lower","upper"),columns),collapse = "/"),"). \n",
                 sep ="")

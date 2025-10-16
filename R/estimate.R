@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: jul 25 2025 (13:38) 
+## Last-Updated: okt 16 2025 (18:17) 
 ##           By: Brice Ozenne
-##     Update #: 1442
+##     Update #: 1444
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -433,11 +433,11 @@ estimate.mlmm <- estimate.Wald_lmm
 
     ## ** extract variance-covariance
     if(is.null(robust) && is.null(type.information)){ ## Wald_lmm, rbindWald_lmm, mlmm
-        Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
+        Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], 
                              transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
     }else{ ## lmm
         Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]],
-                             robust = robust, type.information = type.information, 
+                             robust = robust, type.information = type.information, df = FALSE,
                              transform.sigma = transform2.sigma, transform.k = transform2.k, transform.rho = transform2.rho, options = options)
     }
 

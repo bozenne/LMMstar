@@ -11,7 +11,7 @@ scatterplot(
   format = NULL,
   group = NULL,
   transform = NULL,
-  facet = "grid_both",
+  facet = NULL,
   alpha.point = 1,
   type.diag = "histogram",
   bins = NULL,
@@ -21,6 +21,7 @@ scatterplot(
   method.cor = "pearson",
   name.cor = "r",
   size.cor = NULL,
+  sep.cor = "\\n",
   digits = c(3, 2),
   display.NA = NULL,
   color = NULL,
@@ -28,7 +29,8 @@ scatterplot(
   ylim = NULL,
   size.axis = NULL,
   size.legend = NULL,
-  size.facet = NULL
+  size.facet = NULL,
+  labeller = "label_both"
 )
 }
 \arguments{
@@ -44,7 +46,7 @@ scatterplot(
 
 \item{transform}{[character or function] optional transformation to be applied on the outcome.}
 
-\item{facet}{[character] whether to use \code{ggplot:::facet_grid} (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).}
+\item{facet}{[character] whether to use the grid package (\code{"grid"}) or \code{ggh4x::facet_grid2} (\code{"grid2"}).}
 
 \item{alpha.point}{[numeric] the transparency level used to display the points in the scatterplot.}
 
@@ -68,6 +70,8 @@ When \code{NA}, the correlation is not displayed.}
 
 \item{size.cor}{[numeric,>0] size of the font used to display the correlation or information about missing values.}
 
+\item{sep.cor}{[character] character used between the estimated correlation and the number of missing values.}
+
 \item{digits}{[numeric of length 2] number of digits used to display the correlation or round the percentage of missing values.}
 
 \item{display.NA}{[0:2 or "only"] Should the number of missing values be displayed. When taking value 2, will also display the percentage of missing values.}
@@ -85,6 +89,8 @@ When argument \code{facet="grid"}, can have a second element to control the size
 
 \item{size.facet}{[numeric,>0] size of the font used to display the facets (row and column names).
 When argument \code{facet="grid"}, can have a second and third elements to control the width and height of the facets.}
+
+\item{labeller}{[character] text displayed at the top of each panel: either the value (\code{"label_value"}) or the variable name and value (\code{"label_both"}).}
 }
 \value{
 a list of ggplot objects (\code{facet="grid"}) or a ggplot object (\code{facet="grid2"})
@@ -112,7 +118,7 @@ scatterplot(gastricbypassW, columns = paste0("weight",1:4))
 scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "hist", bins = 15)
 
 ## remove variable name in facet
-scatterplot(gastricbypassL, formula = weight~time|id, facet = "grid")
+scatterplot(gastricbypassL, formula = weight~time|id, labeller = "label_value")
 
 ## use boxplot instead of histogram
 scatterplot(gastricbypassL, formula = weight~time|id, type.diag = "boxplot")

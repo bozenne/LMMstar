@@ -1,0 +1,2026 @@
+% Created 2025-10-16 to 11:30
+% Intended LaTeX compiler: pdflatex
+\documentclass[12pt]{article}
+
+%%%% settings when exporting code %%%% 
+
+\usepackage{listings}
+\lstdefinestyle{code-small}{
+backgroundcolor=\color{white}, % background color for the code block
+basicstyle=\ttfamily\small, % font used to display the code
+commentstyle=\color[rgb]{0.5,0,0.5}, % color used to display comments in the code
+keywordstyle=\color{black}, % color used to highlight certain words in the code
+numberstyle=\ttfamily\tiny\color{gray}, % color used to display the line numbers
+rulecolor=\color{black}, % color of the frame
+stringstyle=\color[rgb]{0,.5,0},  % color used to display strings in the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+columns=fullflexible,
+frame=single, % adds a frame around the code (non,leftline,topline,bottomline,lines,single,shadowbox)
+keepspaces=true, % % keeps spaces in text, useful for keeping indentation of code
+literate={~}{$\sim$}{1}, % symbol properly display via latex
+numbers=none, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=10pt, % how far the line-numbers are from the code
+showspaces=false,
+showstringspaces=false,
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+tabsize=1,
+xleftmargin=0cm,
+emph={anova,apply,class,coef,colnames,colNames,colSums,dim,dcast,for,ggplot,head,if,ifelse,is.na,lapply,list.files,library,logLik,melt,plot,require,rowSums,sapply,setcolorder,setkey,str,summary,tapply},
+aboveskip = \medskipamount, % define the space above displayed listings.
+belowskip = \medskipamount, % define the space above displayed listings.
+lineskip = 0pt} % specifies additional space between lines in listings
+\lstset{style=code-small}
+%%%% packages %%%%%
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{changes}
+\usepackage{pdflscape}
+\usepackage{geometry}
+\usepackage[normalem]{ulem}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage{array}
+\usepackage{ifthen}
+\usepackage{hyperref}
+\usepackage{natbib}
+\RequirePackage{setspace} % to modify the space between lines - incompatible with footnote in beamer
+\renewcommand{\baselinestretch}{1.1}
+\geometry{a4paper, left=10mm, right=10mm, top=10mm}
+\usepackage{titlesec}
+\usepackage{etoolbox}
+
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+\RequirePackage{colortbl} % arrayrulecolor to mix colors
+\definecolor{myorange}{rgb}{1,0.2,0}
+\definecolor{mypurple}{rgb}{0.7,0,8}
+\definecolor{mycyan}{rgb}{0,0.6,0.6}
+\newcommand{\lightblue}{blue!50!white}
+\newcommand{\darkblue}{blue!80!black}
+\newcommand{\darkgreen}{green!50!black}
+\newcommand{\darkred}{red!50!black}
+\definecolor{gray}{gray}{0.5}
+\hypersetup{
+citecolor=[rgb]{0,0.5,0},
+urlcolor=[rgb]{0,0,0.5},
+linkcolor=[rgb]{0,0,0.5},
+}
+\newenvironment{note}{\small \color{gray}\fontfamily{lmtt}\selectfont}{\par}
+\newenvironment{activity}{\color{orange}\fontfamily{qzc}\selectfont}{\par}
+\RequirePackage{pifont}
+\RequirePackage{relsize}
+\newcommand{\Cross}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{56}}}\hspace{1pt} }
+\newcommand{\Valid}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{52}}}\hspace{1pt} }
+\newcommand{\CrossR}{ \textcolor{red}{\Cross} }
+\newcommand{\ValidV}{ \textcolor{green}{\Valid} }
+\usepackage{stackengine}
+\usepackage{scalerel}
+\newcommand\Warning[1][3ex]{%
+\renewcommand\stacktype{L}%
+\scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
+\xspace
+}
+\RequirePackage{fancyvrb}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+\definecolor{grayR}{HTML}{8A8990}
+\definecolor{grayL}{HTML}{C4C7C9}
+\definecolor{blueM}{HTML}{1F63B5}
+\newcommand{\Rlogo}[1][0.07]{
+\begin{tikzpicture}[scale=#1]
+\shade [right color=grayR,left color=grayL,shading angle=60]
+(-3.55,0.3) .. controls (-3.55,1.75)
+and (-1.9,2.7) .. (0,2.7) .. controls (2.05,2.7)
+and (3.5,1.6) .. (3.5,0.3) .. controls (3.5,-1.2)
+and (1.55,-2) .. (0,-2) .. controls (-2.3,-2)
+and (-3.55,-0.75) .. cycle;
+
+\fill[white]
+(-2.15,0.2) .. controls (-2.15,1.2)
+and (-0.7,1.8) .. (0.5,1.8) .. controls (2.2,1.8)
+and (3.1,1.2) .. (3.1,0.2) .. controls (3.1,-0.75)
+and (2.4,-1.45) .. (0.5,-1.45) .. controls (-1.1,-1.45)
+and (-2.15,-0.7) .. cycle;
+
+\fill[blueM]
+(1.75,1.25) -- (-0.65,1.25) -- (-0.65,-2.75) -- (0.55,-2.75) -- (0.55,-1.15) --
+(0.95,-1.15)  .. controls (1.15,-1.15)
+and (1.5,-1.9) .. (1.9,-2.75) -- (3.25,-2.75)  .. controls (2.2,-1)
+and (2.5,-1.2) .. (1.8,-0.95) .. controls (2.6,-0.9)
+and (2.85,-0.35) .. (2.85,0.2) .. controls (2.85,0.7)
+and (2.5,1.2) .. cycle;
+
+\fill[white]  (1.4,0.4) -- (0.55,0.4) -- (0.55,-0.3) -- (1.4,-0.3).. controls (1.75,-0.3)
+and (1.75,0.4) .. cycle;
+
+\end{tikzpicture}
+}
+\RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
+\RequirePackage{capt-of} %
+\RequirePackage{caption} % newlines in graphics
+\RequirePackage{tikz-cd} % graph
+\RequirePackage{booktabs} % for nice lines in table (e.g. toprule, bottomrule, midrule, cmidrule)
+\RequirePackage{amsmath}
+\RequirePackage{algorithm}
+\RequirePackage[noend]{algpseudocode}
+\RequirePackage{dsfont}
+\RequirePackage{amsmath,stmaryrd,graphicx}
+\RequirePackage{prodint} % product integral symbol (\PRODI)
+\usepackage{ifthen}
+\usepackage{xifthen}
+\usepackage{xargs}
+\usepackage{xspace}
+\newcommand\defOperator[7]{%
+\ifthenelse{\isempty{#2}}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4}{#7{#3}#4 \left#5 #1 \right#6}
+}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4_{#2}}{#7{#3}#4_{#1}\left#5 #2 \right#6}
+}
+}
+\newcommand\defUOperator[5]{%
+\ifthenelse{\isempty{#1}}{
+#5\left#3 #2 \right#4
+}{
+\ifthenelse{\isempty{#2}}{\underset{#1}{\operatornamewithlimits{#5}}}{
+\underset{#1}{\operatornamewithlimits{#5}}\left#3 #2 \right#4}
+}
+}
+\newcommand{\defBoldVar}[2]{
+\ifthenelse{\equal{#2}{T}}{\boldsymbol{#1}}{\mathbf{#1}}
+}
+\newcommandx\Esp[2][1=,2=]{\defOperator{#1}{#2}{E}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Prob[2][1=,2=]{\defOperator{#1}{#2}{P}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Qrob[2][1=,2=]{\defOperator{#1}{#2}{Q}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Var[2][1=,2=]{\defOperator{#1}{#2}{V}{ar}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Cov[2][1=,2=]{\defOperator{#1}{#2}{C}{ov}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Binom[2][1=,2=]{\defOperator{#1}{#2}{B}{}{(}{)}{\mathcal}}
+\newcommandx\Gaus[2][1=,2=]{\defOperator{#1}{#2}{N}{}{(}{)}{\mathcal}}
+\newcommandx\Wishart[2][1=,2=]{\defOperator{#1}{#2}{W}{ishart}{(}{)}{\mathcal}}
+\newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
+\newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
+\newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+\newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
+\newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
+\newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
+\newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
+\newcommandx\Ind[1][1=]{\defOperator{}{#1}{1}{}{(}{)}{\mathds}}
+\newcommandx\Max[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{min}}
+\newcommandx\Min[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{max}}
+\newcommandx\argMax[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmax}}
+\newcommandx\argMin[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmin}}
+\newcommandx\cvD[2][1=D,2=n \rightarrow \infty]{\xrightarrow[#2]{#1}}
+\newcommandx\Hypothesis[2][1=,2=]{
+\ifthenelse{\isempty{#1}}{
+\mathcal{H}
+}{
+\ifthenelse{\isempty{#2}}{
+\mathcal{H}_{#1}
+}{
+\mathcal{H}^{(#2)}_{#1}
+}
+}
+}
+\newcommandx\dpartial[4][1=,2=,3=,4=\partial]{
+\ifthenelse{\isempty{#3}}{
+\frac{#4 #1}{#4 #2}
+}{
+\left.\frac{#4 #1}{#4 #2}\right\rvert_{#3}
+}
+}
+\newcommandx\dTpartial[3][1=,2=,3=]{\dpartial[#1][#2][#3][d]}
+\newcommandx\ddpartial[3][1=,2=,3=]{
+\ifthenelse{\isempty{#3}}{
+\frac{\partial^{2} #1}{\partial #2^2}
+}{
+\frac{\partial^2 #1}{\partial #2\partial #3}
+}
+}
+\newcommand\Real{\mathbb{R}}
+\newcommand\Rational{\mathbb{Q}}
+\newcommand\Natural{\mathbb{N}}
+\newcommand\trans[1]{{#1}^\intercal}%\newcommand\trans[1]{{\vphantom{#1}}^\top{#1}}
+\newcommand{\independent}{\mathrel{\text{\scalebox{1.5}{$\perp\mkern-10mu\perp$}}}}
+\newcommand\half{\frac{1}{2}}
+\newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
+\newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
+\newcommand\Veta{\boldsymbol{\eta}}
+\newcommand{\Model}{\mathcal{M}}
+\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+\newcommand{\param}{\Theta}
+\newcommand{\paramHat}{\widehat{\param}}
+\newcommand{\paramCon}{\widetilde{\param}}
+\newcommand{\Vparam}{\boldsymbol{\param}}
+\newcommand{\VparamT}{\Vparam_0}
+\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+\newcommand{\X}{X}
+\newcommand{\x}{x}
+\newcommand{\VX}{\boldsymbol{X}}
+\newcommand{\Vx}{\boldsymbol{x}}
+\newcommand{\Y}{Y}
+\newcommand{\y}{y}
+\newcommand{\VY}{\boldsymbol{Y}}
+\newcommand{\Vy}{\boldsymbol{y}}
+\newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
+\newcommand{\Z}{Z}
+\newcommand{\z}{z}
+\newcommand{\VZ}{\boldsymbol{Z}}
+\newcommand{\Vz}{\boldsymbol{z}}
+\author{Brice Ozenne}
+\date{\today}
+\title{Comparison with traditional tests and other R packages}
+\hypersetup{
+ colorlinks=true,
+ pdfauthor={Brice Ozenne},
+ pdftitle={Comparison with traditional tests and other R packages},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.1 (Org mode 9.7.11)},
+ pdflang={English}
+ }
+\begin{document}
+
+\maketitle
+This first part of this vignette make connexions between the output of
+a linear mixed model and well-known test (t.test, ANCOVA,
+Pearson's correlation). The second part of the vignette make connexion with other
+\Rlogo packages.
+\section{Illustrative datasets}
+\label{sec:org9bf6ee7}
+
+We will consider two illustrative datasets:
+\begin{itemize}
+\item data from the abeta study lifestyle and psychosicial data between
+patients with newly diagnosed bipolar disorder (\texttt{BD}) and matched
+healthy controls (\texttt{HC}) at baseline: functioning assessment test
+(\texttt{fast0}), quality of life (\texttt{qol0}), perceived stress score
+(\texttt{pss0}), \ldots{} and at 1 year follow-up (\texttt{pss1}, \texttt{fast1}, \texttt{qol1}, for
+\texttt{BD} only).
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+data(abetaW, package = "LMMstar")
+abetaW$missingreason <- NULL
+head(abetaW)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+  id sex age group episode fast0 qol0 pss0 fast1 pss1 qol1 educationyears alcohol
+1  1   M  30    BD       0     1   88    9     0   NA   NA             13       0
+2  2   F  55    BD       1    32   87   21    NA   NA   NA             15       0
+3  3   M  51    BD       0    29   86   23    31   27   79             21       1
+4  4   M  38    BD       0     1   96    7     6    6  101             21       1
+5  5   M  21    BD       0     3   97    1     1    5  105             12       1
+6  6   M  42    BD       1    22   70   17    40   18   68             13       0
+\end{verbatim}
+
+
+This dataset shows great difference in heterogeneity between the two groups, e.g.:
+\begin{lstlisting}[language=r,numbers=none]
+library(LMMstar)
+summarize(pss0 ~ group, data = abetaW, na.rm = TRUE)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+  group observed missing    mean     sd min   q1 median    q3 max
+1    BD       86       1 13.2674 6.8435   1 7.25     13 17.75  29
+2    HC       44       0  7.2727 5.0272   0 3.75      6 10.50  19
+\end{verbatim}
+
+
+We will also use a balanced version of this dataset (equal group size):
+\begin{lstlisting}[language=r,numbers=none]
+abetaW.B <- do.call(rbind, by(abetaW, abetaW$group, function(iDF){
+  iDF[which(!is.na(iDF$pss0))[1:44],]
+}))
+\end{lstlisting}
+
+\clearpage
+
+\begin{itemize}
+\item data from the calcium dataset, a two-arm randomized clinical trial
+comparing bone mineral density between calcium supplement (\texttt{C}) and
+placebo (\texttt{P}). Visits were planned every 6 months, \texttt{bmd1} refers to
+the baseline measurement and \texttt{bmd2}, \ldots, \texttt{bmd5} refers to
+post-intervention measurements. \texttt{time.obs1},\ldots, \texttt{time.obs5}
+refer to the time elpased from baseline measurement in years.
+\end{itemize}
+
+\begin{lstlisting}[language=r,numbers=none]
+data(calciumL, package = "LMMstar")
+calciumL <- merge(by = "girl", calciumL,
+                  transform(calciumL, baseline = bmd)[calciumL$visit==1,c("girl","baseline")])
+calciumL <- calciumL[order(calciumL$girl,calciumL$visit),]
+head(calciumL)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+   girl grp dropout dropvisit visit time.obs bmd baseline
+1   101   C       0        NA     1  0.00000 815      815
+3   101   C       0        NA     2  0.51472 875      815
+5   101   C       0        NA     3  0.98015 911      815
+2   101   C       0        NA     4  1.49760 952      815
+4   101   C       0        NA     5  1.99589 970      815
+10  102   P       0        NA     1  0.00000 813      813
+\end{verbatim}
+
+
+
+The corresponding wide format is
+\begin{lstlisting}[language=r,numbers=none]
+data(calciumW, package = "LMMstar")
+calciumW$dropout <- NULL
+calciumW$dropvisit <- NULL
+head(calciumW)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+  girl grp bmd1 bmd2 bmd3 bmd4 bmd5 time.obs1 time.obs2 time.obs3 time.obs4 time.obs5
+1  101   C  815  875  911  952  970         0   0.51472   0.98015    1.4976    1.9959
+2  102   P  813  833  855  881  901         0   0.51472   0.95551    1.4730    1.9521
+3  103   P  812  812  843  855  895         0   0.51198   0.95825    1.4757    1.9548
+4  104   C  804  847  885  920  948         0   0.51198   0.97194    1.5086    2.1136
+5  105   C  904  927  952  955 1002         0   0.57495   0.97741    1.4757    1.9548
+6  106   P  831  855  890  908  933         0   0.53388   1.01300    1.5907    2.1684
+\end{verbatim}
+
+
+We will use the placebo group as reference:
+\begin{lstlisting}[language=r,numbers=none]
+calciumW$grp <- relevel(calciumW$grp, "P")
+calciumL$grp <- relevel(calciumL$grp, "P")
+\end{lstlisting}
+
+and the change from baseline in bone mineral density:
+\begin{lstlisting}[language=r,numbers=none]
+calciumW$change2 <- calciumW$bmd2 - calciumW$bmd1
+calciumW$change3 <- calciumW$bmd3 - calciumW$bmd1
+calciumW$change4 <- calciumW$bmd4 - calciumW$bmd1
+calciumW$change5 <- calciumW$bmd5 - calciumW$bmd1
+calciumL$change <- calciumL$bmd - calciumL$baseline
+\end{lstlisting}
+
+
+For illustrative purpose, we will restrict both dataset to subjects
+with complete data:
+\begin{lstlisting}[language=r,numbers=none]
+calciumW.NNA <- calciumW[rowSums(is.na(calciumW))==0,]
+calciumL.NNA <- calciumL[calciumL$girl %in% calciumW.NNA$girl,]
+\end{lstlisting}
+
+as the aim is to show equivalence between statistical tests when there
+is no missing data. 
+
+\clearpage
+\section{Equivalence with other statistical methods}
+\label{sec:org1fe2417}
+\subsection{Welch two sample t-test}
+\label{sec:org4e741e4}
+
+A two sample t-test:
+\begin{lstlisting}[language=r,numbers=none]
+with(abetaW, t.test(x = pss0[group=="BD"], y = pss0[group=="HC"]))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Welch Two Sample t-test
+
+data:  pss0[group == "BD"] and pss0[group == "HC"]
+t = 5.67, df = 112, p-value = 1.1e-07
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 3.8988 8.0906
+sample estimates:
+mean of x mean of y 
+  13.2674    7.2727
+\end{verbatim}
+
+is equivalent to a linear regression with a group-specific residual
+variance:
+\begin{lstlisting}[language=r,numbers=none]
+abetaW$group <- relevel(abetaW$group,"HC")
+e.ttest <- lmm(pss0 ~ group, structure = IND(~group), 
+               data = abetaW, trace = FALSE)
+model.tables(e.ttest, effects = "all")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate      se      df  lower  upper    p.value
+(Intercept)   7.2727 0.75788  43.009 5.7443 8.8011 2.9650e-12
+groupBD       5.9947 1.05781 112.201 3.8988 8.0906 1.1399e-07
+sigma         5.0272 0.54210  43.009 4.0447 6.2484         NA
+k.BD          1.3613 0.18014  86.351 1.0464 1.7709 2.2090e-02
+\end{verbatim}
+
+
+\noindent For comparison a linear model would estimate different standard
+errors, degrees of freedom, and p-values:
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(pss0 ~ group, data = abetaW))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate      se     df  lower  upper    p.value
+(Intercept)   7.2727 0.94857 128.03 5.3958 9.1496 3.8629e-12
+groupBD       5.9947 1.16625 128.03 3.6871 8.3023 1.0000e-06
+\end{verbatim}
+
+
+as it does not account for heteroschedasticity. This makes the
+'heteroschedastic linear regression' \texttt{e.ttest} a natural extension of
+the t-test when it comes to account for covariates.
+
+\clearpage
+
+In the special case of two groups of equal size, the standard errors
+will be estimated the same:
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(pss0 ~ group, structure = IND(~group), 
+                 data = abetaW.B, trace = FALSE))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate      se     df   lower   upper    p.value
+(Intercept)  11.8636 0.98648 43.009  9.8742 13.8530 2.4425e-15
+groupHC      -4.5909 1.24399 80.661 -7.0662 -2.1156 4.0523e-04
+\end{verbatim}
+
+
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(pss0 ~ group, data = abetaW.B))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate      se     df   lower   upper    p.value
+(Intercept)  11.8636 0.87964 86.017 10.1150 13.6123 0.00000000
+groupHC      -4.5909 1.24399 86.017 -7.0639 -2.1179 0.00039184
+\end{verbatim}
+
+
+leading to very similar p-values (degrees of freedom differ slightly).
+
+\clearpage
+\subsection{Paired t-test}
+\label{sec:orge351ace}
+
+With complete data, a paired t-test:
+\begin{lstlisting}[language=r,numbers=none]
+t.test(calciumW.NNA$bmd2, calciumW.NNA$bmd1, paired = TRUE)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Paired t-test
+
+data:  calciumW.NNA$bmd2 and calciumW.NNA$bmd1
+t = 13, df = 90, p-value <2e-16
+alternative hypothesis: true mean difference is not equal to 0
+95 percent confidence interval:
+ 20.229 27.529
+sample estimates:
+mean difference 
+         23.879
+\end{verbatim}
+
+is equivalent to a LMM with an unstructured covariate pattern:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmm2tt <- lmm(bmd ~ visit, repetition = ~visit|girl, structure = "UN",
+                data = calciumL.NNA)
+model.tables(e.lmm2tt)["visit2",,drop=FALSE]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+       estimate     se     df  lower  upper p.value
+visit2   23.879 1.8371 89.968 20.229 27.529       0
+\end{verbatim}
+
+
+\clearpage
+\subsection{Comparing change}
+\label{sec:org50d75c3}
+\subsubsection{Using a Welch two sample t-test}
+\label{sec:orgac3d371}
+
+With complete data, a two sample t-test comparing the change from baseline:
+\begin{lstlisting}[language=r,numbers=none]
+ttc <- with(calciumW.NNA, t.test(x = change2[grp=="C"], y = change2[grp=="P"]))
+ttc
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Welch Two Sample t-test
+
+data:  change2[grp == "C"] and change2[grp == "P"]
+t = 2.03, df = 88.8, p-value = 0.046
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+  0.14074 14.49659
+sample estimates:
+mean of x mean of y 
+   27.659    20.340
+\end{verbatim}
+
+is equivalent to a LMM with a stratified unstructured covariate pattern:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmm2tt2 <- lmm(bmd ~ visit*grp, repetition = ~visit|girl, structure = UN(~grp),
+                 data = calciumL.NNA)
+model.tables(e.lmm2tt2)[c("visit2","visit2:grpC"),,drop=FALSE]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate     se     df    lower  upper    p.value
+visit2       20.3404 2.5338 46.005 15.24013 25.441 2.6911e-10
+visit2:grpC   7.3187 3.6124 88.734  0.14069 14.497 4.5767e-02
+\end{verbatim}
+
+
+The estimate and standard error are exactly the same:
+\begin{lstlisting}[language=r,numbers=none]
+c(ttc$estimate["mean of x"] - ttc$estimate["mean of y"],
+  se = ttc$stderr)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+mean of x        se 
+   7.3187    3.6124
+\end{verbatim}
+
+
+The only (small) difference lies in the estimation of the degrees of freedom.
+
+\clearpage
+\subsubsection{Using a linear regression}
+\label{sec:orgb86a6e1}
+
+Using a linear model to compare change over time:
+\begin{lstlisting}[language=r,numbers=none]
+eLM.change <- lm(change2 ~ grp, data = calciumW.NNA)
+summary(eLM.change)$coef
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            Estimate Std. Error t value   Pr(>|t|)
+(Intercept)  20.3404     2.5133  8.0931 2.7975e-12
+grpC          7.3187     3.6144  2.0249 4.5878e-02
+\end{verbatim}
+
+
+is equivalent to the following mixed model:
+\begin{lstlisting}[language=r,numbers=none]
+eLMM.change <- lmm(bmd ~ visit*grp,
+                   repetition =~ visit|girl, structure = UN,
+                   data = calciumL.NNA)
+model.tables(eLMM.change)[c("visit2","visit2:grpC"),]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate     se     df    lower  upper    p.value
+visit2       20.3404 2.5133 88.962 15.34654 25.334 2.8044e-12
+visit2:grpC   7.3187 3.6144 88.962  0.13688 14.500 4.5880e-02
+\end{verbatim}
+
+
+Here, since the linear regression assumes the same variance in both
+groups, we did not stratified the covariance pattern on group. The
+same equivalence would hold with a continuous exposure (say dose)
+instead of a binary exposure (here \texttt{grp}).
+
+\bigskip
+
+In presence of a covariate:
+\begin{lstlisting}[language=r,numbers=none]
+calciumW2.NNA <- cbind(calciumW.NNA,
+                       age = round(runif(NROW(calciumW.NNA), min = 18, max = 60)))
+calciumL2.NNA <- merge(calciumL.NNA, calciumW2.NNA[,c("girl","age")], by = "girl")
+
+eLMadj.change <- lm(change2 ~ grp + age, data = calciumW2.NNA)
+summary(eLMadj.change)$coef
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+             Estimate Std. Error  t value  Pr(>|t|)
+(Intercept) 21.665002    6.66811  3.24905 0.0016405
+grpC         7.340294    3.63533  2.01916 0.0465143
+age         -0.033579    0.15643 -0.21465 0.8305347
+\end{verbatim}
+
+
+one should specify interaction with time in the mixed model to
+retrieve the same results:
+\begin{lstlisting}[language=r,numbers=none]
+eLMMadj.change <- lmm(bmd ~ visit*grp + visit*age,
+                      repetition =~ visit|girl, structure = UN,
+                      data = calciumL2.NNA)
+model.tables(eLMMadj.change)[c("visit2","visit2:grpC"),]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate     se     df  lower  upper   p.value
+visit2       21.6650 6.6681 87.963 8.4135 34.917 0.0016408
+visit2:grpC   7.3403 3.6353 87.963 0.1158 14.565 0.0465156
+\end{verbatim}
+
+
+
+\clearpage
+\subsection{Multiple Student's t-test}
+\label{sec:org0fecb3c}
+
+To adjust several t-tests for multiple testing, one can use the
+equivalence with \texttt{lmm}. This however require to specify the structure
+of the data (via the argument \texttt{repetition}), i.e., at which level
+replicates are independent so the software can deduce the appropriate
+number of independent observation across t-tests:
+
+\begin{lstlisting}[language=r,numbers=none]
+e.ttest2 <- lmm(change2 ~ grp, structure = IND(~grp), 
+                data = calciumW, repetition = ~1|girl, trace = FALSE)
+e.ttest3 <- lmm(change3 ~ grp, structure = IND(~grp), 
+                data = calciumW, repetition = ~1|girl, trace = FALSE)
+e.ttest4 <- lmm(change4 ~ grp, structure = IND(~grp), 
+                data = calciumW, repetition = ~1|girl, trace = FALSE)
+e.ttest5 <- lmm(change5 ~ grp, structure = IND(~grp), 
+                data = calciumW, repetition = ~1|girl, trace = FALSE)
+\end{lstlisting}
+
+\noindent The \texttt{anova} method is then used to specify the parameter of
+ interest and the results combined using \texttt{rbind}:
+\begin{lstlisting}[language=r,numbers=none]
+e.mttest <- rbind(anova(e.ttest2, effects = "grpC=0"),
+                  anova(e.ttest3, effects = "grpC=0"),
+                  anova(e.ttest4, effects = "grpC=0"),
+                  anova(e.ttest5, effects = "grpC=0"))
+model.tables(e.mttest, method = "single-step2")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+                estimate     se      df   lower  upper  p.value
+change2: grpC=0   6.7507 3.3549 103.014 -1.2205 14.722 0.111849
+change3: grpC=0  13.8150 4.8336  95.812  2.3302 25.300 0.014600
+change4: grpC=0  12.5190 5.8369  86.835 -1.3497 26.388 0.084579
+change5: grpC=0  19.0155 6.4666  86.916  3.6506 34.380 0.011510
+\end{verbatim}
+
+
+\uline{Note:} the \texttt{single-step2} adjustment is similar to the \texttt{single-step}
+adjustment of the multcomp package, i.e., a max test adjustment. But
+instead of relying on the density of a multivariate Student's
+t-distribution, which requires equal degrees of freedom, it samples in
+a multivariate distribution with Student's t marginal possibly based
+on different degrees of freedom and a Gaussian copula. Being based on
+random sampling, results will slightly change everytime the code is
+run unless the inital state of the random number generator is set to a
+specific value before running the code:
+
+\begin{lstlisting}[language=r,numbers=none]
+set.seed(1)
+model.tables(e.mttest, method = "single-step2")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+                estimate     se      df   lower  upper  p.value
+change2: grpC=0   6.7507 3.3549 103.014 -1.2151 14.717 0.113439
+change3: grpC=0  13.8150 4.8336  95.812  2.3379 25.292 0.014590
+change4: grpC=0  12.5190 5.8369  86.835 -1.3404 26.378 0.085339
+change5: grpC=0  19.0155 6.4666  86.916  3.6609 34.370 0.011640
+\end{verbatim}
+
+
+
+\hspace{-5mm}\begin{minipage}[t]{0.5\linewidth}
+The \texttt{LMMstar.options} function can be used \newline
+to output the number of samples used:
+\begin{lstlisting}[language=r,numbers=none]
+LMMstar.options()$n.sampleCopula
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 1e+05
+\end{verbatim}
+
+
+\end{minipage}
+\begin{minipage}[t]{0.45\linewidth}
+\hphantom{x} \newline and change it:
+\begin{lstlisting}[language=r,numbers=none]
+LMMstar.options(n.sampleCopula = 1e5)
+\end{lstlisting}
+\end{minipage}
+
+\bigskip
+
+This whole procedure can be streamlined using the long format and the
+\texttt{mlmm} function:
+\begin{itemize}
+\item the argument \texttt{by} indicates how to split the data. A separate model
+is fitted on each split.
+\item the argument \texttt{effects} indicates the test to be extracted for each
+model.
+\item the argument \texttt{name.short} is a cosmetic argument: should the name of
+each test be the covariate value or a combination of the covariate
+variable and the covariate value?
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+e.mttest2 <- mlmm(change ~ grp, structure = IND(~grp), repetition = ~visit|girl,
+                  data = calciumL[calciumL$visit!=1,], trace = FALSE,
+                  by = "visit", effects = "grpC=0", name.short = FALSE)
+set.seed(1)
+model.tables(e.mttest, method = "single-step2")
+\end{lstlisting}
+
+
+
+\phantomsection
+\label{}
+\begin{verbatim}
+                estimate     se      df   lower  upper  p.value
+change2: grpC=0   6.7507 3.3549 103.014 -1.2151 14.717 0.113439
+change3: grpC=0  13.8150 4.8336  95.812  2.3379 25.292 0.014590
+change4: grpC=0  12.5190 5.8369  86.835 -1.3404 26.378 0.085339
+change5: grpC=0  19.0155 6.4666  86.916  3.6609 34.370 0.011640
+\end{verbatim}
+
+
+The function \texttt{mlmm} can be used not only to emulate multiple t-tests
+but also for multiple linear regressions or linear mixed models. In
+the special case of multiple Welch two-sample test, a dedicated
+function \texttt{mt.test} offers a more user friendly interface:
+\begin{lstlisting}[language=r,numbers=none]
+set.seed(1)
+mt.test(change2 + change3 + change4 + change5 ~ grp, data = calciumW)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Argument 'data' contains 59 missing values. 
+        estimate     se      df   lower  upper  p.value
+change2   6.7507 3.3549 103.014 -1.2151 14.717 0.113439
+change3  13.8150 4.8336  95.812  2.3379 25.292 0.014590
+change4  12.5190 5.8369  86.835 -1.3404 26.378 0.085339
+change5  19.0155 6.4666  86.916  3.6609 34.370 0.011640
+\end{verbatim}
+
+
+\clearpage
+\subsection{ANCOVA}
+\label{sec:orgb3b8d27}
+
+Instead of comparing the final value or the change between groups
+using a Welch two sample t-test, the ANCOVA is often refered to as the
+superior approach to assess a treatment effect
+\citep{vickers2001analysing}. It regresses the group variable and the
+baseline value against the change:
+
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(change2 ~ bmd1 + grp, data = calciumW.NNA))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              estimate        se     df      lower    upper  p.value
+(Intercept) -25.742684 25.757918 88.018 -76.930991 25.44562 0.320337
+bmd1          0.052948  0.029457 88.018  -0.005592  0.11149 0.075693
+grpC          6.741021  3.584377 88.018  -0.382155 13.86420 0.063324
+\end{verbatim}
+
+
+or the final value:
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(bmd2 ~ bmd1 + grp, data = calciumW.NNA))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            estimate        se     df     lower   upper  p.value
+(Intercept) -25.7427 25.757918 88.018 -76.93099 25.4456 0.320337
+bmd1          1.0529  0.029457 88.018   0.99441  1.1115 0.000000
+grpC          6.7410  3.584377 88.018  -0.38215 13.8642 0.063324
+\end{verbatim}
+
+
+both leading to equivalent result. The corresponding mixed model
+constrains the both group to take the same baseline value. This can be
+specified by introducing a new covariate that only differ between
+groups after baseline:
+\begin{lstlisting}[language=r,numbers=none]
+calciumL.NNA$trt <- ifelse(calciumL.NNA$visit==1,"P",as.character(calciumL.NNA$grp))
+calciumL.NNA$trt <- factor(calciumL.NNA$trt, levels = c("P","C"))
+ftable(grp = calciumL.NNA$grp, trt = calciumL.NNA$trt, visit = calciumL.NNA$visit)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+        visit  1  2  3  4  5
+grp trt                     
+P   P         47 47 47 47 47
+    C          0  0  0  0  0
+C   P         44  0  0  0  0
+    C          0 44 44 44 44
+\end{verbatim}
+
+
+We then retrieve the same estimate and similar (but not identical)
+standard errors and p-values with the following mixed model:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmmANCOVA <- lmm(bmd ~ visit*trt, repetition = ~visit|girl, structure = UN,
+                   data = calciumL.NNA)
+model.tables(e.lmmANCOVA)["visit2:trtC",,drop=FALSE]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Constant values in the design matrix for the mean structure.
+Coefficient "trtC" relative to interaction "visit:trt" has been removed.
+            estimate     se     df   lower  upper  p.value
+visit2:trtC    6.741 3.5642 88.853 -0.3411 13.823 0.061839
+\end{verbatim}
+
+
+\clearpage
+
+To avoid the message about the design matrix, one should 'manually'
+define the interaction terms:
+\begin{lstlisting}[language=r,numbers=none]
+calciumL.NNA$visit.trt <- ifelse(calciumL.NNA$trt == "C", calciumL.NNA$visit, "baseline")
+calciumL.NNA$visit.trt <- factor(calciumL.NNA$visit.trt, levels = c("baseline",2:5))
+ftable(grp = calciumL.NNA$grp, visit.trt = calciumL.NNA$visit.trt, visit = calciumL.NNA$visit)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              visit  1  2  3  4  5
+grp visit.trt                     
+P   baseline        47 47 47 47 47
+    2                0  0  0  0  0
+    3                0  0  0  0  0
+    4                0  0  0  0  0
+    5                0  0  0  0  0
+C   baseline        44  0  0  0  0
+    2                0 44  0  0  0
+    3                0  0 44  0  0
+    4                0  0  0 44  0
+    5                0  0  0  0 44
+\end{verbatim}
+
+\begin{lstlisting}[language=r,numbers=none]
+e.lmmANCOVA2 <- lmm(bmd ~ visit + visit.trt, repetition = ~visit|girl, structure = UN,
+                   data = calciumL.NNA)
+model.tables(e.lmmANCOVA2)["visit.trt2",,drop=FALSE]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+           estimate     se     df   lower  upper  p.value
+visit.trt2    6.741 3.5642 88.853 -0.3411 13.823 0.061839
+\end{verbatim}
+
+
+As before, in presence of a covariate:
+\begin{lstlisting}[language=r,numbers=none]
+summary(lm(bmd2 ~ bmd1 + grp + age, data = calciumW2.NNA))$coef
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+             Estimate Std. Error  t value   Pr(>|t|)
+(Intercept) -24.26195  26.312105 -0.92208 3.5904e-01
+bmd1          1.05346   0.029654 35.52538 1.4385e-53
+grpC          6.76689   3.603786  1.87772 6.3770e-02
+age          -0.04884   0.154702 -0.31571 7.5298e-01
+\end{verbatim}
+
+
+one should add the covariate along with time interactions to retrieve
+the same estimate and similar standard error/p-value/confindence
+intervals with a linear mixed model:
+\begin{lstlisting}[language=r,numbers=none]
+calciumL2.NNA$visit.trt <- ifelse(calciumL2.NNA$grp == "C", calciumL.NNA$visit, "1")
+
+e.lmmANCOVAadj <- lmm(bmd ~ visit + visit.trt + visit*age, repetition = ~visit|girl,
+                      structure = UN, data = calciumL2.NNA)
+model.tables(e.lmmANCOVAadj)["visit.trt2",,drop=FALSE]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+           estimate     se     df    lower  upper  p.value
+visit.trt2   6.7669 3.5833 87.854 -0.35423 13.888 0.062262
+\end{verbatim}
+
+
+\clearpage
+
+
+\noindent A natural extension of the ANCOVA would be to relax the
+assumption of common residual variance between the two treatment
+groups:
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(lmm(change2 ~ bmd1 + grp, data = calciumW.NNA, structure = IND(~grp)))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              estimate        se     df       lower    upper  p.value
+(Intercept) -25.833272 25.805339 83.926 -77.1506784 25.48413 0.319665
+bmd1          0.053052  0.029513 84.179  -0.0056359  0.11174 0.075828
+grpC          6.739886  3.585265 87.584  -0.3855470 13.86532 0.063448
+\end{verbatim}
+
+
+However the 'straightforward' connexion with mixed model seems lost:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmmHANCOVA <- lmm(bmd ~ visit + visit.trt, repetition = ~visit|girl, structure = UN(~grp),
+                    data = calciumL.NNA)
+model.tables(e.lmmHANCOVA)["visit.trt2",,drop=FALSE]
+
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+           estimate     se     df    lower  upper  p.value
+visit.trt2   6.7516 3.5654 88.326 -0.33341 13.837 0.061542
+\end{verbatim}
+
+
+\clearpage
+\subsection{Person's correlation}
+\label{sec:orgfe23b02}
+
+One can retrieve Pearson's correlation:
+\begin{lstlisting}[language=r,numbers=none]
+cor.test(calciumW.NNA$bmd1,calciumW.NNA$bmd5)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Pearson's product-moment correlation
+
+data:  calciumW.NNA$bmd1 and calciumW.NNA$bmd5
+t = 18.3, df = 89, p-value <2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.83615 0.92551
+sample estimates:
+    cor 
+0.88901
+\end{verbatim}
+
+using a linear mixed model moving to the long format and using an
+unstructured mean and covariance pattern over time:
+\begin{lstlisting}[language=r,numbers=none]
+eCor.lmm <- lmm(bmd ~ visit, repetition = ~visit|girl,
+                structure = UN, data = calciumL.NNA)
+model.tables(eCor.lmm,  effects = "correlation")["rho(1,5)",]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+         estimate     se     df   lower   upper p.value
+rho(1,5)  0.88901 0.0221 96.839 0.83607 0.92555       0
+\end{verbatim}
+
+
+P-value and confidence interval will differ (only slightly in large
+samples) because \texttt{cor.test} uses an exact\footnote{assuming jointly
+normally distributed outcomes} formula for the variance after \texttt{atanh}
+transformation while the linear mixed model rely on the observed
+information matrix. In this example the observed information (default
+option) is more in line with \texttt{cor.test} than the expected information:
+\begin{lstlisting}[language=r,numbers=none]
+model.tables(eCor.lmm,  type.information = "expected", effects = "correlation")["rho(1,5)",]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+         estimate       se       df   lower   upper p.value
+rho(1,5)  0.88901 0.021914 17285033 0.83738 0.92492       0
+\end{verbatim}
+
+
+Of note the confidence intervals and p-value of \texttt{cor.test} are not
+computed in a consistent way: 
+\begin{lstlisting}[language=r,numbers=none]
+set.seed(7303)
+X <- rnorm(10)
+Y <- rnorm(10)
+cor.test(X,Y)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Pearson's product-moment correlation
+
+data:  X and Y
+t = 2.29, df = 8, p-value = 0.051
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.00016154 0.90179629
+sample estimates:
+    cor 
+0.62972
+\end{verbatim}
+
+\noindent Here the confidence intervals do not overlap 0, i.e.,
+suggest to reject the null hypothesis while the p-value is greater
+than 0.05, i.e., does not suggest to reject the null hypothesis. The
+corresponding mixed model estimate:
+\begin{lstlisting}[language=r,numbers=none]
+dfXY <- rbind(data.frame(value = X, variable = "x", id = 1:10),
+              data.frame(value = Y, variable = "y", id = 1:10))
+e.lmmXY <- lmm(value ~ variable, repetition = ~variable|id,
+               structure = UN, data = dfXY)
+model.tables(e.lmmXY, effects = "correlation")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+         estimate      se     df     lower   upper  p.value
+rho(x,y)  0.62972 0.20115 7.0024 -0.047159 0.91027 0.061602
+\end{verbatim}
+
+
+is the same but the confidence intervals and p-value differ more
+substantially (due to small sample approximations). They however are
+consistent with respect to whether to reject the null hypothesis.
+
+\clearpage
+\subsection{Comparing Person's correlation}
+\label{sec:org910e089}
+
+
+To compare the Pearson's correlation between two groups,
+\begin{lstlisting}[language=r,numbers=none]
+library(cocor)
+cocor.indep.groups()
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=r,numbers=none]
+eCor2.lmm <- lmm(bmd ~ visit*grp, repetition = ~visit|girl,
+                structure = UN(~grp), data = calciumL.NNA)
+model.tables(eCor2.lmm,  effects = "correlation")[c("rho(1,5):C","rho(1,5):P"),]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+           estimate       se     df   lower   upper    p.value
+rho(1,5):C  0.85965 0.039801 42.111 0.75492 0.92163 1.2128e-10
+rho(1,5):P  0.91701 0.023456 53.835 0.85496 0.95319 7.3275e-15
+\end{verbatim}
+
+
+\begin{lstlisting}[language=r,numbers=none]
+summary(anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0", transform.rho = "none"))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Multivariate Wald test 
+
+       statistic      df p.value  
+   all     1.542 (1,3.7)   0.288  
+   ------------------------------ 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+
+		Univariate Wald test 
+
+                               estimate    se  df lower upper p.value  
+   rho(1,5):C - rho(1,5):P = 0   -0.057 0.046 3.7 -0.19 0.076   0.288  
+   ------------------------------------------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+  se: Modeled based on the observed information.
+\end{verbatim}
+\subsection{Correlation between changes}
+\label{sec:org0ba4a31}
+
+In some studies, one is interested in studying the relation between
+two evolutions. Say weight and glucagon before and after the
+operation:
+\begin{lstlisting}[language=r,numbers=none]
+gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
+gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
+\end{lstlisting}
+
+\bigskip
+
+One can evaluate their correlation:
+\begin{lstlisting}[language=r,numbers=none]
+cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+	Pearson's product-moment correlation
+
+data:  gastricbypassW$changeW41 and gastricbypassW$changeG41
+t = 1.89, df = 18, p-value = 0.075
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.043829  0.719624
+sample estimates:
+    cor 
+0.40658
+\end{verbatim}
+
+or regress one against the other:
+\begin{lstlisting}[language=r,numbers=none]
+e2.change41 <- lm(changeG41 ~ changeW41, data = gastricbypassW)
+summary(e2.change41)$coef
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  65.0794   24.83368  2.6206 0.017331
+changeW41     1.7082    0.90473  1.8881 0.075246
+\end{verbatim}
+
+
+This problem can be recast using all measurement as outcomes:
+\begin{lstlisting}[language=r,numbers=none]
+keep.col <- c("id","weight1","weight4","glucagonAUC1","glucagonAUC4")
+gastricbypassL4 <- reshape(gastricbypassW[,keep.col], direction = "long",
+                           idvar = "id", varying = 2:5, timevar = "type", v.names = "value")
+gastricbypassL4$type <- factor(gastricbypassL4$type, labels = keep.col[-1])
+gastricbypassL4 <- gastricbypassL4[order(gastricbypassL4$id),]
+head(gastricbypassL4)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+    id         type   value
+1.1  1      weight1 127.200
+1.2  1      weight4 108.100
+1.3  1 glucagonAUC1  20.690
+1.4  1 glucagonAUC4  43.434
+2.1  2      weight1 165.200
+2.2  2      weight4 132.000
+\end{verbatim}
+
+
+fitting an unstructured mixed model:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmm4 <- lmm(value ~ type,
+              repetition = ~type|id, structure = "UN",
+              data = gastricbypassL4)
+\end{lstlisting}
+
+extract the residual covariance matrix:
+\begin{lstlisting}[language=r,numbers=none]
+sigma.lmm4 <- sigma(e.lmm4)
+sigma.lmm4
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+               weight1 weight4 glucagonAUC1 glucagonAUC4
+weight1       410.8475  326.84       1.7077     -217.399
+weight4       326.8357  290.84     -24.6003     -161.696
+glucagonAUC1    1.7077  -24.60     241.7007      -81.649
+glucagonAUC4 -217.3994 -161.70     -81.6493      442.464
+\end{verbatim}
+
+
+Deduce the residual covariance matrix for the change:
+\begin{lstlisting}[language=r,numbers=none]
+Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
+sigmeChange.lmm4 <- t(Mcon) %*% sigma.lmm4 %*% Mcon
+dimnames(sigmeChange.lmm4) <- list(c("d.weight","d.glucagonAUC"),
+                                   c("d.weight","d.glucagonAUC"))
+sigmeChange.lmm4
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              d.weight d.glucagonAUC
+d.weight        48.011        82.011
+d.glucagonAUC   82.011       847.464
+\end{verbatim}
+
+
+and the corrrelation or covariance:
+\begin{lstlisting}[language=r,numbers=none]
+cov2cor(sigmeChange.lmm4)[1,2]
+sigmeChange.lmm4[1,2]/sigmeChange.lmm4[1,1]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.40658
+[1] 1.7082
+\end{verbatim}
+
+
+The uncertainty can be quantified using a delta method:
+\begin{lstlisting}[language=r,numbers=none]
+estimate(e.lmm4, function(p){
+  Sigma.change <- t(Mcon) %*% sigma(e.lmm4, p = p) %*% Mcon
+  c(cor = cov2cor(Sigma.change)[1,2],
+    beta = Sigma.change[1,2]/Sigma.change[1,1])
+})
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+     estimate      se     df    lower  upper p.value
+cor   0.40658 0.19150 2.5925 -0.26078 1.0739 0.13791
+beta  1.70818 0.88073 2.6876 -1.28836 4.7047 0.15837
+\end{verbatim}
+
+
+The standard errors and degrees of freedom do not match the univariate
+analysis, suggesting poor small sample properties of this
+technic.
+
+\clearpage
+\section{Equivalence with other R packages}
+\label{sec:org4c39a04}
+
+\subsection{nlme package}
+\label{sec:orgd092264}
+
+The model class obtained with the \texttt{lmm} function overlaps the model
+class of the \texttt{lme} and \texttt{gls} functions from the nlme package.
+\begin{lstlisting}[language=r,numbers=none]
+library(nlme)
+\end{lstlisting}
+
+For instance, the compound symmetry is equivalent to \texttt{corCompSymm}
+correlation structure, or to a random intercept model (when the within
+subject correlation is positive):
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmm <- lmm(weight ~ visit*group, structure = "RE",
+               data = gastricbypassL, repetition = ~visit|id)
+eCS.gls <- gls(weight ~ visit*group, correlation = corCompSymm(form=~visit|id),
+               data = gastricbypassL, na.action = na.omit)
+eCS.lme <- lme(weight ~ visit*group, random = ~1|id,
+               data = gastricbypassL, na.action = na.omit)
+logLik(eRI.lmm)
+logLik(eCS.lme)
+logLik(eCS.gls)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -236.21
+'log Lik.' -236.21 (df=10)
+'log Lik.' -236.21 (df=10)
+\end{verbatim}
+
+
+The estimated random effect also match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eRI.lmm)-ranef(eCS.lme))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -1.7303e-08  2.6979e-08
+\end{verbatim}
+
+
+Unstructured residual covariance matrix can also be obtained with
+\texttt{gls}:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.gls <- gls(glucagonAUC ~ visit*group,
+               correlation = corSymm(form=~as.numeric(visit)|id),
+               weights = varIdent(form=~1|visit),
+               data = gastricbypassL, na.action = na.omit)
+logLik(eUN.gls)
+logLik(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -295.31 (df=18)
+[1] -295.31
+\end{verbatim}
+
+
+\clearpage
+\subsection{lme4 package}
+\label{sec:org97a6a6e}
+
+The model class obtained with the \texttt{lmm} function overlaps the model
+class of the \texttt{lmer} function from the lme4 package.
+\begin{lstlisting}[language=r,numbers=none]
+library(lme4)
+library(lmerTest)
+\end{lstlisting}
+
+For instance, the compound symmetry is equivalent to a random
+intercept model (when the within subject correlation is positive):
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmer <- lmer(weight ~ visit*group + (1|id),
+                 data = gastricbypassL)
+logLik(eRI.lmer)
+logLik(eRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -236.21 (df=10)
+[1] -236.21
+\end{verbatim}
+
+
+The estimated random effects match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eRI.lmm)-ranef(eRI.lmer)$id)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -1.5513e-08  2.4171e-08
+\end{verbatim}
+
+
+Nested random effects correspond to block unstructured:
+\begin{lstlisting}[language=r,numbers=none]
+eNRI.lmm <- lmm(weight ~ visit*group, structure = RE(~(1|id/baseline)),
+               data = gastricbypassL, repetition = ~visit|id)
+eNRI.lmer <- lmer(weight ~ visit*group + (1|id/baseline),
+                  data = gastricbypassL)
+logLik(eNRI.lmer)
+logLik(eNRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -234.97 (df=11)
+[1] -234.97
+\end{verbatim}
+
+
+And the estimated random effects still match:
+\begin{lstlisting}[language=r,numbers=none]
+eRanefNRI.lmm <- ranef(eNRI.lmm, format = "wide")
+eRanefNRI.lmer <- ranef(eNRI.lmer)
+## id
+range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$id)
+## baseline
+range(c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)-ranef(eNRI.lmer)$`baseline:id`)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -5.8317e-06  9.0913e-06
+[1] -8.5850e-05  7.8971e-05
+\end{verbatim}
+
+
+\clearpage
+
+An unstructure residual covariance matrix can also be obtained using
+random slopes:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.lmer <- lmer(glucagonAUC ~ visit*group + (0 + visit|id),
+                 data = gastricbypassL,
+                 control = lmerControl(check.nobs.vs.nRE = "ignore"))
+logLik(eUN.lmer)
+logLik(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Warning message:
+In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 0.00203036 (tol = 0.002, component 1)
+'log Lik.' -295.31 (df=19)
+[1] -295.31
+\end{verbatim}
+
+
+The uncertainty is quantified in a slightly different way, e.g.:
+\begin{lstlisting}[language=r,numbers=none]
+anova(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Multivariate Wald test 
+
+                  F-statistic       df p.value   
+mean: visit             5.803 (3,16.9) 0.00647 **
+    : group             3.926 (1,18.0) 0.06302  .
+    : visit:group       2.762 (3,17.3) 0.07332  .
+\end{verbatim}
+
+
+is very similar but not identical to:
+\begin{lstlisting}[language=r,numbers=none]
+## only the last line is comparable
+anova(eUN.lmer)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Type III Analysis of Variance Table with Satterthwaite's method
+            Sum Sq Mean Sq NumDF DenDF F value  Pr(>F)    
+visit         1339     446     3  17.4   18.29 1.3e-05 ***
+group            5       5     1  18.1    0.22   0.647    
+visit:group    203      68     3  17.4    2.77   0.073 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+\end{verbatim}
+
+
+It is also possible to fit cross-random effects such as:
+\begin{lstlisting}[language=r,numbers=none]
+data("Penicillin")
+eCRI.lmer <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
+logLik(eCRI.lmer)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -165.43 (df=4)
+\end{verbatim}
+
+
+
+using \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+Penicillin$index <- paste(Penicillin$sample,Penicillin$plate,sep=".")
+Penicillin$id <- 1
+
+eCRI.lmm <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
+logLik(eCRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -165.43
+\end{verbatim}
+
+
+Despite being significantly slower, the loglikelihood and random
+effect still match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -4.3812e-07  6.0172e-07
+\end{verbatim}
+\subsection{mmrm package}
+\label{sec:org138b936}
+
+The package \texttt{mmrm} is an alternative implementation of mixed models
+specified via covariance structures:
+\begin{lstlisting}[language=r,numbers=none]
+library(mmrm)
+e.mmrm <- mmrm(
+  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT + us(AVISIT | USUBJID),
+  data = fev_data
+)
+\end{lstlisting}
+
+It leads nearly identical results compared to \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmm <- lmm(
+  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT,
+  repetition = ~ AVISIT | USUBJID, structure = "UN",
+  data = fev_data, type.information = "expected"
+)
+\end{lstlisting}
+\phantomsection
+\label{}
+\begin{verbatim}
+Warning message:
+In .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
+    3 clusters have been removed.
+\end{verbatim}
+
+
+\begin{lstlisting}[language=r,numbers=none]
+logLik(e.mmrm) - logLik(e.lmm)
+range(coef(e.mmrm) - coef(e.lmm))
+range(vcov(e.mmrm) - vcov(e.lmm))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -2.5413e-06
+[1] -0.00018301  0.00016268
+[1] -0.00039710  0.00020479
+\end{verbatim}
+
+
+The main differences are:
+\begin{itemize}
+\item \texttt{mmrm} uses the expected information matrix to quantify uncertainty
+instead of the observed information matrix.
+\item \texttt{mmrm} implements the Kenward and Roger method for computing the degrees of
+freedom and not only the Satterthwaite approximation
+\item \texttt{mmrm} implements different covariance patterns
+\item \texttt{mmrm} is faster and probably more memorry efficient
+\item \texttt{mmrm} has currently fewer post-processing methods (e.g. adjustment
+multiple comparisons when testing several model parameters). This
+being said, the latest version of the package (0.3.7) included
+several additional extractor of model feature so this may be
+improved in the future.
+\end{itemize}
+\subsection{emmeans package}
+\label{sec:org40bd691}
+
+To illustrate a key difference between the emmeans package and the
+\texttt{effects.lmm} function we consider an informative and unbalanced group
+variable:
+\begin{lstlisting}[language=r,numbers=none]
+gastricbypassLB$group2 <- gastricbypassLB$weight1>150
+\end{lstlisting}
+
+Since \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+eCS.lmm_2 <- lmm(glucagonAUC ~ visit*group2, repetition =~visit|id, structure = "CS", data = gastricbypassLB)
+logLik(eCS.lmm_2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -315.2
+\end{verbatim}
+
+
+we will use the equivalent with the random effect specification:
+
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmer_2 <- lmer(glucagonAUC ~ visit*group2 + (1|id), data = gastricbypassLB)
+logLik(eRI.lmer_2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -315.2 (df=10)
+\end{verbatim}
+
+
+While the two models are equivalent, the average outcome output by
+\texttt{effects}:
+\begin{lstlisting}[language=r,numbers=none]
+effects(eCS.lmm_2, variable = NULL)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Average counterfactual outcome
+
+      estimate    se   df  lower  upper
+(t=1)   32.317 4.426 64.3 23.476 41.158
+(t=2)   29.653 4.535 65.2 20.598 38.709
+(t=3)   77.308 4.535 65.1  68.25 86.366
+(t=4)    51.95 4.426 64.3 43.109 60.791
+\end{verbatim}
+
+
+substantially differ from the one of emmeans:
+\begin{lstlisting}[language=r,numbers=none]
+library(emmeans)
+emmeans(eRI.lmer_2, specs=~visit)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+NOTE: Results may be misleading due to involvement in interactions
+ visit emmean   SE   df lower.CL upper.CL
+ 1       33.6 5.53 64.2     22.6     44.7
+ 2       32.0 5.57 64.4     20.9     43.2
+ 3       70.0 5.57 64.4     58.9     81.1
+ 4       47.2 5.53 64.2     36.1     58.2
+
+Results are averaged over the levels of: group2 
+Degrees-of-freedom method: kenward-roger 
+Confidence level used: 0.95
+\end{verbatim}
+
+This is because when averaging over the level of a covariate, emmeans
+considers \emph{balanced groups}. In the example, the groups are not
+balanced:
+\begin{lstlisting}[language=r,numbers=none]
+table(gastricbypassLB$group2)/NROW(gastricbypassLB)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+FALSE  TRUE 
+  0.8   0.2
+\end{verbatim}
+
+
+Based on the group and timepoint specific means:
+\begin{lstlisting}[language=r,numbers=none]
+eCS.elmm_2 <- model.tables(effects(eCS.lmm_2, variable = "group2"))
+eCS.elmm_2
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+  group2 visit estimate     se     df  lower  upper    p.value
+1  FALSE     1   31.430 4.9484 64.349 21.545 41.314 2.4688e-08
+2  FALSE     2   28.067 5.0996 65.383 17.884 38.251 6.6737e-07
+3  FALSE     3   82.173 5.1008 65.211 71.986 92.359 0.0000e+00
+4  FALSE     4   55.126 4.9484 64.349 45.241 65.010 0.0000e+00
+5   TRUE     1   35.864 9.8967 64.349 16.095 55.633 5.7374e-04
+6   TRUE     2   35.997 9.8967 64.349 16.228 55.766 5.4953e-04
+7   TRUE     3   57.848 9.8967 64.349 38.079 77.617 1.8339e-07
+8   TRUE     4   39.246 9.8967 64.349 19.477 59.015 1.8651e-04
+\end{verbatim}
+
+
+We illustrate the difference:
+\begin{itemize}
+\item emmeans:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+0.5*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.5*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 33.647 32.032 70.010 47.186
+\end{verbatim}
+
+
+\begin{itemize}
+\item effects:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+0.8*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.2*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 32.317 29.653 77.308 51.950
+\end{verbatim}
+
+
+The "emmeans" approach gives equal "weight" to the expected value of
+both group:
+\begin{lstlisting}[language=r,numbers=none]
+mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
+mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2TRUE"])
+p.group1 <- 14/20          ; p.group2 <- 6/20
+c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+ emmeans  predict 
+4.450435 4.514352
+\end{verbatim}
+
+
+\clearpage
+\subsection{effectsize package (\(R^2\) or \(\eta^2\))}
+\label{sec:org99dcd39}
+
+Partial \(\eta^2\) can be computed based on \texttt{lmer} using the effectsize package:
+\begin{lstlisting}[language=r,numbers=none]
+library(effectsize)
+eta_squared(eCS.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+# Effect Size for ANOVA (Type III)
+
+Parameter   | Eta2 (partial) |       95% CI
+-------------------------------------------
+visit       |           0.64 | [0.50, 1.00]
+group       |           0.01 | [0.00, 1.00]
+visit:group |           0.19 | [0.03, 1.00]
+
+- One-sided CIs: upper bound fixed at
+\end{verbatim}
+
+
+and are approximately equal to what one can compute "manually":
+\begin{lstlisting}[language=r,numbers=none]
+eCS.Wald <- anova(eCS.lmm)$multivariate
+eCS.Wald$df.num*eCS.Wald$statistic/(eCS.Wald$df.num*eCS.Wald$statistic+eCS.Wald$df.denom)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.335374 0.033811 0.186290
+\end{verbatim}
+
+
+The will not be true for heteroschedastic models:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.Wald <- anova(eUN.lmm)$multivariate
+eUN.Wald$df.num*eUN.Wald$statistic/(eUN.Wald$df.num*eUN.Wald$statistic+eUN.Wald$df.denom)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.50787 0.17905 0.32380
+\end{verbatim}
+
+
+compared to:
+\begin{lstlisting}[language=r,numbers=none]
+eta_squared(eUN.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+# Effect Size for ANOVA (Type III)
+
+Parameter   | Eta2 (partial) |       95% CI
+-------------------------------------------
+visit       |           0.76 | [0.54, 1.00]
+group       |           0.01 | [0.00, 1.00]
+visit:group |           0.32 | [0.00, 1.00]
+
+- One-sided CIs: upper bound fixed at
+\end{verbatim}
+
+
+But in that case both may be misleading as the proportion of explained
+variance is not clearly defined.
+\subsection{MuMIn package (\(R^2\))}
+\label{sec:org81072cc}
+
+\begin{lstlisting}[language=r,numbers=none]
+library(MuMIn)
+r.squaredGLMM(eCS.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+         R2m     R2c
+[1,] 0.51728 0.62222
+\end{verbatim}
+
+
+To reproduce these R2, we extract from the random intercept model:
+\begin{itemize}
+\item the residual variance
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigmaW <- sigma(eCS.lmm)[1,1]-sigma(eCS.lmm)[1,2]
+\end{lstlisting}
+
+\begin{itemize}
+\item the variance of the random effect
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigmaB <- sigma(eCS.lmm)[1,2]
+\end{lstlisting}
+
+\begin{itemize}
+\item the variance of the fitted values:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigma2_XB <- var(fitted(eCS.lmm))
+\end{lstlisting}
+
+and evalutae the ratios:
+\begin{lstlisting}[language=r,numbers=none]
+c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
+  R2c = (sigma2_XB + sigmaB)/(sigmaW + sigmaB + sigma2_XB))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+    R2m     R2c 
+0.52549 0.62865
+\end{verbatim}
+\subsection{stats package (partial residuals)}
+\label{sec:org04b0c43}
+
+The function \texttt{residuals.lm} can be used to extract partial residuals
+from \texttt{lm} objects. For instance:
+\begin{lstlisting}[language=r,numbers=none]
+gastricbypassW$group <- as.factor(as.numeric(gastricbypassW$id)%%2)
+eIID.lm <- lm(weight4 ~ group + weight1, data = gastricbypassW)
+pRes.lm <- residuals(eIID.lm, type = "partial")
+head(pRes.lm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+      group  weight1
+1   7.19282   3.6648
+2  -0.20504  31.7052
+3   0.60631 -17.3352
+4   6.44389  22.7052
+5  -1.59403 -16.7352
+6 -18.23382   8.4052
+\end{verbatim}
+
+
+Those generally differ (by a constant) from the one provided by
+\texttt{residuals.lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+eIID.lmm <- lmm(weight4 ~ group + weight1, data = gastricbypassW)
+(residuals(eIID.lmm, type = "partial", variable = "group") - pRes.lm[,"group"])
+(residuals(eIID.lmm, type = "partial", variable = "weight1") - pRes.lm[,"weight1"])
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+     1      2      3      4      5      6      7      8      9     10     11     12     13     14 
+2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 
+    15     16     17     18     19     20 
+2.0702 2.0702 2.0702 2.0702 2.0702 2.0702
+     1      2      3      4      5      6      7      8      9     10     11     12     13     14 
+106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 
+    15     16     17     18     19     20 
+106.22 106.22 106.22 106.22 106.22 106.22
+\end{verbatim}
+
+
+Indeed, \texttt{residuals.lm} centers the design matrix of the variable
+relative to which the partial residuals are computed:
+\begin{lstlisting}[language=r,numbers=none]
+coef(eIID.lm)["group1"] * mean(gastricbypassW$group=="1")
+coef(eIID.lm)["weight1"] * mean(gastricbypassW$weight1)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+group1 
+2.0702
+weight1 
+ 106.22
+\end{verbatim}
+
+
+For continuous variable with a linear effect, these residuals can be
+obtained by setting the \texttt{type} argument to \texttt{"partial-center"}:
+\begin{lstlisting}[language=r,numbers=none]
+(residuals(eIID.lmm, type = "partial-center", variable = "weight1") - pRes.lm[,"weight1"])
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+          1           2           3           4           5           6           7           8 
+ 1.7675e-13  6.7502e-14 -6.3949e-14  5.6843e-14 -3.9080e-14  8.1712e-14 -3.7303e-14  5.9508e-14 
+          9          10          11          12          13          14          15          16 
+-4.2633e-14  4.4409e-14 -2.9310e-14  5.5123e-14 -4.6185e-14  4.4409e-14 -4.2633e-14  4.6185e-14 
+         17          18          19          20 
+-3.9968e-14  5.3291e-14 -1.4211e-14  3.5527e-14
+\end{verbatim}
+
+
+\Warning When evaluating the partial residuals relative to categorical
+variables, interactions, or non-linear terms, the output obtained with
+\texttt{partial-center} will not match the one of \texttt{residuals.lm}. Indeed
+\texttt{partial-center} will, when numeric, center the original variable
+whereas \texttt{residuals.lm} will center the column relative to the
+coefficient in the design matrix.
+\section*{References}
+\label{sec:org01a2958}
+\begingroup
+\renewcommand{\section}[2]{}
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+
+\endgroup
+
+\clearpage
+
+\appendix
+\titleformat{\section}
+{\normalfont\Large\bfseries}{Appendix~\thesection}{1em}{}
+
+\renewcommand{\thefigure}{\Alph{figure}}
+\renewcommand{\thetable}{\Alph{table}}
+\renewcommand{\theequation}{\Alph{equation}}
+
+\setcounter{figure}{0}    
+\setcounter{table}{0}    
+\setcounter{equation}{0}    
+\end{document}

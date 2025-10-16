@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: sep 26 2025 (16:35) 
+## Last-Updated: okt 16 2025 (14:22) 
 ##           By: Brice Ozenne
-##     Update #: 2200
+##     Update #: 2222
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -202,7 +202,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = TRUE, options = options)
     param.notrans <- stats::coef(object, p = theta, effects = "all",
                                  transform.sigma = "none", transform.k = "none", transform.rho = "none", transform.names = FALSE, options = options)
-    vcov.param <- stats::vcov(object, p = theta, df = FALSE, effects = list("all",c("all","gradient"))[[df+1]], type.information = type.information, robust = robust, 
+    vcov.param <- stats::vcov(object, p = theta, df = df, effects = list("all",c("all","gradient"))[[df+1]], type.information = type.information, robust = robust, 
                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE, options = options)
     dVcov.param <- attr(vcov.param,"gradient")
     attr(vcov.param,"gradient") <- NULL
@@ -397,7 +397,7 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
             null[[1]]$user[table.type$overall=="k"] <- nt.k$null
 
         }
-        if(backtransform && transform2.rho=="atanh" && any(table.type$overall=="atanh")){
+        if(backtransform && transform2.rho=="atanh" && any(table.type$overall=="rho")){
             
             nt.rho <- .null_transform(contrast = contrast[[1]]$user[table.type$overall=="rho",,drop=FALSE],
                                       null = null[[1]]$user[table.type$overall=="rho"],
@@ -496,8 +496,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
         out$univariate[out$univariate$type == "k", "transformed"] <- (transform.k!="none")
         out$univariate[out$univariate$type == "k", "tobacktransform"] <- backtransform & (transform2.k=="log")
         ## potential atanh-transformation/tanh-backtransform for linear combinations including only rho parameters
-        out$univariate[out$univariate$type == "rho","transformed"] <- ((out$univariate[out$univariate$type == "rho","n.param"] == 1) | !backtransform) & (transform.rho!="none")
-        out$univariate[out$univariate$type == "rho","tobacktransform"] <- (out$univariate[out$univariate$type == "rho","n.param"] == 1) & backtransform & (transform2.rho=="atanh")
+        out$univariate[out$univariate$type == "rho","transformed"] <- (transform.rho!="none")
+        out$univariate[out$univariate$type == "rho","tobacktransform"] <- backtransform & (transform2.rho=="atanh") & (out$univariate[out$univariate$type == "rho","n.param"] == 1)
         ## it is checked previously that all transformations are the same (i.e. k sigma parameters)
         out$univariate[out$univariate$type == "all","transformed"] <- (transform2.all!="none")
         out$univariate[out$univariate$type == "all","tobacktransform"] <- backtransform & (transform2.all!="none")
@@ -590,14 +590,14 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
             out$univariate[iG.univariate,"null"] <- iNull
 
             ## create glht object
-            ## dVcov is not stored as it is only useful to retrieve df when having the full vcov (not only the contrast vcov)
+            ## dVcov is not stored as it is only useful to retrieve df when having the full vcov (not only the contrast vcov)            
             index.simplify <- which(colSums(iContrast!=0)>0)
             out$glht[[iG]] <- list(model = NULL,
                                    linfct = iContrast[,index.simplify,drop=FALSE],
                                    rhs = iNull,
                                    coef = stats::setNames(param, names(param.notrans))[index.simplify], ## use transformed values but not transformed name
                                    vcov = vcov.param[index.simplify,index.simplify,drop=FALSE],
-                                   df = round(stats::median(out$univariate[iG.univariate,"df"])),
+                                   df = attr(vcov.param, "df")[names(index.simplify)],
                                    alternative = "two.sided")
             class(out$glht[[iG]]) <- "glht"
         }

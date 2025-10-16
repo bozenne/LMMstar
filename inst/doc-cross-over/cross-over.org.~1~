@@ -1,0 +1,21 @@
+#+TITLE: Analyzing cross-over trial with the package LMMstar
+#+Author: Brice Ozenne
+#+BEGIN_SRC R :exports none :results silent :session *R* :cache no
+options(width = 100, digits = 5)
+if(system("whoami",intern=TRUE)=="bozenne"){  
+  setwd("~/Documents/GitHub/LMMstar/inst/doc-partial-residuals/")
+}else if(system("whoami",intern=TRUE)=="unicph\\hpl802"){  
+  setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-partial-residuals/")
+}
+library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+#+END_SRC
+
+This vignette details how partial residuals can be used to illustrate
+model fit in a linear regression and a linear mixed model when using
+the package LMMstar. We thus start by loading the necessary packages:
+#+BEGIN_SRC R :exports code :results output :session *R* :cache no
+library(LMMstar)
+library(ggplot2)
+#+END_SRC
+
+#+RESULTS:
