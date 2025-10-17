@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: jul 24 2025 (14:03) 
+## Last-Updated: okt 17 2025 (16:01) 
 ##           By: Brice Ozenne
-##     Update #: 1391
+##     Update #: 1403
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -448,7 +448,6 @@ coef.LRT_lmm <- function(object, ...){
 ##' Only relevant when \code{effects = "Wald"}.
 ##' @param ordering [character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).
 ##' @param backtransform [logical] should the estimate be back-transformed?
-##' Only relevant when \code{effects="Wald"}.
 ##' @param transform.sigma,transform.k,transform.rho [character] for internal use (delta-method via estimate).
 ##' @param transform.names [logical] Should the name of the coefficients be updated to reflect the transformation that has been used?
 ##' Ignored when \code{effects="Wald"}.
@@ -459,7 +458,7 @@ coef.LRT_lmm <- function(object, ...){
 ##' @return A numeric vector
 ##' 
 ##' @export
-coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", ordering = NULL, backtransform = object$args$backtransform,
+coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", ordering = NULL, backtransform = NULL,
                                transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, transform.names = TRUE,
                                simplify = TRUE, ...){
 
@@ -526,8 +525,12 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
             transform.sigma <- NULL
             transform.k <- NULL
             transform.rho <- NULL
-        }else if(is.null(backtransform) && is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
-            backtransform <- TRUE
+        }else if(is.null(backtransform)){
+            if(is.null(transform.sigma) && is.null(transform.k) && is.null(transform.rho)){
+                backtransform <- TRUE
+            }else{
+                backtransform <- all(c(transform.sigma,transform.k,transform.rho) == "none")
+            }
         }
     }else if(effects == "Wald"){
         if(is.null(backtransform)){
@@ -547,11 +550,6 @@ coef.rbindWald_lmm <- function(object, effects = "Wald", method = "none", orderi
         if(effects == "Wald"){
             txt.print <- paste0("transform.",c("sigma","k","rho"))[c(!is.null(transform.sigma),!is.null(transform.k),!is.null(transform.rho))]
             message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"contrast\". \n")
-        }
-        if(object$args$p.null){
-            p <- stats::setNames(table.param$value, table.param$name)
-        }else{
-            p <- NULL
         }
     }
     

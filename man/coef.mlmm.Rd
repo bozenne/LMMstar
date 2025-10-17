@@ -9,7 +9,7 @@
   effects = "Wald",
   method = "none",
   ordering = NULL,
-  backtransform = object$args$backtransform,
+  backtransform = NULL,
   transform.sigma = NULL,
   transform.k = NULL,
   transform.rho = NULL,
@@ -30,8 +30,7 @@ Only relevant when \code{effects = "Wald"}.}
 
 \item{ordering}{[character] should the output be ordered by name of the linear contrast (\code{"contrast"}) or by model (\code{"model"}).}
 
-\item{backtransform}{[logical] should the estimate be back-transformed?
-Only relevant when \code{effects="Wald"}.}
+\item{backtransform}{[logical] should the estimate be back-transformed?}
 
 \item{transform.sigma, transform.k, transform.rho}{[character] for internal use (delta-method via estimate).}
 

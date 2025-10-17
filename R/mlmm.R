@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 14 2022 (09:45) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:14) 
+## Last-Updated: okt 17 2025 (17:41) 
 ##           By: Brice Ozenne
-##     Update #: 591
+##     Update #: 597
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -246,10 +246,13 @@ mlmm <- function(..., data, by, contrast.rbind = NULL, effects = NULL, robust = 
         if(any(sapply(ls.name.allCoef[-1],identical,ls.name.allCoef[[1]])==FALSE)){
             stop("Cannot use matrix interface for argument \'effects\' when the model parameters varies over splits. \n")
         }
-        ls.e2c <- effects2contrast(ls.lmm[[1]], effects = effects, rhs = attr(effects,"rhs"), options = options)
+        ls.e2c <- lapply(ls.lmm, effects2contrast, effects = effects, rhs = attr(effects,"rhs"), options = options)
         
-        ls.contrast <- stats::setNames(lapply(1:n.lmm, function(iI){ls.e2c$contrast$user$user}), name.lmm)
-        ls.rhs <- stats::setNames(lapply(1:n.lmm, function(iI){ls.e2c$null$user$user}), name.lmm)
+        if(any(lengths(lapply(ls.e2c,"[[","contrast"))>1) || any(lengths(lapply(lapply(ls.e2c,"[[","contrast"),"[[",1))>1)){
+            warning("Cannot handle multiple types of contrasts: only the first type will be considered. \n")
+        }        
+        ls.contrast <- stats::setNames(lapply(ls.e2c, function(iE2c){iE2c$contrast[[1]][[1]]}), name.lmm)
+        ls.rhs <- stats::setNames(lapply(ls.e2c, function(iE2c){iE2c$null[[1]][[1]]}), name.lmm)
         
     }
 

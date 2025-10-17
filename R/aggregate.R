@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 28 2024 (19:14) 
 ## Version: 
-## Last-Updated: jul 24 2025 (13:54) 
+## Last-Updated: okt 17 2025 (17:31) 
 ##           By: Brice Ozenne
-##     Update #: 411
+##     Update #: 424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,8 +109,15 @@ aggregate.Wald_lmm <- function(x, method, rhs = NULL, columns = NULL, qt = NULL,
 
     ## *** estimates
     tableUni <- stats::model.tables(x, method = "none", columns = c("type","n.param","name","term","transformed","tobacktransform",
-                                                                         "estimate","se","statistic","df","null"),
+                                                                    "estimate","se","statistic","df","null"),
                                     options = options)
+    if(all(tableUni$type=="rho")){
+        transform.rho <- "none"
+    }else if(all(tableUni$type!="rho")){
+        transform.rho <- NULL
+    }else{
+        stop("Cannot pool linear combinations of parameters when correlation and non-correlation parameters are involved. \n")
+    }
 
     ## *** variance
     if(any(method %in% c("pool.se","pool.gls","pool.gls1","pool.rubin")) || ((!is.na(level) || identical(as.logical(rhs),TRUE)) && "p.rejection" %in% method)){
@@ -119,7 +126,7 @@ aggregate.Wald_lmm <- function(x, method, rhs = NULL, columns = NULL, qt = NULL,
         }else{
             args.effects <- "Wald"
         }
-        Wald.Sigma <- stats::vcov(x, effects = args.effects, transform.names = FALSE, options = options)
+        Wald.Sigma <- stats::vcov(x, effects = args.effects, transform.rho = transform.rho, transform.names = FALSE, options = options)
         Wald.dSigma <- attr(Wald.Sigma,"gradient")
         attr(Wald.dSigma,"gradient") <- NULL        
     }else{
@@ -128,7 +135,7 @@ aggregate.Wald_lmm <- function(x, method, rhs = NULL, columns = NULL, qt = NULL,
     }
     if(!is.na(level) && any(method %in% c("average", "pool.se","pool.gls","pool.gls1","p.rejection"))){
         contrast <- stats::model.tables(x, effects = "contrast", transform.names = FALSE, simplify = FALSE, options = options)[[1]]
-        All.Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, options = options)
+        All.Sigma <- stats::vcov(x, effects = list("all",c("all","gradient"))[[df+1]], transform.names = FALSE, transform.rho = transform.rho, options = options)
         All.dSigma <- attr(All.Sigma,"gradient")
         attr(All.Sigma,"gradient") <- NULL
     }else{

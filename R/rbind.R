@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: okt 16 2025 (18:26) 
+## Last-Updated: okt 17 2025 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 1381
+##     Update #: 1391
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -477,10 +477,15 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
 
     for(iO in 1:length(object)){ ## iO <- 1
         iTable.param2 <- all.table.param2[all.table.param$model==iO,,drop=FALSE]
+        ## take care of the case where only some of the parameters are transformed
+        ## e.g. when pooling correlation coefficient one may 'just' want to transform sigma and k parameters
+        iTable.param2$user.trans <- c(mu = "none", sigma = transform.sigma, k = transform.k, rho = transform.rho)[iTable.param2$type]
+        iTable.param2$user.name <- ifelse(iTable.param2$user.trans=="none", iTable.param2$name, iTable.param2$trans.name)
+
         iAll.iid <- lava::iid(object[[iO]], effects = "all", robust = robust, type.information = type.information,
                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, p = p[[iO]], options = options)
         
-        iNewname <- iTable.param2[match(colnames(iAll.iid), iTable.param2$trans.name),"Uname"]
+        iNewname <- iTable.param2[match(colnames(iAll.iid), iTable.param2$user.name),"Uname"]
         all.iid[rownames(iAll.iid), iNewname] <- iAll.iid
         attr(all.iid,"message") <- union(attr(all.iid,"message"), attr(iAll.iid,"message"))
     }
@@ -551,7 +556,10 @@ rbind.Wald_lmm <- function(model, ..., effects = NULL, rhs = NULL,
         ls.dVcov <- lapply(ls.vcov, attr,"gradient")            
         for(iO in 1:length(object)){ ## iO <- 1
             iTable.param2 <- all.table.param2[all.table.param$model==iO,,drop=FALSE]
-            iNewname <- iTable.param2[match(dimnames(ls.dVcov[[iO]])[[1]], iTable.param2$trans.name),"Uname"]
+            iTable.param2$user.trans <- c(mu = "none", sigma = transform.sigma, k = transform.k, rho = transform.rho)[iTable.param2$type]
+            iTable.param2$user.name <- ifelse(iTable.param2$user.trans=="none", iTable.param2$name, iTable.param2$trans.name)
+
+            iNewname <- iTable.param2[match(dimnames(ls.dVcov[[iO]])[[1]], iTable.param2$user.name),"Uname"]
             attr(out,"gradient")[iNewname, iNewname, iNewname] <- ls.dVcov[[iO]]
         }
         ## add model-based vcov when robust=1, i.e., compute df from model-based vcov even though one uses robust vcov

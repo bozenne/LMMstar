@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: okt 16 2025 (14:22) 
+## Last-Updated: okt 17 2025 (11:15) 
 ##           By: Brice Ozenne
-##     Update #: 2222
+##     Update #: 2227
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -563,7 +563,11 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
                                                                              vcov.param = df_vcov.param,
                                                                              dVcov.param = dVcov.param))
                 if(multivariate){
-                    if(out$multivariate[iG,"df.denom"]<1){
+                    if(is.na(out$multivariate[iG,"df.denom"])){
+                        if(any(iSVD$value <= 0)){
+                            warning("Variance-covariance matrix relative to the linear contrasts is not positive definite. \n")
+                        }
+                    }else if(out$multivariate[iG,"df.denom"]<1){
                         ## warning("Suspicious degrees-of-freedom was found for the F-statistic (",out$multivariate[iG,"df.denom"],"). \n",
                         ##         "It has been set to the average degree-of-freedom of the univariate Wald tests (",mean(out$univariate[iG.univariate,"df"]),") instead. \n")
                         attr(out$multivariate,"df") <- "average degree-of-freedom of the univariate Wald tests"

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: okt 16 2025 (18:18) 
+## Last-Updated: okt 17 2025 (17:30) 
 ##           By: Brice Ozenne
-##     Update #: 1238
+##     Update #: 1259
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -461,10 +461,11 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
         message("Nothing to return: consider setting argument \'univariate\' to TRUE when calling rbind.Wald_lmm. \n")
         return(invisible(NULL))
     }
+
+    table.param <- stats::model.tables(object, effects = "param")
     if(object$args$p.null || ("Wald" %in% effects && "gradient" %in% effects == FALSE)){
         p <- NULL
     }else{
-        table.param <- stats::model.tables(object, effects = "param")
         p <- stats::setNames(table.param$value, table.param$name)
     }
 
@@ -472,21 +473,21 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
     if(!is.null(ordering)){
         ordering <- match.arg(ordering, c("contrast","model"))
         table.param.order <- object$param[order(object$param[[switch(ordering, "model" = "model", "contrast" = "name")]]),,drop=FALSE]
+
+        if("Wald" %in% effects){
+            if(ordering=="model"){
+                object.model <- object$univariate[[ifelse(inherits(object,"mlmm"),"by","model")]]
+                reorder <- order(factor(object.model, levels = unique(object.model)))
+            }else if(is.list(object$univariate$term)){
+                reorder <- order(object$univariate$type,sapply(object$univariate$term, paste, collapse = ";"))
+            }else{
+                reorder <- order(object$univariate$type,object$univariate$term)
+            }
+        }
     }
 
     ## *** transform
     if("Wald" %in% effects){
-        test.sigma <- !is.null(transform.sigma) && transform.sigma!=object$args$transform.sigma
-        test.k <- !is.null(transform.k) && transform.k!=object$args$transform.k
-        test.rho <- !is.null(transform.rho) && transform.rho!=object$args$transform.rho
-        if(test.sigma || test.k || test.rho){
-            txt.print <- paste0("transform.",c("sigma","k","rho"))[c(test.sigma,test.k,test.rho)]
-            message("Argument(s) \'",paste(txt.print, collapse = "\', \'"),"\' are ignored when argument \'effects\' equals to \"Wald\". \n")    
-        }
-        transform.sigma <- object$args$transform.sigma
-        transform.k <- object$args$transform.k
-        transform.rho <- object$args$transform.rho
-
         if(!is.numeric(transform.names) && !is.logical(transform.names)){
             stop("Argument \'transform.names\' must be numeric or logical. \n")
         }
@@ -495,6 +496,49 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
         }
         if(transform.names %in% c(0,1) == FALSE){
             stop("Argument \'transform.names\' must be TRUE/1, 0.5, or FALSE/0. \n")
+        }
+
+        test.sigma <- !is.null(transform.sigma) && transform.sigma!=object$args$transform.sigma
+        test.k <- !is.null(transform.k) && transform.k!=object$args$transform.k
+        test.rho <- !is.null(transform.rho) && transform.rho!=object$args$transform.rho
+
+        if(test.sigma || test.k || test.rho){ ## re-evaluate the vcov of the contrast using specific transformation
+
+            all.vcov <- vcov(object, effects = c("all",setdiff(effects,"Wald")), 
+                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = FALSE)
+            contrast <- model.tables(object, effects = "contrast", transform.names = FALSE)
+
+            out <- contrast %*% all.vcov[colnames(contrast),colnames(contrast)] %*% t(contrast)
+            if("gradient" %in% effects){
+                out.gradient <- array(NA,
+                                      dim = c(dim(contrast),dim(attr(all.vcov,"gradient"))[3]),
+                                      dimnames = list(rownames(contrast), rownames(contrast), dimnames(attr(all.vcov,"gradient"))[[3]]))
+                for(iName in dimnames(out.gradient)[[3]]){
+                    out.gradient[,,iName] <- contrast %*% attr(all.vcov,"gradient")[colnames(contrast),colnames(contrast),iName] %*% t(contrast)
+                }
+            }else{
+                out.gradient <- NULL
+            }            
+            if(transform.names){
+                out.newname <- colnames(model.tables(object, effects = "contrast", transform.names = TRUE))
+                dimnames(out) <- list(out.newname, out.newname)
+                if("gradient" %in% effects){                    
+                    dimnames(out.gradient) <- list(out.newname, out.newname, stats::setNames(table.param$trans.Uname,table.param$Uname)[dimnames(out.gradient)[[3]]])
+                }
+            }
+            if(!is.null(ordering)){
+                out <- out[reorder,reorder,drop=FALSE]
+                if("gradient" %in% effects){                    
+                    out.gradient <- out[reorder,reorder,,drop=FALSE]
+                }
+            }
+            attr(out,"gradient") <- out.gradient
+            return(out)
+            
+        }else{
+            transform.sigma <- object$args$transform.sigma
+            transform.k <- object$args$transform.k
+            transform.rho <- object$args$transform.rho
         }
     }else{
         if(is.null(transform.sigma)){ transform.sigma <- object$args$transform.sigma}
@@ -553,15 +597,16 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
             attr(out,"iid") <- NULL
         }
         if(!is.null(ordering)){
+            out.gradient <- attr(out,"gradient")
             if(transform.names){
                 out <- out[table.param.order$trans.Uname,table.param.order$trans.Uname,drop=FALSE]
                 if("gradient" %in% effects){
-                    attr(out,"gradient") <- attr(out,"gradient")[table.param.order$trans.Uname,table.param.order$trans.Uname,table.param.order$trans.Uname,drop=FALSE]
+                    attr(out,"gradient") <- out.gradient[table.param.order$trans.Uname,table.param.order$trans.Uname,table.param.order$trans.Uname,drop=FALSE]
                 }
             }else{
                 out <- out[table.param.order$Uname,table.param.order$Uname,drop=FALSE]
                 if("gradient" %in% effects){
-                    attr(out,"gradient") <- attr(out,"gradient")[table.param.order$Uname,table.param.order$Uname,table.param.order$Uname,drop=FALSE]
+                    attr(out,"gradient") <- out.gradient[table.param.order$Uname,table.param.order$Uname,table.param.order$Uname,drop=FALSE]
                 }
             }
         }
@@ -575,9 +620,7 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
         }
         out <- vcov.Wald_lmm(object, effects = setdiff(effects,"gradient"), df = FALSE, transform.names = FALSE)
         if("gradient" %in% effects){
-
             if(transform.names){
-                table.param <- stats::model.tables(object, effects = "param")
                 dparam.names <- table.param$trans.Uname[match(dimnames(attr(all.vcov,"gradient"))[[3]],table.param$Uname)]
             }else{
                 dparam.names <- dimnames(attr(all.vcov,"gradient"))[[3]]
@@ -595,23 +638,14 @@ vcov.rbindWald_lmm <- function(object, effects = "Wald", ordering = NULL,
             
         }
 
-        if(!is.null(ordering)){
-            
-            if(ordering=="model"){
-                reorder <- order(object$univariate$model)
-            }else if(is.list(object$univariate$term)){
-                reorder <- order(object$univariate$type,sapply(object$univariate$term, paste, collapse = ";"))
-            }else{
-                reorder <- order(object$univariate$type,object$univariate$term)
-            }
+        if(!is.null(ordering)){            
             if("gradient" %in% effects){
                 out.dVcov <- attr(out,"gradient")[reorder,reorder,table.param.order$Uname,drop=FALSE]
             }
             out <- out[reorder,reorder,drop=FALSE]
             if("gradient" %in% effects){
                 attr(out,"gradient") <- out.dVcov
-            }
-            
+            }            
         }
 
     }
