@@ -1,10 +1,12 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  16 OCT 2025 11:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  21 OCT 2025 12:08
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalence.tex
+**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceTest
+.tex
 
-(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalence.tex
+(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceTest.
+tex
 LaTeX2e <2025-06-01> patch level 1
 L3 programming layer <2025-06-09>
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
@@ -1169,70 +1171,7 @@ File: t1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ftex.def
 File: l3backend-pdftex.def 2025-06-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count399
-) (equivalence.aux
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
-
-LaTeX Warning: Label `' multiply defined.
-
+) (equivalenceTest.aux
 
 LaTeX Warning: Label `' multiply defined.
 
@@ -1411,7 +1350,7 @@ LaTeX Warning: Label `' multiply defined.
 LaTeX Warning: Label `' multiply defined.
 
 )
-\openout1 = `equivalence.aux'.
+\openout1 = `equivalenceTest.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 258.
 LaTeX Font Info:    ... okay on input line 258.
@@ -1489,9 +1428,9 @@ loading the todonotes package. on input line 258.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 Package hyperref Info: Link coloring ON on input line 258.
-(equivalence.out) (equivalence.out)
+(equivalenceTest.out) (equivalenceTest.out)
 \@outlinefile=\write5
-\openout5 = `equivalence.out'.
+\openout5 = `equivalenceTest.out'.
 
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
@@ -1543,13 +1482,13 @@ LaTeX Font Info:    Trying to load font information for U+stmry on input line 2
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/stmaryrd\ustmry.fd)
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 2
-70.
+69.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 2
-71.
+70.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1564,11 +1503,11 @@ File: lstlang2.sty 2024/09/23 1.10c listings language file
 File: lstlang3.sty 2024/09/23 1.10c listings language file
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 299.
+(Font)              <10.95> on input line 298.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 299.
+(Font)              <8> on input line 298.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 299.
+(Font)              <6> on input line 298.
 
 
 [1
@@ -1620,9 +1559,9 @@ ppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}]
 
 ]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 1058.
+(Font)              <12> on input line 1062.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 1059.
+(Font)              <5> on input line 1063.
 
 
 [13
@@ -1635,17 +1574,19 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 
 ]
 
-[16]
+[16{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.
+enc}{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc
+}]
 
-[17]
+[17
+
+]
 
 [18
 
 ]
 
-[19
-
-]
+[19]
 
 [20
 
@@ -1653,56 +1594,18 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 
 [21]
 
-[22]
+[22] (equivalenceTest.bbl)
 
-[23]
+[23
 
-[24]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1790.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 1790.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1790.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\eta' on input line 1790.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 1790.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1864.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 1864.
-
-
-
-[25
-
-{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc
-}{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}]
-
-[26] (equivalence.bbl)
-
-[27]
+]
 \Changes@OutFile=\write6
-\openout6 = `equivalence.soc'.
+\openout6 = `equivalenceTest.soc'.
 
 \tf@loc=\write7
-\openout7 = `equivalence.loc'.
+\openout7 = `equivalenceTest.loc'.
 
- (equivalence.aux)
+ (equivalenceTest.aux)
  ***********
 LaTeX2e <2025-06-01> patch level 1
 L3 programming layer <2025-06-09>
@@ -1711,17 +1614,17 @@ L3 programming layer <2025-06-09>
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package rerunfilecheck Info: File `equivalence.out' has not changed.
-(rerunfilecheck)             Checksum: 4CD5B7B375C430C0F8DDD239EE6FBD38;3483.
+Package rerunfilecheck Info: File `equivalenceTest.out' has not changed.
+(rerunfilecheck)             Checksum: 201743C8F0015677FC57D75F93742AD7;2498.
  ) 
 Here is how much of TeX's memory you used:
- 31737 strings out of 468221
- 575555 string characters out of 5432408
- 1394149 words of memory out of 5000000
- 59145 multiletter control sequences out of 15000+600000
+ 31410 strings out of 468221
+ 570576 string characters out of 5432408
+ 1392181 words of memory out of 5000000
+ 58958 multiletter control sequences out of 15000+600000
  707787 words of font info for 119 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,8n,117p,668b,1971s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 114i,8n,117p,672b,1971s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 pdfTeX warning (dest): name{Hfootnote.1} has been referenced but does not exist
 , replaced by a fixed one
@@ -1739,9 +1642,9 @@ b><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr7.pfb
 b><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt12.
 pfb>
-Output written on equivalence.pdf (27 pages, 415565 bytes).
+Output written on equivalenceTest.pdf (23 pages, 376662 bytes).
 PDF statistics:
- 831 PDF objects out of 1000 (max. 8388607)
- 496 named destinations out of 1000 (max. 500000)
- 179 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 634 PDF objects out of 1000 (max. 8388607)
+ 356 named destinations out of 1000 (max. 500000)
+ 133 words of extra memory for PDF output out of 10000 (max. 10000000)
 

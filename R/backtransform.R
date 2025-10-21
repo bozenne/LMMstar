@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul 15 2022 (10:04) 
 ## Version: 
-## Last-Updated: jul 11 2025 (09:43) 
+## Last-Updated: okt 20 2025 (11:56) 
 ##           By: Brice Ozenne
-##     Update #: 65
+##     Update #: 66
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -51,7 +51,7 @@
     }
 
     todo <- intersect(c("estimate","se", "lower", "upper", "null"), names(object))
-    message <- data.frame(matrix(nrow = NROW(transform), ncol = length(todo)+1, dimnames = list(names(transform), c(todo,"FUN"))))
+    message <- data.frame(matrix(nrow = NROW(transform), ncol = length(todo)+2, dimnames = list(names(transform), c(todo,"FUN","n.sample"))))
 
     ## ** backtransform
     for(iType in names(transform)){ ## iType <- names(transform)[1]

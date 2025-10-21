@@ -1,0 +1,967 @@
+% Created 2025-10-21 ti 12:07
+% Intended LaTeX compiler: pdflatex
+\documentclass[12pt]{article}
+
+%%%% settings when exporting code %%%% 
+
+\usepackage{listings}
+\lstdefinestyle{code-small}{
+backgroundcolor=\color{white}, % background color for the code block
+basicstyle=\ttfamily\small, % font used to display the code
+commentstyle=\color[rgb]{0.5,0,0.5}, % color used to display comments in the code
+keywordstyle=\color{black}, % color used to highlight certain words in the code
+numberstyle=\ttfamily\tiny\color{gray}, % color used to display the line numbers
+rulecolor=\color{black}, % color of the frame
+stringstyle=\color[rgb]{0,.5,0},  % color used to display strings in the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+columns=fullflexible,
+frame=single, % adds a frame around the code (non,leftline,topline,bottomline,lines,single,shadowbox)
+keepspaces=true, % % keeps spaces in text, useful for keeping indentation of code
+literate={~}{$\sim$}{1}, % symbol properly display via latex
+numbers=none, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=10pt, % how far the line-numbers are from the code
+showspaces=false,
+showstringspaces=false,
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+tabsize=1,
+xleftmargin=0cm,
+emph={anova,apply,class,coef,colnames,colNames,colSums,dim,dcast,for,ggplot,head,if,ifelse,is.na,lapply,list.files,library,logLik,melt,plot,require,rowSums,sapply,setcolorder,setkey,str,summary,tapply},
+aboveskip = \medskipamount, % define the space above displayed listings.
+belowskip = \medskipamount, % define the space above displayed listings.
+lineskip = 0pt} % specifies additional space between lines in listings
+\lstset{style=code-small}
+%%%% packages %%%%%
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{changes}
+\usepackage{pdflscape}
+\usepackage{geometry}
+\usepackage[normalem]{ulem}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage{array}
+\usepackage{ifthen}
+\usepackage{hyperref}
+\usepackage{natbib}
+\RequirePackage{setspace} % to modify the space between lines - incompatible with footnote in beamer
+\renewcommand{\baselinestretch}{1.1}
+\geometry{a4paper, left=10mm, right=10mm, top=10mm}
+\usepackage{titlesec}
+\usepackage{etoolbox}
+
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+\RequirePackage{colortbl} % arrayrulecolor to mix colors
+\definecolor{myorange}{rgb}{1,0.2,0}
+\definecolor{mypurple}{rgb}{0.7,0,8}
+\definecolor{mycyan}{rgb}{0,0.6,0.6}
+\newcommand{\lightblue}{blue!50!white}
+\newcommand{\darkblue}{blue!80!black}
+\newcommand{\darkgreen}{green!50!black}
+\newcommand{\darkred}{red!50!black}
+\definecolor{gray}{gray}{0.5}
+\hypersetup{
+citecolor=[rgb]{0,0.5,0},
+urlcolor=[rgb]{0,0,0.5},
+linkcolor=[rgb]{0,0,0.5},
+}
+\newenvironment{note}{\small \color{gray}\fontfamily{lmtt}\selectfont}{\par}
+\newenvironment{activity}{\color{orange}\fontfamily{qzc}\selectfont}{\par}
+\RequirePackage{pifont}
+\RequirePackage{relsize}
+\newcommand{\Cross}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{56}}}\hspace{1pt} }
+\newcommand{\Valid}{{\raisebox{-0.5ex}%
+{\relsize{1.5}\ding{52}}}\hspace{1pt} }
+\newcommand{\CrossR}{ \textcolor{red}{\Cross} }
+\newcommand{\ValidV}{ \textcolor{green}{\Valid} }
+\usepackage{stackengine}
+\usepackage{scalerel}
+\newcommand\Warning[1][3ex]{%
+\renewcommand\stacktype{L}%
+\scaleto{\stackon[1.3pt]{\color{red}$\triangle$}{\tiny\bfseries !}}{#1}%
+\xspace
+}
+\RequirePackage{fancyvrb}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+\definecolor{grayR}{HTML}{8A8990}
+\definecolor{grayL}{HTML}{C4C7C9}
+\definecolor{blueM}{HTML}{1F63B5}
+\newcommand{\Rlogo}[1][0.07]{
+\begin{tikzpicture}[scale=#1]
+\shade [right color=grayR,left color=grayL,shading angle=60]
+(-3.55,0.3) .. controls (-3.55,1.75)
+and (-1.9,2.7) .. (0,2.7) .. controls (2.05,2.7)
+and (3.5,1.6) .. (3.5,0.3) .. controls (3.5,-1.2)
+and (1.55,-2) .. (0,-2) .. controls (-2.3,-2)
+and (-3.55,-0.75) .. cycle;
+
+\fill[white]
+(-2.15,0.2) .. controls (-2.15,1.2)
+and (-0.7,1.8) .. (0.5,1.8) .. controls (2.2,1.8)
+and (3.1,1.2) .. (3.1,0.2) .. controls (3.1,-0.75)
+and (2.4,-1.45) .. (0.5,-1.45) .. controls (-1.1,-1.45)
+and (-2.15,-0.7) .. cycle;
+
+\fill[blueM]
+(1.75,1.25) -- (-0.65,1.25) -- (-0.65,-2.75) -- (0.55,-2.75) -- (0.55,-1.15) --
+(0.95,-1.15)  .. controls (1.15,-1.15)
+and (1.5,-1.9) .. (1.9,-2.75) -- (3.25,-2.75)  .. controls (2.2,-1)
+and (2.5,-1.2) .. (1.8,-0.95) .. controls (2.6,-0.9)
+and (2.85,-0.35) .. (2.85,0.2) .. controls (2.85,0.7)
+and (2.5,1.2) .. cycle;
+
+\fill[white]  (1.4,0.4) -- (0.55,0.4) -- (0.55,-0.3) -- (1.4,-0.3).. controls (1.75,-0.3)
+and (1.75,0.4) .. cycle;
+
+\end{tikzpicture}
+}
+\RequirePackage{epstopdf} % to be able to convert .eps to .pdf image files
+\RequirePackage{capt-of} %
+\RequirePackage{caption} % newlines in graphics
+\RequirePackage{tikz-cd} % graph
+\RequirePackage{booktabs} % for nice lines in table (e.g. toprule, bottomrule, midrule, cmidrule)
+\RequirePackage{amsmath}
+\RequirePackage{algorithm}
+\RequirePackage[noend]{algpseudocode}
+\RequirePackage{dsfont}
+\RequirePackage{amsmath,stmaryrd,graphicx}
+\RequirePackage{prodint} % product integral symbol (\PRODI)
+\usepackage{ifthen}
+\usepackage{xifthen}
+\usepackage{xargs}
+\usepackage{xspace}
+\newcommand\defOperator[7]{%
+\ifthenelse{\isempty{#2}}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4}{#7{#3}#4 \left#5 #1 \right#6}
+}{
+\ifthenelse{\isempty{#1}}{#7{#3}#4_{#2}}{#7{#3}#4_{#1}\left#5 #2 \right#6}
+}
+}
+\newcommand\defUOperator[5]{%
+\ifthenelse{\isempty{#1}}{
+#5\left#3 #2 \right#4
+}{
+\ifthenelse{\isempty{#2}}{\underset{#1}{\operatornamewithlimits{#5}}}{
+\underset{#1}{\operatornamewithlimits{#5}}\left#3 #2 \right#4}
+}
+}
+\newcommand{\defBoldVar}[2]{
+\ifthenelse{\equal{#2}{T}}{\boldsymbol{#1}}{\mathbf{#1}}
+}
+\newcommandx\Esp[2][1=,2=]{\defOperator{#1}{#2}{E}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Prob[2][1=,2=]{\defOperator{#1}{#2}{P}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Qrob[2][1=,2=]{\defOperator{#1}{#2}{Q}{}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Var[2][1=,2=]{\defOperator{#1}{#2}{V}{ar}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Cov[2][1=,2=]{\defOperator{#1}{#2}{C}{ov}{\lbrack}{\rbrack}{\mathbb}}
+\newcommandx\Binom[2][1=,2=]{\defOperator{#1}{#2}{B}{}{(}{)}{\mathcal}}
+\newcommandx\Gaus[2][1=,2=]{\defOperator{#1}{#2}{N}{}{(}{)}{\mathcal}}
+\newcommandx\Wishart[2][1=,2=]{\defOperator{#1}{#2}{W}{ishart}{(}{)}{\mathcal}}
+\newcommandx\Likelihood[2][1=,2=]{\defOperator{#1}{#2}{L}{}{(}{)}{\mathcal}}
+\newcommandx\logLikelihood[2][1=,2=]{\defOperator{#1}{#2}{\ell}{}{(}{)}{}}
+\newcommandx\Information[2][1=,2=]{\defOperator{#1}{#2}{I}{}{(}{)}{\mathcal}}
+\newcommandx\Hessian[2][1=,2=]{\defOperator{#1}{#2}{H}{}{(}{)}{\mathcal}}
+\newcommandx\Score[2][1=,2=]{\defOperator{#1}{#2}{S}{}{(}{)}{\mathcal}}
+\newcommandx\Vois[2][1=,2=]{\defOperator{#1}{#2}{V}{}{(}{)}{\mathcal}}
+\newcommandx\IF[2][1=,2=]{\defOperator{#1}{#2}{IF}{}{(}{)}{\mathcal}}
+\newcommandx\Ind[1][1=]{\defOperator{}{#1}{1}{}{(}{)}{\mathds}}
+\newcommandx\Max[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{min}}
+\newcommandx\Min[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{max}}
+\newcommandx\argMax[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmax}}
+\newcommandx\argMin[2][1=,2=]{\defUOperator{#1}{#2}{(}{)}{argmin}}
+\newcommandx\cvD[2][1=D,2=n \rightarrow \infty]{\xrightarrow[#2]{#1}}
+\newcommandx\Hypothesis[2][1=,2=]{
+\ifthenelse{\isempty{#1}}{
+\mathcal{H}
+}{
+\ifthenelse{\isempty{#2}}{
+\mathcal{H}_{#1}
+}{
+\mathcal{H}^{(#2)}_{#1}
+}
+}
+}
+\newcommandx\dpartial[4][1=,2=,3=,4=\partial]{
+\ifthenelse{\isempty{#3}}{
+\frac{#4 #1}{#4 #2}
+}{
+\left.\frac{#4 #1}{#4 #2}\right\rvert_{#3}
+}
+}
+\newcommandx\dTpartial[3][1=,2=,3=]{\dpartial[#1][#2][#3][d]}
+\newcommandx\ddpartial[3][1=,2=,3=]{
+\ifthenelse{\isempty{#3}}{
+\frac{\partial^{2} #1}{\partial #2^2}
+}{
+\frac{\partial^2 #1}{\partial #2\partial #3}
+}
+}
+\newcommand\Real{\mathbb{R}}
+\newcommand\Rational{\mathbb{Q}}
+\newcommand\Natural{\mathbb{N}}
+\newcommand\trans[1]{{#1}^\intercal}%\newcommand\trans[1]{{\vphantom{#1}}^\top{#1}}
+\newcommand{\independent}{\mathrel{\text{\scalebox{1.5}{$\perp\mkern-10mu\perp$}}}}
+\newcommand\half{\frac{1}{2}}
+\newcommand\normMax[1]{\left|\left|#1\right|\right|_{max}}
+\newcommand\normTwo[1]{\left|\left|#1\right|\right|_{2}}
+\newcommand\Veta{\boldsymbol{\eta}}
+\newcommand{\Model}{\mathcal{M}}
+\newcommand{\ModelHat}{\widehat{\mathcal{M}}}
+\newcommand{\param}{\Theta}
+\newcommand{\paramHat}{\widehat{\param}}
+\newcommand{\paramCon}{\widetilde{\param}}
+\newcommand{\Vparam}{\boldsymbol{\param}}
+\newcommand{\VparamT}{\Vparam_0}
+\newcommand{\VparamHat}{\boldsymbol{\paramHat}}
+\newcommand{\VparamCon}{\boldsymbol{\paramCon}}
+\newcommand{\X}{X}
+\newcommand{\x}{x}
+\newcommand{\VX}{\boldsymbol{X}}
+\newcommand{\Vx}{\boldsymbol{x}}
+\newcommand{\Y}{Y}
+\newcommand{\y}{y}
+\newcommand{\VY}{\boldsymbol{Y}}
+\newcommand{\Vy}{\boldsymbol{y}}
+\newcommand{\Vvarepsilon}{\boldsymbol{\varepsilon}}
+\newcommand{\Z}{Z}
+\newcommand{\z}{z}
+\newcommand{\VZ}{\boldsymbol{Z}}
+\newcommand{\Vz}{\boldsymbol{z}}
+\author{Brice Ozenne}
+\date{\today}
+\title{Comparison with other \Rlogo packages}
+\hypersetup{
+ colorlinks=true,
+ pdfauthor={Brice Ozenne},
+ pdftitle={Comparison with other \Rlogo packages},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.1 (Org mode 9.7.11)},
+ pdflang={English}
+ }
+\begin{document}
+
+\maketitle
+This vignette make connexions between the output of a linear mixed
+model and well-known tests (t.test, ANCOVA, Pearson's correlation,
+Bartlett's test, \ldots). The second part of the vignette make
+connexion with other \Rlogo packages.
+\section{nlme package}
+\label{sec:orgf1cec13}
+
+The model class obtained with the \texttt{lmm} function overlaps the model
+class of the \texttt{lme} and \texttt{gls} functions from the nlme package.
+\begin{lstlisting}[language=r,numbers=none]
+library(nlme)
+\end{lstlisting}
+
+For instance, the compound symmetry is equivalent to \texttt{corCompSymm}
+correlation structure, or to a random intercept model (when the within
+subject correlation is positive):
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
+               data = calciumL, repetition = ~visit|girl)
+eCS.gls <- gls(bmd ~ visit*grp, correlation = corCompSymm(form=~visit|girl),
+               data = calciumL, na.action = na.omit)
+eCS.lme <- lme(bmd ~ visit*grp, random = ~1|girl,
+               data = calciumL, na.action = na.omit)
+logLik(eRI.lmm)
+logLik(eCS.lme)
+logLik(eCS.gls)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -2297.3
+'log Lik.' -2297.3 (df=12)
+'log Lik.' -2297.3 (df=12)
+\end{verbatim}
+
+
+The estimated random effect also match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eRI.lmm)-ranef(eCS.lme))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -6.6939e-08  3.1497e-08
+\end{verbatim}
+
+
+Unstructured residual covariance matrix can also be obtained with
+\texttt{gls}:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.gls <- gls(bmd ~ visit*grp,
+               correlation = corSymm(form=~as.numeric(visit)|girl),
+               weights = varIdent(form=~1|visit),
+               data = calciumL, na.action = na.omit)
+eUN.lmm <- lmm(bmd ~ visit*grp, structure = "UN",
+               data = calciumL, repetition = ~visit|girl)
+logLik(eUN.gls)
+logLik(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -2218.5 (df=25)
+[1] -2218.5
+\end{verbatim}
+
+
+\clearpage
+\subsection{lme4 package}
+\label{sec:org4a480f1}
+
+The model class obtained with the \texttt{lmm} function overlaps the model
+class of the \texttt{lmer} function from the lme4 package.
+\begin{lstlisting}[language=r,numbers=none]
+library(lme4)
+library(lmerTest)
+\end{lstlisting}
+
+For instance, the compound symmetry is equivalent to a random
+intercept model (when the within subject correlation is positive):
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmer <- lmer(bmd ~ visit*grp + (1|girl), data = calciumL)
+logLik(eRI.lmer)
+logLik(eRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -2297.3 (df=12)
+[1] -2297.3
+\end{verbatim}
+
+
+The estimated random effects match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eRI.lmm)-ranef(eRI.lmer)$girl)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -7.3817e-08  3.4754e-08
+\end{verbatim}
+
+
+Nested random effects correspond to block unstructured:
+\begin{lstlisting}[language=r,numbers=none]
+calciumLB <- transform(calciumL, baseline = visit==1)
+
+eNRI.lmm <- lmm(bmd ~ visit*grp, structure = RE(~(1|girl/baseline)),
+                repetition = ~visit|girl,
+                data = calciumLB)
+eNRI.lmer <- lmer(bmd ~ visit*grp + (1|girl/baseline),
+                  data = calciumLB)
+logLik(eNRI.lmer)
+logLik(eNRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -2282.1 (df=13)
+[1] -2282.1
+\end{verbatim}
+
+
+And the estimated random effects still match:
+\begin{lstlisting}[language=r,numbers=none]
+eRanefNRI.lmm <- ranef(eNRI.lmm, format = "wide")
+eRanefNRI.lmer <- ranef(eNRI.lmer)
+## girl
+range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$girl)
+## baseline
+eRanefNRI2.lmm <- c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)
+eRanefNRI2.lmer <- ranef(eNRI.lmer)$`baseline:girl`
+range(na.omit(eRanefNRI2.lmm)-eRanefNRI2.lmer)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -1.2487e-06  1.5182e-06
+[1] -2.4547e-06  1.9463e-06
+\end{verbatim}
+
+
+\clearpage
+
+An unstructure residual covariance matrix can also be obtained using
+random slopes:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.lmer <- lmer(bmd ~ visit*grp + (0 + visit|girl),
+                 data = calciumL,
+                 control = lmerControl(check.nobs.vs.nRE = "ignore"))
+logLik(eUN.lmer)
+logLik(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Advarselsbesked:
+I checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 0.0101162 (tol = 0.002, component 1)
+'log Lik.' -2218.5 (df=26)
+[1] -2218.5
+\end{verbatim}
+
+
+The uncertainty is quantified in a slightly different way, e.g.:
+\begin{lstlisting}[language=r,numbers=none]
+anova(eUN.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Wald F-tests 
+
+                statistic        df p.value    
+mean: visit       111.043 (4, 96.0)  <1e-04 ***
+      grp           0.764 (1,109.9)  0.3840    
+      visit:grp     2.791 (4, 96.5)  0.0305   *
+\end{verbatim}
+
+
+is very similar but not identical to:
+\begin{lstlisting}[language=r,numbers=none]
+anova(eUN.lmer) ## only the last line is comparable
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Type III Analysis of Variance Table with Satterthwaite's method
+          Sum Sq Mean Sq NumDF DenDF F value Pr(>F)    
+visit      65527   16382     4  96.8  258.07 <2e-16 ***
+grp          162     162     1 109.3    2.55   0.11    
+visit:grp    710     177     4  96.8    2.79   0.03 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+
+It is also possible to fit cross-random effects such as:
+\begin{lstlisting}[language=r,numbers=none]
+data("Penicillin")
+eCRI.lmer <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin)
+logLik(eCRI.lmer)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -165.43 (df=4)
+\end{verbatim}
+
+
+
+using \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+Penicillin$index <- paste(Penicillin$sample,Penicillin$plate,sep=".")
+Penicillin$id <- 1
+
+eCRI.lmm <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
+logLik(eCRI.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -165.43
+\end{verbatim}
+
+
+Despite \texttt{lmm} being significantly slower, the loglikelihood and random
+effect still match:
+\begin{lstlisting}[language=r,numbers=none]
+range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -4.4050e-07  6.0499e-07
+\end{verbatim}
+
+
+\clearpage
+\subsection{mmrm package}
+\label{sec:orged18e50}
+
+The package \texttt{mmrm} is an alternative implementation of mixed models
+specified via covariance structures:
+\begin{lstlisting}[language=r,numbers=none]
+library(mmrm)
+e.mmrm <- mmrm(
+  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT + us(AVISIT | USUBJID),
+  data = fev_data
+)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+mmrm() registered as car::Anova extension
+\end{verbatim}
+
+
+It leads nearly identical results compared to \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+e.lmm <- lmm(
+  FEV1 ~ RACE + SEX + ARMCD * AVISIT,
+  repetition = ~ AVISIT | USUBJID, structure = "UN",
+  data = fev_data, type.information = "expected"
+)
+\end{lstlisting}
+\begin{lstlisting}[language=r,numbers=none]
+logLik(e.mmrm) - logLik(e.lmm)
+range(coef(e.mmrm) - coef(e.lmm))
+range(vcov(e.mmrm) - vcov(e.lmm))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -2.5413e-06
+[1] -0.00018345  0.00016319
+[1] -0.00039810  0.00020542
+\end{verbatim}
+
+
+The main differences are:
+\begin{itemize}
+\item \texttt{mmrm} uses the expected information matrix to quantify uncertainty
+instead of the observed information matrix.
+\item \texttt{mmrm} implements the Kenward and Roger method for computing the degrees of
+freedom and not only the Satterthwaite approximation
+\item \texttt{mmrm} implements different covariance patterns
+\item \texttt{mmrm} is faster and probably more memorry efficient
+\item \texttt{mmrm} has currently fewer post-processing methods (e.g. adjustment
+multiple comparisons when testing several model parameters).
+\end{itemize}
+
+\clearpage
+\subsection{emmeans package}
+\label{sec:org2b0f27a}
+
+To illustrate a key difference between the emmeans package and the
+\texttt{effects.lmm} function we consider an informative and unbalanced group
+variable:
+\begin{lstlisting}[language=r,numbers=none]
+gastricbypassLB$group2 <- gastricbypassLB$weight1>150
+\end{lstlisting}
+
+Since \texttt{lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+eCS.lmm_2 <- lmm(glucagonAUC ~ visit*group2, repetition =~visit|id, structure = "CS", data = gastricbypassLB)
+logLik(eCS.lmm_2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] -315.2
+\end{verbatim}
+
+
+we will use the equivalent with the random effect specification:
+
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmer_2 <- lmer(glucagonAUC ~ visit*group2 + (1|id), data = gastricbypassLB)
+logLik(eRI.lmer_2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+'log Lik.' -315.2 (df=10)
+\end{verbatim}
+
+
+While the two models are equivalent, the average outcome output by
+\texttt{effects}:
+\begin{lstlisting}[language=r,numbers=none]
+effects(eCS.lmm_2, variable = NULL)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Average counterfactual outcome
+
+      estimate    se   df  lower  upper
+(t=1)   32.317 4.426 64.3 23.476 41.158
+(t=2)   29.653 4.535 65.2 20.598 38.709
+(t=3)   77.308 4.535 65.1  68.25 86.366
+(t=4)    51.95 4.426 64.3 43.109 60.791
+\end{verbatim}
+
+
+substantially differ from the one of emmeans:
+\begin{lstlisting}[language=r,numbers=none]
+library(emmeans)
+emmeans(eRI.lmer_2, specs=~visit)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+NOTE: Results may be misleading due to involvement in interactions
+ visit emmean   SE   df lower.CL upper.CL
+ 1       33.6 5.53 64.2     22.6     44.7
+ 2       32.0 5.57 64.4     20.9     43.2
+ 3       70.0 5.57 64.4     58.9     81.1
+ 4       47.2 5.53 64.2     36.1     58.2
+
+Results are averaged over the levels of: group2 
+Degrees-of-freedom method: kenward-roger 
+Confidence level used: 0.95
+\end{verbatim}
+
+This is because when averaging over the level of a covariate, emmeans
+considers \emph{balanced groups}. In the example, the groups are not
+balanced:
+\begin{lstlisting}[language=r,numbers=none]
+table(gastricbypassLB$group2)/NROW(gastricbypassLB)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+
+FALSE  TRUE 
+  0.8   0.2
+\end{verbatim}
+
+
+Based on the group and timepoint specific means:
+\begin{lstlisting}[language=r,numbers=none]
+eCS.elmm_2 <- model.tables(effects(eCS.lmm_2, variable = "group2"))
+eCS.elmm_2
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+  group2 visit estimate     se     df  lower  upper    p.value
+1  FALSE     1   31.430 4.9484 64.349 21.545 41.314 2.4688e-08
+2  FALSE     2   28.067 5.0996 65.383 17.884 38.251 6.6737e-07
+3  FALSE     3   82.173 5.1008 65.211 71.986 92.359 0.0000e+00
+4  FALSE     4   55.126 4.9484 64.349 45.241 65.010 0.0000e+00
+5   TRUE     1   35.864 9.8967 64.349 16.095 55.633 5.7374e-04
+6   TRUE     2   35.997 9.8967 64.349 16.228 55.766 5.4953e-04
+7   TRUE     3   57.848 9.8967 64.349 38.079 77.617 1.8339e-07
+8   TRUE     4   39.246 9.8967 64.349 19.477 59.015 1.8651e-04
+\end{verbatim}
+
+
+We illustrate the difference:
+\begin{itemize}
+\item emmeans:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+0.5*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.5*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 33.647 32.032 70.010 47.186
+\end{verbatim}
+
+
+\begin{itemize}
+\item effects:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+0.8*eCS.elmm_2[eCS.elmm_2$group2==FALSE,"estimate"]+0.2*eCS.elmm_2[eCS.elmm_2$group2==TRUE,"estimate"]
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 32.317 29.653 77.308 51.950
+\end{verbatim}
+
+
+The "emmeans" approach gives equal "weight" to the expected value of
+both group:
+\begin{lstlisting}[language=r,numbers=none]
+mu.group1 <-  as.double(coef(e.group)["(Intercept)"])
+mu.group2 <-  as.double(coef(e.group)["(Intercept)"] + coef(e.group)["group2TRUE"])
+p.group1 <- 14/20          ; p.group2 <- 6/20
+c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 * p.group2)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+ emmeans  predict 
+4.450435 4.514352
+\end{verbatim}
+
+
+\clearpage
+\subsection{effectsize package (\(R^2\) or \(\eta^2\))}
+\label{sec:org1476e5a}
+
+Partial \(\eta^2\) can be computed based on \texttt{lmer} using the effectsize package:
+\begin{lstlisting}[language=r,numbers=none]
+library(effectsize)
+eta_squared(eCS.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+# Effect Size for ANOVA (Type III)
+
+Parameter   | Eta2 (partial) |       95% CI
+-------------------------------------------
+visit       |           0.64 | [0.50, 1.00]
+group       |           0.01 | [0.00, 1.00]
+visit:group |           0.19 | [0.03, 1.00]
+
+- One-sided CIs: upper bound fixed at
+\end{verbatim}
+
+
+and are approximately equal to what one can compute "manually":
+\begin{lstlisting}[language=r,numbers=none]
+eCS.Wald <- anova(eCS.lmm)$multivariate
+eCS.Wald$df.num*eCS.Wald$statistic/(eCS.Wald$df.num*eCS.Wald$statistic+eCS.Wald$df.denom)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.335374 0.033811 0.186290
+\end{verbatim}
+
+
+The will not be true for heteroschedastic models:
+\begin{lstlisting}[language=r,numbers=none]
+eUN.Wald <- anova(eUN.lmm)$multivariate
+eUN.Wald$df.num*eUN.Wald$statistic/(eUN.Wald$df.num*eUN.Wald$statistic+eUN.Wald$df.denom)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.50787 0.17905 0.32380
+\end{verbatim}
+
+
+compared to:
+\begin{lstlisting}[language=r,numbers=none]
+eta_squared(eUN.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+# Effect Size for ANOVA (Type III)
+
+Parameter   | Eta2 (partial) |       95% CI
+-------------------------------------------
+visit       |           0.76 | [0.54, 1.00]
+group       |           0.01 | [0.00, 1.00]
+visit:group |           0.32 | [0.00, 1.00]
+
+- One-sided CIs: upper bound fixed at
+\end{verbatim}
+
+
+But in that case both may be misleading as the proportion of explained
+variance is not clearly defined.
+\subsection{MuMIn package (\(R^2\))}
+\label{sec:org29c722b}
+
+\begin{lstlisting}[language=r,numbers=none]
+library(MuMIn)
+r.squaredGLMM(eCS.lmer)
+cat("\n")
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+         R2m     R2c
+[1,] 0.51728 0.62222
+\end{verbatim}
+
+
+To reproduce these R2, we extract from the random intercept model:
+\begin{itemize}
+\item the residual variance
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigmaW <- sigma(eCS.lmm)[1,1]-sigma(eCS.lmm)[1,2]
+\end{lstlisting}
+
+\begin{itemize}
+\item the variance of the random effect
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigmaB <- sigma(eCS.lmm)[1,2]
+\end{lstlisting}
+
+\begin{itemize}
+\item the variance of the fitted values:
+\end{itemize}
+\begin{lstlisting}[language=r,numbers=none]
+sigma2_XB <- var(fitted(eCS.lmm))
+\end{lstlisting}
+
+and evalutae the ratios:
+\begin{lstlisting}[language=r,numbers=none]
+c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
+  R2c = (sigma2_XB + sigmaB)/(sigmaW + sigmaB + sigma2_XB))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+    R2m     R2c 
+0.52549 0.62865
+\end{verbatim}
+\subsection{stats package (partial residuals)}
+\label{sec:orgb3dd408}
+
+The function \texttt{residuals.lm} can be used to extract partial residuals
+from \texttt{lm} objects. For instance:
+\begin{lstlisting}[language=r,numbers=none]
+gastricbypassW$group <- as.factor(as.numeric(gastricbypassW$id)%%2)
+eIID.lm <- lm(weight4 ~ group + weight1, data = gastricbypassW)
+pRes.lm <- residuals(eIID.lm, type = "partial")
+head(pRes.lm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+      group  weight1
+1   7.19282   3.6648
+2  -0.20504  31.7052
+3   0.60631 -17.3352
+4   6.44389  22.7052
+5  -1.59403 -16.7352
+6 -18.23382   8.4052
+\end{verbatim}
+
+
+Those generally differ (by a constant) from the one provided by
+\texttt{residuals.lmm}:
+\begin{lstlisting}[language=r,numbers=none]
+eIID.lmm <- lmm(weight4 ~ group + weight1, data = gastricbypassW)
+(residuals(eIID.lmm, type = "partial", variable = "group") - pRes.lm[,"group"])
+(residuals(eIID.lmm, type = "partial", variable = "weight1") - pRes.lm[,"weight1"])
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+     1      2      3      4      5      6      7      8      9     10     11     12     13     14 
+2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 2.0702 
+    15     16     17     18     19     20 
+2.0702 2.0702 2.0702 2.0702 2.0702 2.0702
+     1      2      3      4      5      6      7      8      9     10     11     12     13     14 
+106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 106.22 
+    15     16     17     18     19     20 
+106.22 106.22 106.22 106.22 106.22 106.22
+\end{verbatim}
+
+
+Indeed, \texttt{residuals.lm} centers the design matrix of the variable
+relative to which the partial residuals are computed:
+\begin{lstlisting}[language=r,numbers=none]
+coef(eIID.lm)["group1"] * mean(gastricbypassW$group=="1")
+coef(eIID.lm)["weight1"] * mean(gastricbypassW$weight1)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+group1 
+2.0702
+weight1 
+ 106.22
+\end{verbatim}
+
+
+For continuous variable with a linear effect, these residuals can be
+obtained by setting the \texttt{type} argument to \texttt{"partial-center"}:
+\begin{lstlisting}[language=r,numbers=none]
+(residuals(eIID.lmm, type = "partial-center", variable = "weight1") - pRes.lm[,"weight1"])
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+          1           2           3           4           5           6           7           8 
+ 1.7675e-13  6.7502e-14 -6.3949e-14  5.6843e-14 -3.9080e-14  8.1712e-14 -3.7303e-14  5.9508e-14 
+          9          10          11          12          13          14          15          16 
+-4.2633e-14  4.4409e-14 -2.9310e-14  5.5123e-14 -4.6185e-14  4.4409e-14 -4.2633e-14  4.6185e-14 
+         17          18          19          20 
+-3.9968e-14  5.3291e-14 -1.4211e-14  3.5527e-14
+\end{verbatim}
+
+
+\Warning When evaluating the partial residuals relative to categorical
+variables, interactions, or non-linear terms, the output obtained with
+\texttt{partial-center} will not match the one of \texttt{residuals.lm}. Indeed
+\texttt{partial-center} will, when numeric, center the original variable
+whereas \texttt{residuals.lm} will center the column relative to the
+coefficient in the design matrix.
+\section*{References}
+\label{sec:org66b89bf}
+\begingroup
+\renewcommand{\section}[2]{}
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+
+\endgroup
+
+\clearpage
+
+\appendix
+\titleformat{\section}
+{\normalfont\Large\bfseries}{Appendix~\thesection}{1em}{}
+
+\renewcommand{\thefigure}{\Alph{figure}}
+\renewcommand{\thetable}{\Alph{table}}
+\renewcommand{\theequation}{\Alph{equation}}
+
+\setcounter{figure}{0}    
+\setcounter{table}{0}    
+\setcounter{equation}{0}    
+\end{document}

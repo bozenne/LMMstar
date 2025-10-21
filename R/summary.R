@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 16 2025 (16:26) 
+## Last-Updated: okt 21 2025 (10:48) 
 ##           By: Brice Ozenne
-##     Update #: 1833
+##     Update #: 1871
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -856,7 +856,7 @@ summary.resample <- function(object, digits = 3, ...){
  
 ## * summary.Wald_lmm (code)
 ##' @export
-summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, legend = TRUE,
+summary.Wald_lmm <- function(object, print = NULL, seed = NULL, columns = NULL, legend = TRUE,
                              digits = 3, digits.df = 1, digits.p.value = 3, sep = ": ",
                              ...){
 
@@ -872,8 +872,12 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
     transform.rho <- object$args$transform.rho
 
     ## ** normalize input
+
     ## *** print
-    if(length(print)==1){
+    if(is.null(print)){
+        print.univariate <- object$args$univariate
+        print.multivariate <- !print.univariate || (NROW(object$univariate)!=1)
+    }else if(length(print)==1){
         print.univariate <- print
         print.multivariate <- print
     }else if(length(print)>2){
@@ -946,6 +950,14 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         set.seed(seed)
     }
 
+    ## ** prepare
+    if(print.univariate){
+        table.univariate <- stats::confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), options = options, ...)
+        if(is.null(print) && print.univariate && !print.multivariate && !is.null(attr(table.univariate,"backtransform"))){
+            print.multivariate <- !is.na(attr(table.univariate,"backtransform")$n.sample)
+        }
+    }
+
     ## ** extract information
 
     ## *** multivariate tests
@@ -981,13 +993,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         ## restaure attributes (i.e. message)
         attr(table.multivariate,"se") <- attr(object$multivariate,"se")
         attr(table.multivariate,"df") <- attr(object$multivariate,"df")
-        
         if(print.multivariate>0.5){
-            if(NROW(table.multivariate)==1){
-                cat("\t\tMultivariate Wald test \n\n")
-            }else{
-                cat("\t\tMultivariate Wald tests \n\n")
-            }
+            
+            cat("\t\tWald ",ifelse(object$args$df,"F-","Chi-square "),"test",ifelse(NROW(table.multivariate)>1,"s","")," \n\n", sep = "")
         }
 
         .printStatTable(table = table.multivariate, robust = robust, df = df, level = NULL, type.information = type.information,
@@ -1004,7 +1012,6 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
 
     ## *** univariate tests
     if(print.univariate>0){
-        table.univariate <- stats::confint(object, columns = union(setdiff(columns.univariate,""),c("type","term","name")), options = options, ...)
         if(is.null(columns) && all(is.na(table.univariate$lower)) && all(is.na(table.univariate$upper))){
             columns.univariate <- setdiff(columns.univariate, c("lower","upper"))
         }
@@ -1043,12 +1050,11 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             vec2.white <- sapply(maxchar2.type-nchar2.type, function(iN){paste(rep(" ", iN), collapse = "")})
             rownames(table.univariate) <- paste(vec2.white,rownames.univariate,sep="")                                
         }
-
         if(print.univariate>0.5){
-            if(NROW(table.univariate)==1){
-                cat("\t\tUnivariate Wald test \n\n")
+            if(NROW(table.univariate)==1 & identical(!is.na(attr(table.univariate,"backtransform")$n.sample), TRUE)){
+                cat("\t\tEmulated Wald test (resampling parameter distribution) \n\n")
             }else{
-                cat("\t\tUnivariate Wald tests \n\n")
+                cat("\t\tHypothesis-specific Wald test",ifelse(NROW(table.univariate)>1,"s","")," \n\n",sep="")
             }
         }
         if(any(c("pool.gls","pool.gls1") %in% method.p.adjust)){
@@ -1227,8 +1233,8 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             cat(space,"  :  0 \'***\' 0.001 \'**\' 0.01 \'*\' 0.05 \'.\' 0.1 \' \' 1.\n",sep="")
         }
 
-        ## *** type of degree of freeedom 
-        if(identical(df,TRUE) && "df" %in% columns){
+        ## *** type of degree of freeedom
+        if(identical(df,TRUE) && "df" %in% columns && !identical(!is.na(backtransform$n.sample),TRUE)){
             if(!is.null(attr(table,"df"))){
                 cat(space,"df: ",attr(table,"df"),". \n", sep = "")
             }else{
@@ -1248,9 +1254,9 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
         ## *** type of standard error 
         if("se" %in% columns){
             if(robust>0){
-                txt.se <- paste0("Robust based on the ",type.information," information")
+                txt.se <- paste0("based on the ",type.information," information (robust)")
             }else if(robust==0){
-                txt.se <- paste0("Modeled based on the ",type.information," information")
+                txt.se <- paste0("based on the ",type.information," information (model-based)")
             }
             if(!is.null(attr(table,"se"))){
                 txt.se <- paste0(txt.se,attr(table,"se"))
@@ -1349,7 +1355,7 @@ summary.Wald_lmm <- function(object, print = TRUE, seed = NULL, columns = NULL, 
             }
 
         }
-
+       
         ## *** backtransformation
         if(!is.null(backtransform) && any(!is.na(backtransform$FUN))){
 

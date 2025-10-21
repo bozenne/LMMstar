@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: okt 17 2025 (18:05) 
+## Last-Updated: okt 21 2025 (10:42) 
 ##           By: Brice Ozenne
-##     Update #: 1679
+##     Update #: 1689
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -681,6 +681,7 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
             
             ## apply the contrast matrix to get a sample of the estimated linear hypotheses (under the estimated alternative, original scale)
             out[iIndex.table,"estimate"] <- (contrast.trans %*% tanh(estimate.trans))[,1]
+            out[iIndex.table,"df"] <- NA
             if(all(backtrans.pairwiseCor)){ ## all have been transformed via atanh
                 simLinfct.original <- t(contrast.trans %*% t(tanh(sim.trans)))
             }else{
@@ -707,6 +708,10 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
                 }
 
             }
+            iDF.back <- data.frame(estimate = TRUE, se = TRUE, lower = TRUE, upper = TRUE, FUN = "atanh", n.sample = 1e5)
+            rownames(iDF.back) <- "rho"
+            attr(out,"backtransform") <- rbind(attr(out,"backtransform"), iDF.back)
+                                               
 
         }else if("single-step" %in% iMethod.adj){
 
@@ -816,24 +821,30 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
 
         ## *** back-transform
         if(is.function(backtransform)){
-            out[iIndex.table,] <- .backtransform(out[iIndex.table,],
-                                                 type.param = out[iIndex.table,]$type,
-                                                 backtransform = TRUE, backtransform.names = NULL,
-                                                 transform.mu = backtransform,
-                                                 transform.sigma = backtransform,
-                                                 transform.k = backtransform,
-                                                 transform.rho = backtransform)
+            iBack  <- .backtransform(out[iIndex.table,],
+                                     type.param = out[iIndex.table,]$type,
+                                     backtransform = TRUE, backtransform.names = NULL,
+                                     transform.mu = backtransform,
+                                     transform.sigma = backtransform,
+                                     transform.k = backtransform,
+                                     transform.rho = backtransform)
+            out[iIndex.table,] <- iBack
+            attr(out,"backtransform") <- rbind(attr(out,"backtransform"),
+                                               attr(iBack,"backtransform"))
 
         }else if(backtransform && any(backtrans.pairwiseCor == FALSE)){ ## has no been back-transformed before in the special case of difference between correlations
-            out[iIndex.table,] <- .backtransform(out[iIndex.table,],
-                                                 type.param = out[iIndex.table,]$type,  
-                                                 backtransform = TRUE, backtransform.names = NULL,
-                                                 transform.mu = "none",
-                                                 transform.sigma = object$args$transform.sigma,
-                                                 transform.k = object$args$transform.k,
-                                                 transform.rho = object$args$transform.rho)
-            
+            iBack <- .backtransform(out[iIndex.table,],
+                                    type.param = out[iIndex.table,]$type,  
+                                    backtransform = TRUE, backtransform.names = NULL,
+                                    transform.mu = "none",
+                                    transform.sigma = object$args$transform.sigma,
+                                    transform.k = object$args$transform.k,
+                                    transform.rho = object$args$transform.rho)
+            out[iIndex.table,] <- iBack
+            attr(out,"backtransform") <- rbind(attr(out,"backtransform"),
+                                               attr(iBack,"backtransform"))            
         }
+        
     }
 
     ## ** export
@@ -842,7 +853,9 @@ confint.Wald_lmm <- function(object, parm, level = 0.95, df = NULL, method = NUL
         Umethod <- setdiff(Umethod,"none")
     }
     if(!is.null(method) && all(method %in% pool.method)){
+        attr.out <- attributes(out)[setdiff(names(attributes(out)),c("names","row.names","class"))]            
         out <- out[which(out$method %in% method),,drop=FALSE]
+        attributes(out) <- c(attributes(out),attr.out)
     }
     if(!identical(save.columns,"all")){
         if(is.null(columns) || !is.null(names(columns))){

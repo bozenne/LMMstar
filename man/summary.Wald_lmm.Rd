@@ -6,7 +6,7 @@
 \usage{
 \method{summary}{Wald_lmm}(
   object,
-  print = TRUE,
+  print = NULL,
   seed = NULL,
   columns = NULL,
   legend = TRUE,

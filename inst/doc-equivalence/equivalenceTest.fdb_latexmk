@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex equivalence"] 1760607011.84224 "equivalence.aux" "equivalence.bbl" "equivalence" 1760607015.0656 0
-  "./bibliography.bib" 1760535875 911 dc5d67d1967d3633586a069d9d1e1c06 ""
+["bibtex equivalenceTest"] 1761041334.03802 "equivalenceTest.aux" "equivalenceTest.bbl" "equivalenceTest" 1761041336.81235 0
+  "./bibliography.bib" 1760959709 1188 05285f4544a7ea7791ba3e9c67553929 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/bibtex/bst/bibtex/apalike.bst" 1291972791 24635 604dafcc79f521a11ea73e506e1fbd98 ""
-  "equivalence.aux" 1760607014 9381 c025345b7a52c7e386f9576a6af2d860 "pdflatex"
+  "equivalenceTest.aux" 1761041335 7147 23670e0ea3ac3b7b499522d648405af5 "pdflatex"
   (generated)
-  "equivalence.bbl"
-  "equivalence.blg"
+  "equivalenceTest.bbl"
+  "equivalenceTest.blg"
   (rewritten before read)
-["pdflatex"] 1760607012.17272 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalence.tex" "equivalence.pdf" "equivalence" 1760607015.06619 0
+["pdflatex"] 1761041334.3239 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceTest.tex" "equivalenceTest.pdf" "equivalenceTest" 1761041336.81293 0
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1759405651 96918 b44e951870e976cb5314ff35e4f298cd ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary10.tfm" 1752479638 848 f478e0761563bbc369eca609a1741348 ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary5.tfm" 1753196118 848 e1bc58a31b9ed9c3729ffea165acfaac ""
@@ -265,16 +265,16 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xifthen/xifthen.sty" 1448274436 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalence.tex" 1760607008 65498 c4abc0023dd07d28c090fec9d9eddb79 ""
-  "equivalence.aux" 1760607014 9381 c025345b7a52c7e386f9576a6af2d860 "pdflatex"
-  "equivalence.bbl" 1760607012 279 d74637da2163c47bddecbb838973ebba "bibtex equivalence"
-  "equivalence.out" 1760607014 3483 4cd5b7b375c430c0f8ddd239ee6fbd38 "pdflatex"
-  "equivalence.tex" 1760607008 65498 c4abc0023dd07d28c090fec9d9eddb79 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceTest.tex" 1761041331 57247 2af5738f9a2999ed22c98e7ff5be4218 ""
+  "equivalenceTest.aux" 1761041335 7147 23670e0ea3ac3b7b499522d648405af5 "pdflatex"
+  "equivalenceTest.bbl" 1761041334 458 2f26e810b904b545d0bd3dd674b16b66 "bibtex equivalenceTest"
+  "equivalenceTest.out" 1761041335 2498 201743c8f0015677fc57d75f93742ad7 "pdflatex"
+  "equivalenceTest.tex" 1761041331 57247 2af5738f9a2999ed22c98e7ff5be4218 ""
   (generated)
-  "equivalence.aux"
-  "equivalence.loc"
-  "equivalence.log"
-  "equivalence.out"
-  "equivalence.pdf"
-  "equivalence.soc"
+  "equivalenceTest.aux"
+  "equivalenceTest.loc"
+  "equivalenceTest.log"
+  "equivalenceTest.out"
+  "equivalenceTest.pdf"
+  "equivalenceTest.soc"
   (rewritten before read)

@@ -1,4 +1,4 @@
-#+TITLE: Comparison with traditional tests and other R packages
+#+TITLE: Comparison with traditional tests
 #+Author: Brice Ozenne
 #+BEGIN_SRC R :exports none :results silent :session *R* :cache no
 options(width = 100, digits = 5)
@@ -11,10 +11,10 @@ library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(LMMstar, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 #+END_SRC
 
-This first part of this vignette make connexions between the output of
-a linear mixed model and well-known test (t.test, ANCOVA,
-Pearson's correlation). The second part of the vignette make connexion with other
-\Rlogo packages.
+This vignette make connexions between the output of a linear mixed
+model and well-known tests (t.test, ANCOVA, Pearson's correlation,
+Bartlett's test, \ldots). The second part of the vignette make
+connexion with other \Rlogo packages.
 
 * Illustrative datasets
 
@@ -195,7 +195,7 @@ the t-test when it comes to account for covariates.
 \clearpage
 
 In the special case of two groups of equal size, the standard errors
-will be estimated the same:
+estimated accounting for heteroschedasticity:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 model.tables(lmm(pss0 ~ group, structure = IND(~group), 
                  data = abetaW.B, trace = FALSE))
@@ -206,6 +206,7 @@ model.tables(lmm(pss0 ~ group, structure = IND(~group),
 : (Intercept)  11.8636 0.98648 43.009  9.8742 13.8530 2.4425e-15
 : groupHC      -4.5909 1.24399 80.661 -7.0662 -2.1156 4.0523e-04
 
+or ignoring it:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 model.tables(lmm(pss0 ~ group, data = abetaW.B))
 #+END_SRC
@@ -215,7 +216,8 @@ model.tables(lmm(pss0 ~ group, data = abetaW.B))
 : (Intercept)  11.8636 0.87964 86.017 10.1150 13.6123 0.00000000
 : groupHC      -4.5909 1.24399 86.017 -7.0639 -2.1179 0.00039184
 
-leading to very similar p-values (degrees of freedom differ slightly).
+will be the same, leading to very similar p-values (degrees of freedom
+differ slightly).
 
 \clearpage
 
@@ -339,6 +341,7 @@ instead of a binary exposure (here =grp=).
 
 In presence of a covariate:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
+set.seed(1)
 calciumW2.NNA <- cbind(calciumW.NNA,
                        age = round(runif(NROW(calciumW.NNA), min = 18, max = 60)))
 calciumL2.NNA <- merge(calciumL.NNA, calciumW2.NNA[,c("girl","age")], by = "girl")
@@ -348,10 +351,10 @@ summary(eLMadj.change)$coef
 #+END_SRC
 
 #+RESULTS:
-:              Estimate Std. Error  t value  Pr(>|t|)
-: (Intercept) 21.665002    6.66811  3.24905 0.0016405
-: grpC         7.340294    3.63533  2.01916 0.0465143
-: age         -0.033579    0.15643 -0.21465 0.8305347
+:             Estimate Std. Error t value Pr(>|t|)
+: (Intercept)  9.17495    6.68052  1.3734 0.173121
+: grpC         6.99548    3.57426  1.9572 0.053495
+: age          0.28771    0.15982  1.8002 0.075251
 
 one should specify interaction with time in the mixed model to
 retrieve the same results:
@@ -363,9 +366,9 @@ model.tables(eLMMadj.change)[c("visit2","visit2:grpC"),]
 #+END_SRC
 
 #+RESULTS:
-:             estimate     se     df  lower  upper   p.value
-: visit2       21.6650 6.6681 87.963 8.4135 34.917 0.0016408
-: visit2:grpC   7.3403 3.6353 87.963 0.1158 14.565 0.0465156
+:             estimate     se     df    lower  upper  p.value
+: visit2        9.1750 6.6805 87.966 -4.10126 22.451 0.173122
+: visit2:grpC   6.9955 3.5743 87.966 -0.10764 14.099 0.053497
 
 
 \clearpage
@@ -403,10 +406,10 @@ model.tables(e.mttest, method = "single-step2")
 
 #+RESULTS:
 :                 estimate     se      df   lower  upper  p.value
-: change2: grpC=0   6.7507 3.3549 103.014 -1.2205 14.722 0.111849
-: change3: grpC=0  13.8150 4.8336  95.812  2.3302 25.300 0.014600
-: change4: grpC=0  12.5190 5.8369  86.835 -1.3497 26.388 0.084579
-: change5: grpC=0  19.0155 6.4666  86.916  3.6506 34.380 0.011510
+: change2: grpC=0   6.7507 3.3549 103.014 -1.2191 14.721 0.112799
+: change3: grpC=0  13.8150 4.8336  95.812  2.3321 25.298 0.014660
+: change4: grpC=0  12.5190 5.8369  86.835 -1.3473 26.385 0.084529
+: change5: grpC=0  19.0155 6.4666  86.916  3.6533 34.378 0.011440
 
 _Note:_ the =single-step2= adjustment is similar to the =single-step=
 adjustment of the multcomp package, i.e., a max test adjustment. But
@@ -445,7 +448,7 @@ LMMstar.options()$n.sampleCopula
 #+LaTeX: \begin{minipage}[t]{0.45\linewidth} 
 \hphantom{x} \newline and change it:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-LMMstar.options(n.sampleCopula = 1e5)
+LMMstar.options(n.sampleCopula = 1e4)
 #+END_SRC
 #+LaTeX: \end{minipage}
 
@@ -495,6 +498,7 @@ mt.test(change2 + change3 + change4 + change5 ~ grp, data = calciumW)
 : change5  19.0155 6.4666  86.916  3.6609 34.370 0.011640
 
 \clearpage
+
 ** ANCOVA
 
 Instead of comparing the final value or the change between groups
@@ -598,11 +602,11 @@ summary(lm(bmd2 ~ bmd1 + grp + age, data = calciumW2.NNA))$coef
 #+END_SRC
 
 #+RESULTS:
-:              Estimate Std. Error  t value   Pr(>|t|)
-: (Intercept) -24.26195  26.312105 -0.92208 3.5904e-01
-: bmd1          1.05346   0.029654 35.52538 1.4385e-53
-: grpC          6.76689   3.603786  1.87772 6.3770e-02
-: age          -0.04884   0.154702 -0.31571 7.5298e-01
+:             Estimate Std. Error t value   Pr(>|t|)
+: (Intercept) -37.6452  26.215165 -1.4360 1.5459e-01
+: bmd1          1.0536   0.029064 36.2524 2.7566e-54
+: grpC          6.4062   3.540822  1.8093 7.3865e-02
+: age           0.2914   0.157689  1.8479 6.8008e-02
 
 one should add the covariate along with time interactions to retrieve
 the same estimate and similar standard error/p-value/confindence
@@ -617,7 +621,7 @@ model.tables(e.lmmANCOVAadj)["visit.trt2",,drop=FALSE]
 
 #+RESULTS:
 :            estimate     se     df    lower  upper  p.value
-: visit.trt2   6.7669 3.5833 87.854 -0.35423 13.888 0.062262
+: visit.trt2   6.4062 3.5206 87.855 -0.59046 13.403 0.072223
 
 \clearpage
 
@@ -640,7 +644,6 @@ However the 'straightforward' connexion with mixed model seems lost:
 e.lmmHANCOVA <- lmm(bmd ~ visit + visit.trt, repetition = ~visit|girl, structure = UN(~grp),
                     data = calciumL.NNA)
 model.tables(e.lmmHANCOVA)["visit.trt2",,drop=FALSE]
-
 #+END_SRC
 
 #+RESULTS:
@@ -662,7 +665,6 @@ model.tables(e.lmmHANCOVA)["visit.trt2",,drop=FALSE]
 : visit.trt2   6.8191 3.3675 96.829 0.13539 13.503 0.045623
 
 \clearpage
-
 
 ** Person's correlation
 
@@ -758,15 +760,39 @@ consistent with respect to whether to reject the null hypothesis.
 
 \clearpage
 
-** Comparing Person's correlation
+** Comparing Person's correlations
 
-To compare the Pearson's correlation between two groups,
+To compare the Pearson's correlation between two groups, one can use
+Fisher'z test:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+rho.C <- with(calciumW.NNA, cor(bmd1[grp=="C"],bmd5[grp=="C"]))
+rho.P <- with(calciumW.NNA, cor(bmd1[grp=="P"],bmd5[grp=="P"]))
+nobs.C <- sum(calciumW$grp=="C")
+nobs.P <- sum(calciumW$grp=="P")
+stat.fisher <- (atanh(rho.C) - atanh(rho.P))/sqrt(1/(nobs.C-3)+1/(nobs.P-3))
+2*(1-pnorm(abs(stat.fisher)))
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.15261
+
+and the confidence intervals suggested by cite:zou2007toward:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+zou.C <- tanh(atanh(rho.C) + qnorm(c(0.025,0.975))/sqrt(nobs.C-3))
+zou.P <- tanh(atanh(rho.P) + qnorm(c(0.025,0.975))/sqrt(nobs.P-3))
+
+(rho.C - rho.P) - sqrt( (rho.C-zou.C[1])^2 + (rho.P-zou.P[2])^2 )
+(rho.C - rho.P) + sqrt( (rho.C-zou.C[2])^2 + (rho.P-zou.P[1])^2 )
+#+END_SRC
+
+#+RESULTS:
+: [1] -0.15309
+: [1] 0.021034
+
+which is implemented in the package cocor:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 library(cocor)
-cocor.indep.groups(r1.jk = with(calciumW.NNA, cor(bmd1[grp=="C"],bmd5[grp=="C"])),
-                   n1 = sum(calciumW$grp=="C"),
-                   r2.hm = with(calciumW.NNA, cor(bmd1[grp=="P"],bmd5[grp=="P"])),
-                   n2 = sum(calciumW$grp=="P"))
+cocor.indep.groups(r1.jk = rho.C, n1 = nobs.C, r2.hm = rho.P, n2 = nobs.P)
 #+END_SRC
 
 #+RESULTS:
@@ -790,7 +816,9 @@ zou2007: Zou's (2007) confidence interval
   Null hypothesis retained (Interval includes 0)
 #+end_example
 
-
+We can retrieve the same estimated difference and similar but not
+identical CIs/p-values using a linear mixed model with a covariance
+pattern stratified on group:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eCor2.lmm <- lmm(bmd ~ visit*grp, repetition = ~visit|girl,
                 structure = UN(~grp), data = calciumL.NNA)
@@ -802,13 +830,111 @@ model.tables(eCor2.lmm,  effects = "correlation")[c("rho(1,5):C","rho(1,5):P"),]
 : rho(1,5):C  0.85965 0.039801 42.111 0.75492 0.92163 1.2128e-10
 : rho(1,5):P  0.91701 0.023456 53.835 0.85496 0.95319 7.3275e-15
 
+and use a Wald test to compare the correlation coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-summary(anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0", transform.rho = "none"))
+set.seed(1)
+summary(anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0"), digits = 4)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-		Multivariate Wald test 
+            Wald F-test 
+
+       statistic       df p.value  
+   all    1.7165 (1,93.6)   0.193  
+   ------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+
+		Emulated Wald test (resampling parameter distribution) 
+
+                               estimate     se   df   lower upper p.value  
+   rho(1,5):C - rho(1,5):P = 0  -0.0574 0.0495 <NA> -0.1661  0.03   0.197  
+   ------------------------------------------------------------------ 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  se: based on the observed information (model-based). 
+  Back-transformation: rho parameters with atanh (1e+05 samples).
+#+end_example
+
+The 'Wald F-test' is the usual Wald test defined by the squared
+difference between the two correlation coefficients divided by the
+squared standard error of this difference. This ratio follows, under
+the null hypothesis, an F-distribution which is used to obtain a
+p-value. The 'Emulated Wald test' attempts to provide a confidence
+interval for the difference compatible with the p-value. As mentionned
+in the litterature citep:zou2007toward, a 'naive' back-transformation
+of the difference would not provide confidence intervals with good
+frequentist properties (intuitively \(tanh(atanh(y)-atanh(x))\neq y -
+x\)). Instead samples are drawn from a bivariate Student's t
+distribution distribution centered around 0 and with
+variance-covariance matrix the inverse of the observed information on
+the =atanh= scale.
+- =p.value=: relative frequency of a difference in simulated
+  correlations more extreme than observed. It should be close to the
+  p-value of the Wald F-test'.
+- =se=: standard deviation of the simulated difference in correlation
+  on the original scale
+- =lower=, =upper=: quantiles of the simulated difference in
+  correlation on the original scale after centering the simulated
+  values on the =atanh= scale around the estimated correlation.
+
+\clearpage
+
+The =partialCor= method provides a more straightforward syntax to do
+the later test is:
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+set.seed(1)
+partialCor(bmd1 + bmd5 ~ 1, data = calciumW.NNA, by = "grp", effects = "Dunnett") 
+#+END_SRC
+
+#+RESULTS:
+:       estimate     se df  lower upper p.value
+: C - P  -0.0574 0.0491 NA -0.165 0.029   0.195
+
+The methodology is the same, except that the underlying mixed model is
+based on two timepoints (1 and 5) instead of all timepoints
+(1,2,3,4,5).
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+calciumL2.NNA <- calciumL.NNA[calciumL.NNA$visit %in% c(1,5),]
+calciumL2.NNA$visit <- droplevels(calciumL2.NNA$visit)
+eCor2.lmm2 <- lmm(bmd ~ visit*grp, repetition = ~visit|girl,
+                  structure = UN(~grp), data = calciumL2.NNA)
+set.seed(1)
+summary(anova(eCor2.lmm2, effects = "rho(1,5):C - rho(1,5):P = 0"))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Wald F-test 
+
+       statistic        df p.value  
+   all     1.717 (1,119.8)   0.193  
+   -------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+
+		Emulated Wald test (resampling parameter distribution) 
+
+                               estimate    se   df  lower upper p.value  
+   rho(1,5):C - rho(1,5):P = 0   -0.057 0.049 <NA> -0.165 0.029   0.195  
+   ---------------------------------------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  se: based on the observed information (model-based). 
+  Back-transformation: rho parameters with atanh (1e+05 samples).
+#+end_example
+
+\bigskip
+
+It is also possible to not use any transformation: 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+testRho <- anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0", transform.rho = "none")
+summary(testRho, print = TRUE)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Wald F-test 
 
        statistic      df p.value  
    all     1.542 (1,3.7)   0.288  
@@ -816,63 +942,36 @@ summary(anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0", transform.rho 
     :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   df: Satterthwaite approximation w.r.t. model-based se. 
 
-		Univariate Wald test 
+		Hypothesis-specific Wald test 
 
                                estimate    se  df lower upper p.value  
    rho(1,5):C - rho(1,5):P = 0   -0.057 0.046 3.7 -0.19 0.076   0.288  
    ------------------------------------------------------------------- 
     :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
   df: Satterthwaite approximation w.r.t. model-based se. 
-  se: Modeled based on the observed information.
+  se: based on the observed information (model-based).
 #+end_example
 
+but this is expected to have worse small sample properties compared to
+using a transformation. In this example the estimated p-value is also
+further away from the Fisher'z test. Here the 'Hypothesis-specific
+Wald test' uses a Student's t-distribution to model the distribution
+of the ratio between the estimate and the standard error. This is
+exactly the square root (up to a sign) of the Wald F-test test
+statistic, leading to exactly the same p-value and compatible
+confidence intervals.
 
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-summary(anova(eCor2.lmm, effects = "rho(1,5):C - rho(1,5):P = 0", transform.rho = "atanh"))
-Theta <- coef(eCor2.lmm, effects = "correlation", transform.rho = "atanh")[c("atanh(rho)(1,5):P","atanh(rho)(1,5):C")]
-Sigma <- vcov(eCor2.lmm, effects = "correlation", transform.rho = "atanh")[c("atanh(rho)(1,5):P","atanh(rho)(1,5):C"),
-                                                                           c("atanh(rho)(1,5):P","atanh(rho)(1,5):C")]
-Theta/sqrt(diag(Sigma))
-
-
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-		Multivariate Wald test 
-
-       statistic       df p.value  
-   all     1.717 (1,93.6)   0.193  
-   ------------------------------- 
-    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-  df: Satterthwaite approximation w.r.t. model-based se. 
-
-		Univariate Wald test 
-
-                               estimate    se   df  lower upper p.value  
-   rho(1,5):C - rho(1,5):P = 0   -0.057 0.212 93.6 -0.479 0.364   0.787  
-   --------------------------------------------------------------------- 
-    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-  df: Satterthwaite approximation w.r.t. model-based se. 
-  se: Modeled based on the observed information.
-atanh(rho)(1,5):P atanh(rho)(1,5):C 
-          10.6478            8.4723
-atanh(rho)(1,5):C 
-          0.19348
-#+end_example
-
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-2*(1-pt(abs(diff(Theta)/sqrt(sum(diag(Sigma)) - 2*Sigma[1,2])), df = 90))
-#+END_SRC
+\clearpage
 
 ** Correlation between changes 
 
 In some studies, one is interested in studying the relation between
-two evolutions. Say weight and glucagon before and after the
-operation:
+two evolutions. Say the change from baseline in quality of life
+vs. functioning assessment test:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
-gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
+abetaW$dqol <- abetaW$qol1 - abetaW$qol0
+abetaW$dfast <- abetaW$fast1 - abetaW$fast0
+abetaW.NNA <- abetaW[!is.na(abetaW$dqol) & !is.na(abetaW$dfast),]
 #+END_SRC
 
 #+RESULTS:
@@ -881,7 +980,7 @@ gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
 
 One can evaluate their correlation:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
+cor.test(abetaW.NNA$dqol, abetaW.NNA$dfast)
 #+END_SRC
 
 #+RESULTS:
@@ -889,91 +988,87 @@ cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
 
 	Pearson's product-moment correlation
 
-data:  gastricbypassW$changeW41 and gastricbypassW$changeG41
-t = 1.89, df = 18, p-value = 0.075
+data:  abetaW.NNA$dqol and abetaW.NNA$dfast
+t = -4.27, df = 110, p-value = 4.2e-05
 alternative hypothesis: true correlation is not equal to 0
 95 percent confidence interval:
- -0.043829  0.719624
+ -0.52570 -0.20575
 sample estimates:
-    cor 
-0.40658
+     cor 
+-0.37692
 #+end_example
 
-or regress one against the other:
+or estimate the regression coefficient of one change against the
+other:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e2.change41 <- lm(changeG41 ~ changeW41, data = gastricbypassW)
-summary(e2.change41)$coef
+model.tables(lmm(dqol ~ dfast, data = abetaW.NNA))
 #+END_SRC
 
 #+RESULTS:
-:             Estimate Std. Error t value Pr(>|t|)
-: (Intercept)  65.0794   24.83368  2.6206 0.017331
-: changeW41     1.7082    0.90473  1.8881 0.075246
+:             estimate      se     df    lower    upper    p.value
+: (Intercept)  1.34601 0.85087 110.02 -0.34022  3.03224 1.1654e-01
+: dfast       -0.49231 0.11535 110.02 -0.72091 -0.26371 4.1977e-05
 
-This problem can be recast using all measurement as outcomes:
+To retrieve the same results using a linear mixed model, one should
+move the dataset to the very long format, where each type of
+measurement is treated as a separate outcome:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-keep.col <- c("id","weight1","weight4","glucagonAUC1","glucagonAUC4")
-gastricbypassL4 <- reshape(gastricbypassW[,keep.col], direction = "long",
-                           idvar = "id", varying = 2:5, timevar = "type", v.names = "value")
-gastricbypassL4$type <- factor(gastricbypassL4$type, labels = keep.col[-1])
-gastricbypassL4 <- gastricbypassL4[order(gastricbypassL4$id),]
-head(gastricbypassL4)
+abetaL.NNA <- reshape(abetaW.NNA[,c("id","qol0","qol1","fast0","fast1")], direction = "long",
+                      idvar = "id", varying = 2:5,
+                      timevar = "type", times = c("qol0","qol1","fast0","fast1"), v.names = c("value"))
+abetaL.NNA <- abetaL.NNA[order(abetaL.NNA$id),]
+rownames(abetaL.NNA) <- NULL
+head(abetaL.NNA)
 #+END_SRC
 
 #+RESULTS:
-:     id         type   value
-: 1.1  1      weight1 127.200
-: 1.2  1      weight4 108.100
-: 1.3  1 glucagonAUC1  20.690
-: 1.4  1 glucagonAUC4  43.434
-: 2.1  2      weight1 165.200
-: 2.2  2      weight4 132.000
+:   id  type value
+: 1  3  qol0    86
+: 2  3  qol1    79
+: 3  3 fast0    29
+: 4  3 fast1    31
+: 5  4  qol0    96
+: 6  4  qol1   101
 
-fitting an unstructured mixed model:
+One can then jointly model the association between all type of
+measurement using an unstructured residual variance-covariance matrix:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 e.lmm4 <- lmm(value ~ type,
               repetition = ~type|id, structure = "UN",
-              data = gastricbypassL4)
-#+END_SRC
-
-#+RESULTS:
-
-extract the residual covariance matrix:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+              data = abetaL.NNA)
 sigma.lmm4 <- sigma(e.lmm4)
 sigma.lmm4
 #+END_SRC
 
 #+RESULTS:
-:                weight1 weight4 glucagonAUC1 glucagonAUC4
-: weight1       410.8475  326.84       1.7077     -217.399
-: weight4       326.8357  290.84     -24.6003     -161.696
-: glucagonAUC1    1.7077  -24.60     241.7007      -81.649
-: glucagonAUC4 -217.3994 -161.70     -81.6493      442.464
+:         fast0   fast1    qol0    qol1
+: fast0 132.471  95.090 -97.958 -72.709
+: fast1  95.090 102.301 -75.656 -72.360
+: qol0  -97.958 -75.656 143.759  91.321
+: qol1  -72.709 -72.360  91.321 114.957
 
 Deduce the residual covariance matrix for the change:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
 sigmeChange.lmm4 <- t(Mcon) %*% sigma.lmm4 %*% Mcon
-dimnames(sigmeChange.lmm4) <- list(c("d.weight","d.glucagonAUC"),
-                                   c("d.weight","d.glucagonAUC"))
+dimnames(sigmeChange.lmm4) <- replicate(2,c("dfast","dqol"), simplify = FALSE)
 sigmeChange.lmm4
 #+END_SRC
 
 #+RESULTS:
-:               d.weight d.glucagonAUC
-: d.weight        48.011        82.011
-: d.glucagonAUC   82.011       847.464
+:         dfast    dqol
+: dfast  44.592 -21.953
+: dqol  -21.953  76.075
 
-and the corrrelation or covariance:
+and retrieve the corrrelation and regression coefficients:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 cov2cor(sigmeChange.lmm4)[1,2]
 sigmeChange.lmm4[1,2]/sigmeChange.lmm4[1,1]
 #+END_SRC
 
 #+RESULTS:
-: [1] 0.40658
-: [1] 1.7082
+: [1] -0.37692
+: [1] -0.49231
 
 The uncertainty can be quantified using a delta method:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -985,17 +1080,163 @@ estimate(e.lmm4, function(p){
 #+END_SRC
 
 #+RESULTS:
-:      estimate      se     df    lower  upper p.value
-: cor   0.40658 0.19150 2.5925 -0.26078 1.0739 0.13791
-: beta  1.70818 0.88073 2.6876 -1.28836 4.7047 0.15837
+:      estimate       se     df    lower    upper    p.value
+: cor  -0.37692 0.081429 12.075 -0.55421 -0.19962 0.00057192
+: beta -0.49231 0.114833 12.561 -0.74127 -0.24334 0.00095359
 
-The standard errors and degrees of freedom do not match the univariate
-analysis, suggesting poor small sample properties of this
-technic.
+The standard error for the regression coefficient is close to the
+linear model one but the degrees of freedom seem grossly
+underestimated. One can set the argument =df= to =FALSE= when calling
+=estimate= to use a Gaussian instead of a Student's t distribution.
 
 \clearpage
 
-** Comparing variance
+** Comparing variances
+
+We can emulate a F-test comparing the variance between two populations:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+var.test(x = calciumW.NNA[calciumW.NNA$grp=="C","bmd1"],
+         y = calciumW.NNA[calciumW.NNA$grp=="P","bmd1"])
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+	F test to compare two variances
+
+data:  calciumW.NNA[calciumW.NNA$grp == "C", "bmd1"] and calciumW.NNA[calciumW.NNA$grp == "P", "bmd1"]
+F = 0.666, num df = 43, denom df = 46, p-value = 0.18
+alternative hypothesis: true ratio of variances is not equal to 1
+95 percent confidence interval:
+ 0.36801 1.21107
+sample estimates:
+ratio of variances 
+           0.66559
+#+end_example
+
+using an heteroschedastic linear regression with a parameter for the
+residual standard deviation in the reference group (\(\sigma\)) and a
+parameter for the ratio in standard deviation between the two groups
+(\(k\)):
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eVar2.lmm <- lmm(bmd1 ~ grp, structure = IND(~grp), data = calciumW.NNA)
+coef(eVar2.lmm, effects = "variance")     
+#+END_SRC
+
+#+RESULTS:
+:    sigma      k.C 
+: 66.87928  0.81584
+
+This leads to the following modeled group-sepecific residual standard
+deviations:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+coef(eVar2.lmm, effects = "variance", transform.k = "sd")
+#+END_SRC
+
+#+RESULTS:
+: sigma.P sigma.C 
+:  66.879  54.563
+
+Testing whether the \(k\) parameter is 1, i.e. its log is 0:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summary(anova(eVar2.lmm, effects = "variance"))
+#+END_SRC
+
+#+RESULTS:
+: 		Hypothesis-specific Wald test 
+: 
+:                    estimate    se   df lower upper p.value  
+:    variance: k.C=1    0.816 0.122 88.6 0.606 1.099   0.178  
+:    -------------------------------------------------------- 
+:     :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+:   df: Satterthwaite approximation w.r.t. model-based se. 
+:   se: based on the observed information (model-based). 
+:   Back-transformation: k parameters with exp.
+
+leads to a similar p-value comapred to =var.test=. The estimate
+differs as =anova= returns the ratio of the residual standard
+deviations instead of the ratio of the residual variances. The later
+can be obtained using:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+summary(anova(eVar2.lmm, effects = "variance", transform.k = "logsquare"))
+#+END_SRC
+
+#+RESULTS:
+: 		Hypothesis-specific Wald test 
+: 
+:                    estimate  se   df lower upper p.value  
+:    variance: k.C=1    0.666 0.2 88.6 0.367 1.208   0.178  
+:    ------------------------------------------------------ 
+:     :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+:   df: Satterthwaite approximation w.r.t. model-based se. 
+:   se: based on the observed information (model-based). 
+:   Back-transformation: k parameters with exp.
+
+closely matching the output of =var.test=. This test is the special
+case of the Bartlett test:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+bartlett.test(bmd1 ~ grp, data = calciumW.NNA)
+#+END_SRC
+
+#+RESULTS:
+: 
+: 	Bartlett test of homogeneity of variances
+: 
+: data:  bmd1 by grp
+: Bartlett's K-squared = 1.8, df = 1, p-value = 0.18
+
+which generalizes to more than two variances:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+bartlett.test(age ~ sex.group,
+              data = transform(abetaW.NNA, sex.group = paste0(sex,group)))
+#+END_SRC
+
+#+RESULTS:
+: 
+: 	Bartlett test of homogeneity of variances
+: 
+: data:  age by sex.group
+: Bartlett's K-squared = 1.68, df = 3, p-value = 0.64
+
+An F-test from the corresponding heteroschedastic linear regression
+leads to the same results:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eVar4.lmm <- lmm(age ~ sex.group, structure = IND(~sex.group),
+                 data = transform(abetaW.NNA, sex.group = paste0(sex,group)))
+summary(anova(eVar4.lmm, effects = "variance"))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+		Wald F-test 
+
+                       statistic       df p.value  
+   variance: sex.group     0.566 (3,53.1)    0.64  
+   ----------------------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+  Multiple testing adjustment: joint test.
+
+		Hypothesis-specific Wald tests 
+
+                     estimate    se   df lower upper p.value  
+   variance: k.FHC=1    1.143 0.241 34.3 0.681 1.919   0.874  
+             k.MBD=1     0.92 0.157 68.5 0.606 1.398   0.935  
+             k.MHC=1    1.131  0.22 47.2 0.701 1.822   0.876  
+   ---------------------------------------------------------- 
+    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+  df: Satterthwaite approximation w.r.t. model-based se. 
+  se: based on the observed information (model-based). 
+  Multiple testing adjustment: max test (1e+05 samples).
+  Back-transformation: k parameters with exp.
+#+end_example
+
+Note that the test statistic of =anova= multiplied by its (numerator)
+degree of freedom =0.566*3= leads to the test statistic of
+=bartlett.test=. \newline \Warning when considering variance of time
+instead of variance between groups the equivalence is typically lost
+as =lmm= can account for within-subject correlation (argument
+=structure= set to =UN=) while =bartlett.test= cannot.
 
 \clearpage
 * Equivalence with other R packages
@@ -1014,21 +1255,21 @@ For instance, the compound symmetry is equivalent to =corCompSymm=
 correlation structure, or to a random intercept model (when the within
 subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmm <- lmm(weight ~ visit*group, structure = "RE",
-               data = gastricbypassL, repetition = ~visit|id)
-eCS.gls <- gls(weight ~ visit*group, correlation = corCompSymm(form=~visit|id),
-               data = gastricbypassL, na.action = na.omit)
-eCS.lme <- lme(weight ~ visit*group, random = ~1|id,
-               data = gastricbypassL, na.action = na.omit)
+eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
+               data = calciumL, repetition = ~visit|girl)
+eCS.gls <- gls(bmd ~ visit*grp, correlation = corCompSymm(form=~visit|girl),
+               data = calciumL, na.action = na.omit)
+eCS.lme <- lme(bmd ~ visit*grp, random = ~1|girl,
+               data = calciumL, na.action = na.omit)
 logLik(eRI.lmm)
 logLik(eCS.lme)
 logLik(eCS.gls)
 #+END_SRC
 
 #+RESULTS:
-: [1] -236.21
-: 'log Lik.' -236.21 (df=10)
-: 'log Lik.' -236.21 (df=10)
+: [1] -2297.3
+: 'log Lik.' -2297.3 (df=12)
+: 'log Lik.' -2297.3 (df=12)
 
 The estimated random effect also match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1036,22 +1277,24 @@ range(ranef(eRI.lmm)-ranef(eCS.lme))
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.7303e-08  2.6979e-08
+: [1] -6.6939e-08  3.1497e-08
 
 Unstructured residual covariance matrix can also be obtained with
 =gls=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.gls <- gls(glucagonAUC ~ visit*group,
-               correlation = corSymm(form=~as.numeric(visit)|id),
+eUN.gls <- gls(bmd ~ visit*grp,
+               correlation = corSymm(form=~as.numeric(visit)|girl),
                weights = varIdent(form=~1|visit),
-               data = gastricbypassL, na.action = na.omit)
+               data = calciumL, na.action = na.omit)
+eUN.lmm <- lmm(bmd ~ visit*grp, structure = "UN",
+               data = calciumL, repetition = ~visit|girl)
 logLik(eUN.gls)
 logLik(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -295.31 (df=18)
-: [1] -295.31
+: 'log Lik.' -2218.5 (df=25)
+: [1] -2218.5
 
 \clearpage
 
@@ -1069,70 +1312,74 @@ library(lmerTest)
 For instance, the compound symmetry is equivalent to a random
 intercept model (when the within subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmer <- lmer(weight ~ visit*group + (1|id),
-                 data = gastricbypassL)
+eRI.lmer <- lmer(bmd ~ visit*grp + (1|girl), data = calciumL)
 logLik(eRI.lmer)
 logLik(eRI.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -236.21 (df=10)
-: [1] -236.21
+: 'log Lik.' -2297.3 (df=12)
+: [1] -2297.3
 
 The estimated random effects match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-range(ranef(eRI.lmm)-ranef(eRI.lmer)$id)
+range(ranef(eRI.lmm)-ranef(eRI.lmer)$girl)
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.5513e-08  2.4171e-08
+: [1] -7.3817e-08  3.4754e-08
 
 Nested random effects correspond to block unstructured:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eNRI.lmm <- lmm(weight ~ visit*group, structure = RE(~(1|id/baseline)),
-               data = gastricbypassL, repetition = ~visit|id)
-eNRI.lmer <- lmer(weight ~ visit*group + (1|id/baseline),
-                  data = gastricbypassL)
+calciumLB <- transform(calciumL, baseline = visit==1)
+
+eNRI.lmm <- lmm(bmd ~ visit*grp, structure = RE(~(1|girl/baseline)),
+                repetition = ~visit|girl,
+                data = calciumLB)
+eNRI.lmer <- lmer(bmd ~ visit*grp + (1|girl/baseline),
+                  data = calciumLB)
 logLik(eNRI.lmer)
 logLik(eNRI.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -234.97 (df=11)
-: [1] -234.97
+: 'log Lik.' -2282.1 (df=13)
+: [1] -2282.1
 
 And the estimated random effects still match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eRanefNRI.lmm <- ranef(eNRI.lmm, format = "wide")
 eRanefNRI.lmer <- ranef(eNRI.lmer)
-## id
-range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$id)
+## girl
+range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$girl)
 ## baseline
-range(c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)-ranef(eNRI.lmer)$`baseline:id`)
+eRanefNRI2.lmm <- c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)
+eRanefNRI2.lmer <- ranef(eNRI.lmer)$`baseline:girl`
+range(na.omit(eRanefNRI2.lmm)-eRanefNRI2.lmer)
 #+END_SRC
 
 #+RESULTS:
-: [1] -5.8317e-06  9.0913e-06
-: [1] -8.5850e-05  7.8971e-05
+: [1] -1.2487e-06  1.5182e-06
+: [1] -2.4547e-06  1.9463e-06
 
 \clearpage
 
 An unstructure residual covariance matrix can also be obtained using
 random slopes:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.lmer <- lmer(glucagonAUC ~ visit*group + (0 + visit|id),
-                 data = gastricbypassL,
+eUN.lmer <- lmer(bmd ~ visit*grp + (0 + visit|girl),
+                 data = calciumL,
                  control = lmerControl(check.nobs.vs.nRE = "ignore"))
 logLik(eUN.lmer)
 logLik(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: Warning message:
-: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
-:   Model failed to converge with max|grad| = 0.00203036 (tol = 0.002, component 1)
-: 'log Lik.' -295.31 (df=19)
-: [1] -295.31
+: Advarselsbesked:
+: I checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+:   Model failed to converge with max|grad| = 0.0101162 (tol = 0.002, component 1)
+: 'log Lik.' -2218.5 (df=26)
+: [1] -2218.5
 
 The uncertainty is quantified in a slightly different way, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1140,27 +1387,26 @@ anova(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 		Multivariate Wald test 
+: 		Wald F-tests 
 : 
-:                      F-statistic       df p.value   
-:    mean: visit             5.803 (3,16.9) 0.00647 **
-:        : group             3.926 (1,18.0) 0.06302  .
-:        : visit:group       2.762 (3,17.3) 0.07332  .
+:                    statistic        df p.value    
+:    mean: visit       111.043 (4, 96.0)  <1e-04 ***
+:          grp           0.764 (1,109.9)  0.3840    
+:          visit:grp     2.791 (4, 96.5)  0.0305   *
 
 is very similar but not identical to:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-## only the last line is comparable
-anova(eUN.lmer)
+anova(eUN.lmer) ## only the last line is comparable
 #+END_SRC
 
 #+RESULTS:
 : Type III Analysis of Variance Table with Satterthwaite's method
-:             Sum Sq Mean Sq NumDF DenDF F value  Pr(>F)    
-: visit         1339     446     3  17.4   18.29 1.3e-05 ***
-: group            5       5     1  18.1    0.22   0.647    
-: visit:group    203      68     3  17.4    2.77   0.073 .  
+:           Sum Sq Mean Sq NumDF DenDF F value Pr(>F)    
+: visit      65527   16382     4  96.8  258.07 <2e-16 ***
+: grp          162     162     1 109.3    2.55   0.11    
+: visit:grp    710     177     4  96.8    2.79   0.03 *  
 : ---
-: Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+: Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 It is also possible to fit cross-random effects such as:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -1187,14 +1433,16 @@ logLik(eCRI.lmm)
 #+RESULTS:
 : [1] -165.43
 
-Despite being significantly slower, the loglikelihood and random
+Despite =lmm= being significantly slower, the loglikelihood and random
 effect still match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
 #+END_SRC
 
 #+RESULTS:
-: [1] -4.3812e-07  6.0172e-07
+: [1] -4.4050e-07  6.0499e-07
+
+\clearpage
 
 ** mmrm package
 
@@ -1209,19 +1457,17 @@ e.mmrm <- mmrm(
 #+END_SRC
 
 #+RESULTS:
+: mmrm() registered as car::Anova extension
 
 It leads nearly identical results compared to =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 e.lmm <- lmm(
-  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT,
+  FEV1 ~ RACE + SEX + ARMCD * AVISIT,
   repetition = ~ AVISIT | USUBJID, structure = "UN",
   data = fev_data, type.information = "expected"
 )
 #+END_SRC
 #+RESULTS:
-: Warning message:
-: In .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
-:     3 clusters have been removed.
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(e.mmrm) - logLik(e.lmm)
@@ -1231,8 +1477,8 @@ range(vcov(e.mmrm) - vcov(e.lmm))
 
 #+RESULTS:
 : [1] -2.5413e-06
-: [1] -0.00018301  0.00016268
-: [1] -0.00039710  0.00020479
+: [1] -0.00018345  0.00016319
+: [1] -0.00039810  0.00020542
 
 The main differences are:
 - =mmrm= uses the expected information matrix to quantify uncertainty
@@ -1242,10 +1488,7 @@ The main differences are:
 - =mmrm= implements different covariance patterns
 - =mmrm= is faster and probably more memorry efficient
 - =mmrm= has currently fewer post-processing methods (e.g. adjustment
-  multiple comparisons when testing several model parameters). This
-  being said, the latest version of the package (0.3.7) included
-  several additional extractor of model feature so this may be
-  improved in the future.
+  multiple comparisons when testing several model parameters).
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 set.seed(10)
@@ -1264,13 +1507,13 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -760.3082
-: [1] -760.3082
+: [1] -760.31
+: [1] -760.31
 : Unit: milliseconds
-:  expr      min       lq      mean   median       uq      max neval cld
-:   lmm 143.3612 163.3131 186.89159 196.0709 200.6004 220.6009    50 a  
-:  lmm0  59.5744  67.4667  78.11758  79.9020  85.0430 122.4184    50  b 
-:  mmrm  27.9402  34.9598  36.14161  37.1766  38.4489  45.1623    50   c
+:  expr     min      lq    mean  median      uq     max neval cld
+:   lmm 117.452 126.582 134.970 132.854 140.968 174.606    50 a  
+:  lmm0  49.523  54.986  61.587  59.643  65.067  89.954    50  b 
+:  mmrm  21.475  23.797  31.775  24.753  27.604 299.775    50   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -1289,13 +1532,13 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -29929.47
-: [1] -29929.47
+: [1] -29903
+: [1] -29903
 : Unit: milliseconds
-:  expr      min       lq     mean   median       uq       max neval cld
-:   lmm 852.9435 878.4181 909.1854 892.9624 906.9167 1164.7141    20 a  
-:  lmm0 563.8959 587.0884 637.6633 603.6918 633.1166  857.8971    20  b 
-:  mmrm 669.4953 678.5426 704.9954 687.4764 703.5992  966.9066    20   c
+:  expr    min     lq    mean  median      uq     max neval cld
+:   lmm 939.76 985.42 1030.10 1032.81 1073.87 1149.32    20 a  
+:  lmm0 578.32 631.47  673.83  643.74  711.53  906.78    20  b 
+:  mmrm 494.46 525.48  575.52  560.56  573.47  779.57    20   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -1314,13 +1557,15 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -37769.25
-: [1] -37769.25
-: Unit: milliseconds
-:  expr      min        lq      mean    median        uq      max neval cld
-:   lmm 1144.132 1438.2282 1493.0397 1472.8144 1549.4191 1886.949    20  a 
-:  lmm0  739.710  885.3336  907.0729  895.3615  914.7741 1176.493    20   b
-:  mmrm 1260.906 1522.0530 1554.2281 1550.6463 1574.8884 1932.091    20  a
+: [1] -37745
+: [1] -37745
+: + + Unit: milliseconds
+:  expr     min      lq    mean  median     uq    max neval cld
+:   lmm 1355.83 1410.16 1605.29 1566.06 1748.7 1909.8    20  a 
+:  lmm0  766.83  855.06  969.93  920.07 1013.6 1431.8    20   b
+:  mmrm  937.85 1007.65 1093.39 1070.69 1162.0 1402.5    20   b
+
+\clearpage
 
 ** emmeans package
 

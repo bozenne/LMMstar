@@ -1,4 +1,4 @@
-#+TITLE: Comparison with traditional tests and other R packages
+#+TITLE: Comparison with other \Rlogo packages
 #+Author: Brice Ozenne
 #+BEGIN_SRC R :exports none :results silent :session *R* :cache no
 options(width = 100, digits = 5)
@@ -8,422 +8,15 @@ if(system("whoami",intern=TRUE)=="bozenne"){
   setwd("c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/")
 }
 library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
+library(LMMstar, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 #+END_SRC
 
-This first part of this vignette make connexions between the output of
-a linear mixed model and well-known test (t.test, ANCOVA,
-Pearson's correlation). The second part of the vignette make connexion with other
-\Rlogo packages.
-
-* Illustrative dataset
-
-We will illustrate the connexion using the gastricbypass dataset. The
-long format can be imported using:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-data(gastricbypassL, package = "LMMstar")
-head(gastricbypassL)
-#+END_SRC
-
-#+RESULTS:
-: id visit time weight glucagonAUC
-: 1  1     1  -13  127.2      20.690
-: 2  2     1  -13  165.2      49.922
-: 3  3     1  -13  109.7      42.434
-: 4  4     1  -13  146.2      27.517
-: 5  5     1  -13  113.1      29.151
-: 6  6     1  -13  158.8      42.700
-
-and add an (artificial) group variable:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL$group <- factor(as.numeric(gastricbypassL$id)%%2)
-#+END_SRC
-
-#+RESULTS:
-
-The corresponding wide format is
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-data(gastricbypassW, package = "LMMstar")
-gastricbypassW$group <- factor(as.numeric(gastricbypassW$id)%%2)
-head(gastricbypassW)
-#+END_SRC
-
-#+RESULTS:
-: id weight1 weight2 weight3 weight4 glucagonAUC1 glucagonAUC2 glucagonAUC3 glucagonAUC4 group
-: 1  1   127.2   120.7   115.5   108.1       20.690       20.535       92.600       43.434     1
-: 2  2   165.2   153.4   149.2   132.0       49.922       58.513       49.633       35.747     0
-: 3  3   109.7   101.6    97.7    87.1       42.434       25.770       91.240       83.137     1
-: 4  4   146.2   142.4   136.7   123.0       27.517       27.552       59.360       21.371     0
-: 5  5   113.1   105.6    99.9    87.7       29.151           NA       86.859       57.970     1
-: 6  6   158.8   143.6   134.6   108.7       42.700       31.616       53.408       37.636     0
-
-\clearpage
-
-
-* Equivalence with other statistical methods
-** Welch two sample t-test
-
-A two sample t-test:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-with(gastricbypassW, t.test(x = weight4[group=="1"], y = weight4[group=="0"]))
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-
-	Welch Two Sample t-test
-
-data:  weight4[group == "1"] and weight4[group == "0"]
-t = -0.591, df = 17.7, p-value = 0.56
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- -20.916  11.736
-sample estimates:
-mean of x mean of y 
-   100.07    104.66
-#+end_example
-
-is equivalent to an independent covariance pattern with a different
-parameter for the residual variance in each group:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.ttest4 <- lmm(weight4 ~ group, structure = IND(~group), 
-               data = gastricbypassW, trace = FALSE)
-model.tables(e.ttest4, effects = "all")
-#+END_SRC
-
-#+RESULTS:
-: estimate      se      df     lower    upper    p.value
-: (Intercept) 104.6600 5.10447  9.0018  93.11324 116.2068 7.2710e-09
-: group1       -4.5900 7.76067 17.6824 -20.91558  11.7356 5.6171e-01
-: sigma        16.1417 3.80465  9.0018   9.47095  27.5111         NA
-: k.1           1.1452 0.38174 18.0036   0.56853   2.3069 6.8896e-01
-
-
-\clearpage
-
-** Paired t-test
-
-With complete data, a paired t-test:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-t.test(gastricbypassW$weight4, gastricbypassW$weight1, paired = TRUE)
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-
-	Paired t-test
-
-data:  gastricbypassW$weight4 and gastricbypassW$weight1
-t = -17.2, df = 19, p-value = 5e-13
-alternative hypothesis: true mean difference is not equal to 0
-95 percent confidence interval:
- -29.848 -23.362
-sample estimates:
-mean difference 
-        -26.605
-#+end_example
-
-is equivalent to a LMM with an unstructured covariate pattern:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm2tt <- lmm(weight ~ visit, repetition = ~visit|id, structure = "UN",
-                data = gastricbypassL)
-model.tables(e.lmm2tt)["visit4",,drop=FALSE]
-#+END_SRC
-
-#+RESULTS:
-:        estimate     se     df   lower   upper    p.value
-: visit4  -26.605 1.5494 18.964 -29.848 -23.362 5.1692e-13
-
-\clearpage
-
-** Welch two sample t-test on the change
-
-With complete data, a two sample t-test comparing the change from baseline:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassW.0 <- gastricbypassW[gastricbypassW$group==0,]
-gastricbypassW.1 <- gastricbypassW[gastricbypassW$group==1,]
-t.test(gastricbypassW.0$weight4-gastricbypassW.0$weight1,
-       gastricbypassW.1$weight4-gastricbypassW.1$weight1)
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-
-	Welch Two Sample t-test
-
-data:  gastricbypassW.0$weight4 - gastricbypassW.0$weight1 and gastricbypassW.1$weight4 - gastricbypassW.1$weight1
-t = -2.11, df = 13, p-value = 0.055
-alternative hypothesis: true difference in means is not equal to 0
-95 percent confidence interval:
- -12.16771   0.14771
-sample estimates:
-mean of x mean of y 
-   -29.61    -23.60
-#+end_example
-
-is equivalent to a LMM with a stratified unstructured covariate pattern:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm2tt2 <- lmm(weight ~ visit*group, repetition = ~visit|id, structure = UN(~group),
-                 data = gastricbypassL)
-model.tables(e.lmm2tt2)["visit4:group1",,drop=FALSE]
-#+END_SRC
-
-#+RESULTS:
-:               estimate     se     df    lower  upper p.value
-: visit4:group1     6.01 2.8511 13.009 -0.14908 12.169   0.055
-
-\clearpage
-
-** Multiple Student's t-test
-
-
-Multiple t-tests:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.ttest1 <- lmm(weight1 ~ group, structure = IND(~group), 
-                data = gastricbypassW, trace = FALSE)
-e.ttest2 <- lmm(weight2 ~ group, structure = IND(~group), 
-                data = gastricbypassW, trace = FALSE)
-e.ttest3 <- lmm(weight3 ~ group, structure = IND(~group), 
-                data = gastricbypassW, trace = FALSE)
-#+END_SRC
-
-#+RESULTS:
-
-can be adjusted for multiple comparison by first using the =anova=
-function to specify the parameter of interest and combining the
-results using =rbind=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.mttest <- rbind(anova(e.ttest1, effects = "group=0"),
-                  anova(e.ttest2, effects = "group=0"),
-                  anova(e.ttest3, effects = "group=0"),
-                  anova(e.ttest4, effects = "group=0"),
-                  repetition = ~1|id)
-model.tables(e.mttest, method = "bonferroni")
-#+END_SRC
-
-#+RESULTS:
-: Fejl i rbind(deparse.level, ...) : 
-:   Extra arguments should inherit from Wald_lmm. 
-: 1: model.tables(e.mttest, method = "bonferroni")
-: Fejl: objekt 'e.mttest' blev ikke fundet
-: 1: rbind(anova(e.ttest1, effects = "group=0"), anova(e.ttest2, effects = "group=0"), 
-:        anova(e.ttest3, effects = "group=0"), anova(e.ttest4, effects = "group=0"), 
-:        repetition = ~1 | id)
-: 2: rbind(deparse.level, ...)
-: 3: stop("Extra arguments should inherit from Wald_lmm. \n") at rbind.R#151
-
-\Warning efficient adjustment for multiple comparisons (like
-="single-step"=) will not be valid as the correlation structure has
-not be specified. To do so it is more conveniently to work with a the
-long format:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.mttest2 <- mlmm(weight ~ group, structure = IND(~group),
-                  data = gastricbypassL, trace = FALSE,
-                  effects = "group1=0", by = "time", repetition = ~time|id)
-model.tables(e.mttest2, method = "single-step2")
-#+END_SRC
-
-#+RESULTS:
-:    by parameter estimate     se     df   lower   upper p.value
-: 1 -13    group1   -10.60 8.9717 17.965 -30.989  9.7893 0.31768
-: 2  -1    group1    -9.50 8.3951 17.985 -28.579  9.5789 0.34123
-: 3   1    group1    -8.92 8.1295 17.959 -27.395  9.5551 0.35785
-: 4  13    group1    -4.59 7.7607 17.682 -22.227 13.0470 0.66473
-
-or call the dedicated function =mt.test=:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW)
-#+END_SRC
-
-#+RESULTS:
-:        by parameter estimate     se     df   lower   upper p.value
-: 1 weight1     group   -10.60 8.9717 17.965 -30.976  9.7758 0.31870
-: 2 weight2     group    -9.50 8.3951 17.985 -28.566  9.5663 0.34115
-: 3 weight3     group    -8.92 8.1295 17.959 -27.383  9.5429 0.35844
-: 4 weight4     group    -4.59 7.7607 17.682 -22.215 13.0354 0.66272
-
-\clearpage
-
-** Linear regression on the change 
-
-A widely spread approach to analyze longitudinal data is to reduce the
-number of repetitions to 1 by working on the change and then apply
-'usual' statistical methods. For instance one could compare the pre-
-and post- operation values using:
-
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
-e.change41 <- lm(changeG41 ~ weight1, data = gastricbypassW)
-summary(e.change41)$coef
-#+END_SRC
-
-#+RESULTS:
-:             Estimate Std. Error t value Pr(>|t|)
-: (Intercept) 88.41370   41.01024  2.1559 0.044871
-: weight1     -0.53331    0.31432 -1.6967 0.106975
-
-This turns out to be equivalent to the following mixed model:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassL41 <- gastricbypassL[gastricbypassL$visit %in% c(1,4),]
-gastricbypassL41$visit <- droplevels(gastricbypassL41$visit)
-gastricbypassL41$weight1 <- gastricbypassW$weight1[gastricbypassL41$id]
-
-e.lmm41 <- lmm(glucagonAUC ~ visit + visit*weight1,
-               repetition =~ visit|id, structure = "UN",
-               data = gastricbypassL41)
-model.tables(e.lmm41)
-#+END_SRC
-
-#+RESULTS:
-:                  estimate       se     df     lower     upper p.value
-: (Intercept)    31.7805917 23.58747 18.003 -17.77425  81.33543 0.19458
-: visit4         88.4137014 41.01024 18.001   2.25477 174.57264 0.04487
-: weight1         0.0041566  0.18078 18.003  -0.37565   0.38396 0.98191
-: visit4:weight1 -0.5333052  0.31432 18.001  -1.19366   0.12705 0.10697
-
-This equivalence only holds as there is no missing data.
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-index.missing41 <- which(is.na(gastricbypassW$changeG41))
-index.missing41
-#+END_SRC
-
-#+RESULTS:
-: integer(0)
-
-\clearpage
-
-** Correlation between changes 
-
-In some studies, one is interested in studying the relation between
-two evolutions. Say weight and glucagon before and after the
-operation:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-gastricbypassW$changeG41 <- gastricbypassW$glucagonAUC4-gastricbypassW$glucagonAUC1
-gastricbypassW$changeW41 <- gastricbypassW$weight4-gastricbypassW$weight1
-#+END_SRC
-
-#+RESULTS:
-
-\bigskip
-
-One can evaluate their correlation:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cor.test(gastricbypassW$changeW41, gastricbypassW$changeG41)
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-
-	Pearson's product-moment correlation
-
-data:  gastricbypassW$changeW41 and gastricbypassW$changeG41
-t = 1.89, df = 18, p-value = 0.075
-alternative hypothesis: true correlation is not equal to 0
-95 percent confidence interval:
- -0.043829  0.719624
-sample estimates:
-    cor 
-0.40658
-#+end_example
-
-or regress one against the other:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e2.change41 <- lm(changeG41 ~ changeW41, data = gastricbypassW)
-summary(e2.change41)$coef
-#+END_SRC
-
-#+RESULTS:
-:             Estimate Std. Error t value Pr(>|t|)
-: (Intercept)  65.0794   24.83368  2.6206 0.017331
-: changeW41     1.7082    0.90473  1.8881 0.075246
-
-This problem can be recast using all measurement as outcomes:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-keep.col <- c("id","weight1","weight4","glucagonAUC1","glucagonAUC4")
-gastricbypassL4 <- reshape(gastricbypassW[,keep.col], direction = "long",
-                           idvar = "id", varying = 2:5, timevar = "type", v.names = "value")
-gastricbypassL4$type <- factor(gastricbypassL4$type, labels = keep.col[-1])
-gastricbypassL4 <- gastricbypassL4[order(gastricbypassL4$id),]
-head(gastricbypassL4)
-#+END_SRC
-
-#+RESULTS:
-:     id         type   value
-: 1.1  1      weight1 127.200
-: 1.2  1      weight4 108.100
-: 1.3  1 glucagonAUC1  20.690
-: 1.4  1 glucagonAUC4  43.434
-: 2.1  2      weight1 165.200
-: 2.2  2      weight4 132.000
-
-fitting an unstructured mixed model:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-e.lmm4 <- lmm(value ~ type,
-              repetition = ~type|id, structure = "UN",
-              data = gastricbypassL4)
-#+END_SRC
-
-#+RESULTS:
-
-extract the residual covariance matrix:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-sigma.lmm4 <- sigma(e.lmm4)
-sigma.lmm4
-#+END_SRC
-
-#+RESULTS:
-:                weight1 weight4 glucagonAUC1 glucagonAUC4
-: weight1       410.8475  326.84       1.7077     -217.399
-: weight4       326.8357  290.84     -24.6003     -161.696
-: glucagonAUC1    1.7077  -24.60     241.7007      -81.649
-: glucagonAUC4 -217.3994 -161.70     -81.6493      442.464
-
-Deduce the residual covariance matrix for the change:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-Mcon <- cbind(c(-1,1,0,0),c(0,0,-1,1))
-sigmeChange.lmm4 <- t(Mcon) %*% sigma.lmm4 %*% Mcon
-dimnames(sigmeChange.lmm4) <- list(c("d.weight","d.glucagonAUC"),
-                                   c("d.weight","d.glucagonAUC"))
-sigmeChange.lmm4
-#+END_SRC
-
-#+RESULTS:
-:               d.weight d.glucagonAUC
-: d.weight        48.011        82.011
-: d.glucagonAUC   82.011       847.464
-
-and the corrrelation or covariance:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-cov2cor(sigmeChange.lmm4)[1,2]
-sigmeChange.lmm4[1,2]/sigmeChange.lmm4[1,1]
-#+END_SRC
-
-#+RESULTS:
-: [1] 0.40658
-: [1] 1.7082
-
-The uncertainty can be quantified using a delta method:
-#+BEGIN_SRC R :exports both :results output :session *R* :cache no
-estimate(e.lmm4, function(p){
-  Sigma.change <- t(Mcon) %*% sigma(e.lmm4, p = p) %*% Mcon
-  c(cor = cov2cor(Sigma.change)[1,2],
-    beta = Sigma.change[1,2]/Sigma.change[1,1])
-})
-#+END_SRC
-
-#+RESULTS:
-:      estimate      se     df    lower  upper p.value
-: cor   0.40658 0.19150 2.5925 -0.26078 1.0739 0.13791
-: beta  1.70818 0.88073 2.6876 -1.28836 4.7047 0.15837
-
-The standard errors and degrees of freedom do not match the univariate
-analysis, suggesting poor small sample properties of this
-technic.
-
-\clearpage
-
-* Equivalence with other R packages
-
-** nlme package
+This vignette make connexions between the output of a linear mixed
+model and well-known tests (t.test, ANCOVA, Pearson's correlation,
+Bartlett's test, \ldots). The second part of the vignette make
+connexion with other \Rlogo packages.
+
+* nlme package
 
 The model class obtained with the =lmm= function overlaps the model
 class of the =lme= and =gls= functions from the nlme package.
@@ -437,21 +30,21 @@ For instance, the compound symmetry is equivalent to =corCompSymm=
 correlation structure, or to a random intercept model (when the within
 subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmm <- lmm(weight ~ visit*group, structure = "RE",
-               data = gastricbypassL, repetition = ~visit|id)
-eCS.gls <- gls(weight ~ visit*group, correlation = corCompSymm(form=~visit|id),
-               data = gastricbypassL, na.action = na.omit)
-eCS.lme <- lme(weight ~ visit*group, random = ~1|id,
-               data = gastricbypassL, na.action = na.omit)
+eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
+               data = calciumL, repetition = ~visit|girl)
+eCS.gls <- gls(bmd ~ visit*grp, correlation = corCompSymm(form=~visit|girl),
+               data = calciumL, na.action = na.omit)
+eCS.lme <- lme(bmd ~ visit*grp, random = ~1|girl,
+               data = calciumL, na.action = na.omit)
 logLik(eRI.lmm)
 logLik(eCS.lme)
 logLik(eCS.gls)
 #+END_SRC
 
 #+RESULTS:
-: [1] -236.21
-: 'log Lik.' -236.21 (df=10)
-: 'log Lik.' -236.21 (df=10)
+: [1] -2297.3
+: 'log Lik.' -2297.3 (df=12)
+: 'log Lik.' -2297.3 (df=12)
 
 The estimated random effect also match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -459,22 +52,24 @@ range(ranef(eRI.lmm)-ranef(eCS.lme))
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.7303e-08  2.6979e-08
+: [1] -6.6939e-08  3.1497e-08
 
 Unstructured residual covariance matrix can also be obtained with
 =gls=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.gls <- gls(glucagonAUC ~ visit*group,
-               correlation = corSymm(form=~as.numeric(visit)|id),
+eUN.gls <- gls(bmd ~ visit*grp,
+               correlation = corSymm(form=~as.numeric(visit)|girl),
                weights = varIdent(form=~1|visit),
-               data = gastricbypassL, na.action = na.omit)
+               data = calciumL, na.action = na.omit)
+eUN.lmm <- lmm(bmd ~ visit*grp, structure = "UN",
+               data = calciumL, repetition = ~visit|girl)
 logLik(eUN.gls)
 logLik(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -295.31 (df=18)
-: [1] -295.31
+: 'log Lik.' -2218.5 (df=25)
+: [1] -2218.5
 
 \clearpage
 
@@ -492,70 +87,74 @@ library(lmerTest)
 For instance, the compound symmetry is equivalent to a random
 intercept model (when the within subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eRI.lmer <- lmer(weight ~ visit*group + (1|id),
-                 data = gastricbypassL)
+eRI.lmer <- lmer(bmd ~ visit*grp + (1|girl), data = calciumL)
 logLik(eRI.lmer)
 logLik(eRI.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -236.21 (df=10)
-: [1] -236.21
+: 'log Lik.' -2297.3 (df=12)
+: [1] -2297.3
 
 The estimated random effects match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-range(ranef(eRI.lmm)-ranef(eRI.lmer)$id)
+range(ranef(eRI.lmm)-ranef(eRI.lmer)$girl)
 #+END_SRC
 
 #+RESULTS:
-: [1] -1.5513e-08  2.4171e-08
+: [1] -7.3817e-08  3.4754e-08
 
 Nested random effects correspond to block unstructured:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eNRI.lmm <- lmm(weight ~ visit*group, structure = RE(~(1|id/baseline)),
-               data = gastricbypassL, repetition = ~visit|id)
-eNRI.lmer <- lmer(weight ~ visit*group + (1|id/baseline),
-                  data = gastricbypassL)
+calciumLB <- transform(calciumL, baseline = visit==1)
+
+eNRI.lmm <- lmm(bmd ~ visit*grp, structure = RE(~(1|girl/baseline)),
+                repetition = ~visit|girl,
+                data = calciumLB)
+eNRI.lmer <- lmer(bmd ~ visit*grp + (1|girl/baseline),
+                  data = calciumLB)
 logLik(eNRI.lmer)
 logLik(eNRI.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 'log Lik.' -234.97 (df=11)
-: [1] -234.97
+: 'log Lik.' -2282.1 (df=13)
+: [1] -2282.1
 
 And the estimated random effects still match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 eRanefNRI.lmm <- ranef(eNRI.lmm, format = "wide")
 eRanefNRI.lmer <- ranef(eNRI.lmer)
-## id
-range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$id)
+## girl
+range(eRanefNRI.lmm$estimate-eRanefNRI.lmer$girl)
 ## baseline
-range(c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)-ranef(eNRI.lmer)$`baseline:id`)
+eRanefNRI2.lmm <- c(eRanefNRI.lmm$estimate.FALSE,eRanefNRI.lmm$estimate.TRUE)
+eRanefNRI2.lmer <- ranef(eNRI.lmer)$`baseline:girl`
+range(na.omit(eRanefNRI2.lmm)-eRanefNRI2.lmer)
 #+END_SRC
 
 #+RESULTS:
-: [1] -5.8317e-06  9.0913e-06
-: [1] -8.5850e-05  7.8971e-05
+: [1] -1.2487e-06  1.5182e-06
+: [1] -2.4547e-06  1.9463e-06
 
 \clearpage
 
 An unstructure residual covariance matrix can also be obtained using
 random slopes:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-eUN.lmer <- lmer(glucagonAUC ~ visit*group + (0 + visit|id),
-                 data = gastricbypassL,
+eUN.lmer <- lmer(bmd ~ visit*grp + (0 + visit|girl),
+                 data = calciumL,
                  control = lmerControl(check.nobs.vs.nRE = "ignore"))
 logLik(eUN.lmer)
 logLik(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: Warning message:
-: In checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
-:   Model failed to converge with max|grad| = 0.00203036 (tol = 0.002, component 1)
-: 'log Lik.' -295.31 (df=19)
-: [1] -295.31
+: Advarselsbesked:
+: I checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+:   Model failed to converge with max|grad| = 0.0101162 (tol = 0.002, component 1)
+: 'log Lik.' -2218.5 (df=26)
+: [1] -2218.5
 
 The uncertainty is quantified in a slightly different way, e.g.:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -563,27 +162,26 @@ anova(eUN.lmm)
 #+END_SRC
 
 #+RESULTS:
-: 		Multivariate Wald test 
+: 		Wald F-tests 
 : 
-:                      F-statistic       df p.value   
-:    mean: visit             5.803 (3,16.9) 0.00647 **
-:        : group             3.926 (1,18.0) 0.06302  .
-:        : visit:group       2.762 (3,17.3) 0.07332  .
+:                    statistic        df p.value    
+:    mean: visit       111.043 (4, 96.0)  <1e-04 ***
+:          grp           0.764 (1,109.9)  0.3840    
+:          visit:grp     2.791 (4, 96.5)  0.0305   *
 
 is very similar but not identical to:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
-## only the last line is comparable
-anova(eUN.lmer)
+anova(eUN.lmer) ## only the last line is comparable
 #+END_SRC
 
 #+RESULTS:
 : Type III Analysis of Variance Table with Satterthwaite's method
-:             Sum Sq Mean Sq NumDF DenDF F value  Pr(>F)    
-: visit         1339     446     3  17.4   18.29 1.3e-05 ***
-: group            5       5     1  18.1    0.22   0.647    
-: visit:group    203      68     3  17.4    2.77   0.073 .  
+:           Sum Sq Mean Sq NumDF DenDF F value Pr(>F)    
+: visit      65527   16382     4  96.8  258.07 <2e-16 ***
+: grp          162     162     1 109.3    2.55   0.11    
+: visit:grp    710     177     4  96.8    2.79   0.03 *  
 : ---
-: Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+: Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 It is also possible to fit cross-random effects such as:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -610,14 +208,16 @@ logLik(eCRI.lmm)
 #+RESULTS:
 : [1] -165.43
 
-Despite being significantly slower, the loglikelihood and random
+Despite =lmm= being significantly slower, the loglikelihood and random
 effect still match:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sample))
 #+END_SRC
 
 #+RESULTS:
-: [1] -4.3812e-07  6.0172e-07
+: [1] -4.4050e-07  6.0499e-07
+
+\clearpage
 
 ** mmrm package
 
@@ -632,19 +232,17 @@ e.mmrm <- mmrm(
 #+END_SRC
 
 #+RESULTS:
+: mmrm() registered as car::Anova extension
 
 It leads nearly identical results compared to =lmm=:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 e.lmm <- lmm(
-  formula = FEV1 ~ RACE + SEX + ARMCD * AVISIT,
+  FEV1 ~ RACE + SEX + ARMCD * AVISIT,
   repetition = ~ AVISIT | USUBJID, structure = "UN",
   data = fev_data, type.information = "expected"
 )
 #+END_SRC
 #+RESULTS:
-: Warning message:
-: In .lmmNormalizeData(as.data.frame(data)[unique(stats::na.omit(var.all))],  :
-:     3 clusters have been removed.
 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 logLik(e.mmrm) - logLik(e.lmm)
@@ -654,8 +252,8 @@ range(vcov(e.mmrm) - vcov(e.lmm))
 
 #+RESULTS:
 : [1] -2.5413e-06
-: [1] -0.00018301  0.00016268
-: [1] -0.00039710  0.00020479
+: [1] -0.00018345  0.00016319
+: [1] -0.00039810  0.00020542
 
 The main differences are:
 - =mmrm= uses the expected information matrix to quantify uncertainty
@@ -665,10 +263,7 @@ The main differences are:
 - =mmrm= implements different covariance patterns
 - =mmrm= is faster and probably more memorry efficient
 - =mmrm= has currently fewer post-processing methods (e.g. adjustment
-  multiple comparisons when testing several model parameters). This
-  being said, the latest version of the package (0.3.7) included
-  several additional extractor of model feature so this may be
-  improved in the future.
+  multiple comparisons when testing several model parameters).
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
 set.seed(10)
@@ -687,13 +282,13 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -760.3082
-: [1] -760.3082
+: [1] -760.31
+: [1] -760.31
 : Unit: milliseconds
-:  expr      min       lq      mean   median       uq      max neval cld
-:   lmm 143.3612 163.3131 186.89159 196.0709 200.6004 220.6009    50 a  
-:  lmm0  59.5744  67.4667  78.11758  79.9020  85.0430 122.4184    50  b 
-:  mmrm  27.9402  34.9598  36.14161  37.1766  38.4489  45.1623    50   c
+:  expr     min      lq    mean  median      uq     max neval cld
+:   lmm 117.452 126.582 134.970 132.854 140.968 174.606    50 a  
+:  lmm0  49.523  54.986  61.587  59.643  65.067  89.954    50  b 
+:  mmrm  21.475  23.797  31.775  24.753  27.604 299.775    50   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -712,13 +307,13 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -29929.47
-: [1] -29929.47
+: [1] -29903
+: [1] -29903
 : Unit: milliseconds
-:  expr      min       lq     mean   median       uq       max neval cld
-:   lmm 852.9435 878.4181 909.1854 892.9624 906.9167 1164.7141    20 a  
-:  lmm0 563.8959 587.0884 637.6633 603.6918 633.1166  857.8971    20  b 
-:  mmrm 669.4953 678.5426 704.9954 687.4764 703.5992  966.9066    20   c
+:  expr    min     lq    mean  median      uq     max neval cld
+:   lmm 939.76 985.42 1030.10 1032.81 1073.87 1149.32    20 a  
+:  lmm0 578.32 631.47  673.83  643.74  711.53  906.78    20  b 
+:  mmrm 494.46 525.48  575.52  560.56  573.47  779.57    20   c
 
 
 #+BEGIN_SRC R :exports none :results output :session *R* :cache no
@@ -737,13 +332,15 @@ microbenchmark::microbenchmark(
 #+END_SRC
 
 #+RESULTS:
-: [1] -37769.25
-: [1] -37769.25
-: Unit: milliseconds
-:  expr      min        lq      mean    median        uq      max neval cld
-:   lmm 1144.132 1438.2282 1493.0397 1472.8144 1549.4191 1886.949    20  a 
-:  lmm0  739.710  885.3336  907.0729  895.3615  914.7741 1176.493    20   b
-:  mmrm 1260.906 1522.0530 1554.2281 1550.6463 1574.8884 1932.091    20  a
+: [1] -37745
+: [1] -37745
+: + + Unit: milliseconds
+:  expr     min      lq    mean  median     uq    max neval cld
+:   lmm 1355.83 1410.16 1605.29 1566.06 1748.7 1909.8    20  a 
+:  lmm0  766.83  855.06  969.93  920.07 1013.6 1431.8    20   b
+:  mmrm  937.85 1007.65 1093.39 1070.69 1162.0 1402.5    20   b
+
+\clearpage
 
 ** emmeans package
 
