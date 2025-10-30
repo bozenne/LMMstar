@@ -1,4 +1,4 @@
-% Created 2025-10-21 ti 12:07
+% Created 2025-10-21 ti 16:30
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -258,12 +258,9 @@ and (1.75,0.4) .. cycle;
 \begin{document}
 
 \maketitle
-This vignette make connexions between the output of a linear mixed
-model and well-known tests (t.test, ANCOVA, Pearson's correlation,
-Bartlett's test, \ldots). The second part of the vignette make
-connexion with other \Rlogo packages.
+This vignette shows   package to other \Rlogo packages,
 \section{nlme package}
-\label{sec:orgf1cec13}
+\label{sec:orgf080808}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lme} and \texttt{gls} functions from the nlme package.
@@ -275,6 +272,7 @@ For instance, the compound symmetry is equivalent to \texttt{corCompSymm}
 correlation structure, or to a random intercept model (when the within
 subject correlation is positive):
 \begin{lstlisting}[language=r,numbers=none]
+data(calciumL, package = "LMMstar")
 eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
                data = calciumL, repetition = ~visit|girl)
 eCS.gls <- gls(bmd ~ visit*grp, correlation = corCompSymm(form=~visit|girl),
@@ -303,7 +301,7 @@ range(ranef(eRI.lmm)-ranef(eCS.lme))
 \phantomsection
 \label{}
 \begin{verbatim}
-[1] -6.6939e-08  3.1497e-08
+[1] -6.6955e-08  3.1480e-08
 \end{verbatim}
 
 
@@ -329,8 +327,8 @@ logLik(eUN.lmm)
 
 
 \clearpage
-\subsection{lme4 package}
-\label{sec:org4a480f1}
+\section{lme4 package}
+\label{sec:org7c59d47}
 
 The model class obtained with the \texttt{lmm} function overlaps the model
 class of the \texttt{lmer} function from the lme4 package.
@@ -511,8 +509,8 @@ range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sam
 
 
 \clearpage
-\subsection{mmrm package}
-\label{sec:orged18e50}
+\section{mmrm package}
+\label{sec:org0402f2b}
 
 The package \texttt{mmrm} is an alternative implementation of mixed models
 specified via covariance structures:
@@ -567,8 +565,142 @@ multiple comparisons when testing several model parameters).
 \end{itemize}
 
 \clearpage
-\subsection{emmeans package}
-\label{sec:org2b0f27a}
+\section{emmeans package}
+\label{sec:org92dc6bb}
+
+While LMMstar does not have native support for the \texttt{emmeans} package,
+the \texttt{effects} method is provided as a replacement. For instance:
+\begin{lstlisting}[language=r,numbers=none]
+library(emmeans)
+warp.lm <- lm(breaks ~ wool * tension, data = warpbreaks)
+warp.emmeans <- emmeans(warp.lm,  ~ wool | tension)
+warp.emmeans
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+tension = L:
+ wool emmean   SE df lower.CL upper.CL
+ A      44.6 3.65 48     37.2     51.9
+ B      28.2 3.65 48     20.9     35.6
+
+tension = M:
+ wool emmean   SE df lower.CL upper.CL
+ A      24.0 3.65 48     16.7     31.3
+ B      28.8 3.65 48     21.4     36.1
+
+tension = H:
+ wool emmean   SE df lower.CL upper.CL
+ A      24.6 3.65 48     17.2     31.9
+ B      18.8 3.65 48     11.4     26.1
+
+Confidence level used: 0.95
+\end{verbatim}
+
+is equivalent to:
+\begin{lstlisting}[language=r,numbers=none]
+warp.lmm <- lmm(breaks ~ wool * tension, data = warpbreaks)
+effects(warp.lmm, ~ wool | tension)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Average counterfactual outcome
+
+	Univariate Wald tests: 
+                     estimate    se df  lower  upper
+   wool=A(tension=H)   24.556 3.647 48 17.223 31.888
+   wool=A(tension=L)   44.556 3.647 48 37.223 51.888
+   wool=A(tension=M)       24 3.647 48 16.668 31.332
+   wool=B(tension=H)   18.778 3.647 48 11.446  26.11
+   wool=B(tension=L)   28.222 3.647 48  20.89 35.554
+   wool=B(tension=M)   28.778 3.647 48 21.446  36.11
+\end{verbatim}
+
+\clearpage
+
+It is also possible to evaluate pairwise differences:
+\begin{lstlisting}[language=r,numbers=none]
+pairs(warp.emmeans)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+tension = L:
+ contrast estimate   SE df t.ratio p.value
+ A - B       16.33 5.16 48   3.167  0.0027
+
+tension = M:
+ contrast estimate   SE df t.ratio p.value
+ A - B       -4.78 5.16 48  -0.926  0.3589
+
+tension = H:
+ contrast estimate   SE df t.ratio p.value
+ A - B        5.78 5.16 48   1.120  0.2682
+\end{verbatim}
+
+using:
+\begin{lstlisting}[language=r,numbers=none]
+effects(warp.lmm, ~ difference(wool)|tension)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+		Difference in average counterfactual outcome
+
+	Univariate Wald tests: 
+                    estimate    se df   lower  upper
+wool=B-A(tension=H)   -5.778 5.157 48 -16.147  4.592
+wool=B-A(tension=L)  -16.333 5.157 48 -26.703 -5.964
+wool=B-A(tension=M)    4.778 5.157 48  -5.592 15.147
+\end{verbatim}
+
+
+
+
+
+\begin{lstlisting}[language=r,numbers=none]
+eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
+               data = calciumL, repetition = ~visit|girl)
+eCS.lme <- lme(bmd ~ visit*grp, random = ~1|girl,
+               data = calciumL, na.action = na.omit)
+effects(eRI.lmm, variable = NULL)
+emmeans(eCS.lme, specs=~visit)
+
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Average counterfactual outcome
+
+	Univariate Wald tests: 
+           estimate    se    df   lower   upper
+   visit=1   875.17  6.46 118.3 862.377 887.962
+   visit=2  898.484 6.481 119.8 885.651 911.317
+   visit=3  925.439 6.497 120.9 912.576 938.302
+   visit=4  952.501  6.51 121.9 939.614 965.387
+   visit=5  971.835 6.518 122.5 958.933 984.738
+NOTE: Results may be misleading due to involvement in interactions
+ visit emmean   SE  df lower.CL upper.CL
+ 1        875 6.46 110      862      888
+ 2        899 6.48 110      886      911
+ 3        926 6.50 110      913      939
+ 4        953 6.51 110      940      966
+ 5        972 6.52 110      959      985
+
+Results are averaged over the levels of: grp 
+Degrees-of-freedom method: containment 
+Confidence level used: 0.95
+\end{verbatim}
+
+
+Instead the \texttt{effect.lmm} as a replacement to
+
 
 To illustrate a key difference between the emmeans package and the
 \texttt{effects.lmm} function we consider an informative and unbalanced group
@@ -729,7 +861,7 @@ c(emmeans = (mu.group1+mu.group2)/2, predict = mu.group1 * p.group1 + mu.group2 
 
 \clearpage
 \subsection{effectsize package (\(R^2\) or \(\eta^2\))}
-\label{sec:org1476e5a}
+\label{sec:orgae70696}
 
 Partial \(\eta^2\) can be computed based on \texttt{lmer} using the effectsize package:
 \begin{lstlisting}[language=r,numbers=none]
@@ -803,7 +935,7 @@ visit:group |           0.32 | [0.00, 1.00]
 But in that case both may be misleading as the proportion of explained
 variance is not clearly defined.
 \subsection{MuMIn package (\(R^2\))}
-\label{sec:org29c722b}
+\label{sec:orga529bb5}
 
 \begin{lstlisting}[language=r,numbers=none]
 library(MuMIn)
@@ -854,7 +986,7 @@ c(R2m = sigma2_XB/(sigmaW + sigmaB + sigma2_XB),
 0.52549 0.62865
 \end{verbatim}
 \subsection{stats package (partial residuals)}
-\label{sec:orgb3dd408}
+\label{sec:org9d38dbd}
 
 The function \texttt{residuals.lm} can be used to extract partial residuals
 from \texttt{lm} objects. For instance:
@@ -942,7 +1074,7 @@ variables, interactions, or non-linear terms, the output obtained with
 whereas \texttt{residuals.lm} will center the column relative to the
 coefficient in the design matrix.
 \section*{References}
-\label{sec:org66b89bf}
+\label{sec:orgd8866c7}
 \begingroup
 \renewcommand{\section}[2]{}
 

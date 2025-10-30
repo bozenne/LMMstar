@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: jul 24 2025 (18:56) 
+## Last-Updated: okt 24 2025 (17:42) 
 ##           By: Brice Ozenne
-##     Update #: 390
+##     Update #: 447
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -133,7 +133,7 @@ equation2contrast <- function(object, name.coef, X,
 
     object.contrast <- stats::setNames(vector(mode = "list", length = length(object)), object)
     object.rhs <- stats::setNames(vector(mode = "list", length = length(object)), object)
-    
+
     ## ** convert variables into contrast matrix
     if(n.variable>0){
         
@@ -213,7 +213,39 @@ equation2contrast <- function(object, name.coef, X,
 
         ## *** get left hand side
         equation.lhs <- trimws(sapply(splitEquation.equal, "[", 1), which = "both")
+        if(any(sapply(equation.lhs,"%in%",setdiff(attr(X$mean,"term.labels"),name.coef)))){ ## special case where group=0 (factor) is used instead of groupB=0, groupC=0 (each individual dummy)
+            testTerm.lhs <- sapply(equation.lhs,"%in%",setdiff(attr(X$mean,"term.labels"),name.coef))
+            indexTerm.lhs <- match(equation.lhs[which(testTerm.lhs)], attr(X$mean,"term.labels"))
+            ## expand factor term
+            ls.equation.lhs <- as.list(equation.lhs)
+            ls.equation.lhs[testTerm.lhs] <- lapply(indexTerm.lhs, function(iIndex){colnames(X$mean)[attr(X$mean,"assign")==iIndex]})
+            ## update
+            equation.lhs <- unlist(ls.equation.lhs)            
+            ls.object.rhs <- mapply(object.rhs,  n = ifelse(testTerm.lhs, lengths(ls.equation.lhs), 1), FUN = replicate, simplify = FALSE, SIMPLIFY = FALSE)
+            object.rhs <- unlist(ls.object.rhs, recursive = FALSE)
+            ls.equation <- lapply(1:n.equation, function(iNeq){ ## iNeq <- 1
+                if(testTerm.lhs[iNeq]){
+                    paste(ls.equation.lhs[[names(testTerm.lhs[iNeq])]], unlist(ls.object.rhs[[names(testTerm.lhs[iNeq])]]), sep = "=")
+                }else{
+                    equation[names(testTerm.lhs[iNeq])]
+                }
+            })
+            equation <- unlist(ls.equation.lhs)
+            ls.object.contrast <- mapply(object.contrast,  n = ifelse(testTerm.lhs, lengths(ls.equation.lhs), 1), FUN = replicate, simplify = FALSE, SIMPLIFY = FALSE)
+            for(iTerm in which(testTerm.lhs)){
+                for(iEq in 1:length(ls.object.contrast[[iTerm]])){
+                    rownames(ls.object.contrast[[iTerm]][[iEq]]) <- ls.equation[[iTerm]][[iEq]]
+                }
+            }
+            object.contrast <- unlist(ls.object.contrast, recursive = FALSE)
 
+            names(object.rhs) <- equation
+            names(equation.lhs) <- equation
+            names(equation) <- equation
+            names(object.contrast) <- equation            
+            n.equation <- length(equation.lhs)
+        }
+        
         ## *** take care of the easy case where there is 'just' the coefficient
         index.coef <- which(equation.lhs %in% name.coef)
         ## check whether rescue coefficient is more approrpiate
@@ -234,7 +266,7 @@ equation2contrast <- function(object, name.coef, X,
         if(length(index.coef)>0){
             for(iC in index.coef){ ## iC <- 2
                 object.contrast[[equation[iC]]][1,equation.lhs[iC]] <- 1
-            }
+            }            
         }
     }
     

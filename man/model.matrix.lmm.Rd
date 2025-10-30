@@ -10,7 +10,7 @@
   effects = "mean",
   simplify = TRUE,
   drop.X = NULL,
-  na.rm = TRUE,
+  na.rm = FALSE,
   ...
 )
 }

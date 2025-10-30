@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1760369180.33544 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-cross-over/cross-over.tex" "cross-over.pdf" "cross-over" 1760369182.04908 0
+["pdflatex"] 1761140339.3605 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-cross-over/cross-over.tex" "cross-over.pdf" "cross-over" 1761140341.20118 0
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1759405651 96918 b44e951870e976cb5314ff35e4f298cd ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary10.tfm" 1752479638 848 f478e0761563bbc369eca609a1741348 ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary6.tfm" 1752479641 848 068dd119e13b75777e62821af7d4f2a6 ""
@@ -241,10 +241,10 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xifthen/xifthen.sty" 1448274436 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-cross-over/cross-over.tex" 1760369166 42985 5187588eacd500d626d671493f238156 ""
-  "cross-over.aux" 1760369181 5789 b69fe0b869c47907a2a7abe072021ba2 "pdflatex"
-  "cross-over.out" 1760369181 2500 96fdfb70b6d27050dc0a3f02f0f05abb "pdflatex"
-  "cross-over.tex" 1760369166 42985 5187588eacd500d626d671493f238156 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-cross-over/cross-over.tex" 1761140335 41377 b5a1d8a399e5c55fb90b686199ec96d4 ""
+  "cross-over.aux" 1761140340 6430 e4fa653b043f06c2c67ee1544362fe1c "pdflatex"
+  "cross-over.out" 1761140340 2892 90aefe7dce5518f127fde90fd5ed8b4a "pdflatex"
+  "cross-over.tex" 1761140335 41377 b5a1d8a399e5c55fb90b686199ec96d4 ""
   "figures/gg-spaghetti.pdf" 1741605852 8420 75109ef6d00542c0a3d9199e7191af92 ""
   "figures/spa-BCO.pdf" 1743668966 9354 33d65012a3e4e7f9897bd83618506d1f ""
   (generated)

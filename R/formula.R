@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: jul 24 2025 (12:51) 
+## Last-Updated: okt 24 2025 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 322
+##     Update #: 325
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,13 +57,15 @@ formula.lmm <- function(x, effects = "mean", ...){
 ##' formula2var(group~time1+time2|id)
 ##' formula2var(Y~(time|id))
 ##' formula2var(Y+Z~X+(1|id)+(1|region))
-##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id:baseline))
+##' formula2var(Y+Z~s(X1)+X2*X3 + (X1|id/baseline))
 ##'
 ##' df <- cbind(Y=1, X=0, as.data.frame(matrix(1,ncol = 5, nrow = 1)))
 ##' formula2var(Y ~ ., data = df)
 ##' formula2var(Y ~ ., data = df, allowDotAsName = TRUE)
 ##' formula2var(Y ~ X + ., data = df)
 ##' formula2var(. ~ X, data = df)
+##' 
+
 
 ## * formula2var (code)
 formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = "formula",

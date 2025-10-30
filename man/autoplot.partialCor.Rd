@@ -7,12 +7,17 @@
 \usage{
 \method{autoplot}{partialCor}(
   object,
-  size.text = 16,
+  type = NULL,
+  at,
   limits = c(-1, 1.00001),
   low = "blue",
   mid = "white",
   high = "red",
   midpoint = 0,
+  labeller = "label_value",
+  size.text = 16,
+  obs.size = NULL,
+  digits = 2,
   ...
 )
 
@@ -21,13 +26,26 @@
 \arguments{
 \item{object, x}{a \code{partialCor} object.}
 
-\item{size.text}{[numeric, >0] size of the font used to display text.}
+\item{type}{[character] the type of plot \itemize{
+\item \code{"fit"}: scatterplot of the partial residuals. Only feasible with a single repetition per cluster.
+\item \code{"correlation"}: headmap of the correlation matrix used by the underlying mixed model.
+}}
+
+\item{at}{[data.frame] values for the covariates at which to evaluate the partial residuals. Passed to \code{\link{residuals.lmm}}.}
 
 \item{limits}{[numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.}
 
 \item{low, mid, high}{[character] color for the the colorscale relative to the correlation.}
 
 \item{midpoint}{[numeric] correlation value associated with the color defined by argument \code{mid}.}
+
+\item{labeller}{[character] Passed to \code{ggplot2::facet_wrap}.}
+
+\item{size.text}{[numeric, >0] size of the font used to display text.}
+
+\item{obs.size}{[numeric vector of length 2] size of the points and line.}
+
+\item{digits}{[integer, >0] Number of digits used to display the covariate values relative to which the partial residuals are computed.}
 
 \item{...}{Not used. For compatibility with the generic method.}
 }
@@ -47,11 +65,18 @@ Extract and display the correlation modeled via the linear mixed model.
 }}
 \examples{
 if(require(ggplot2)){
-data(gastricbypassL, package = "LMMstar")
 
-e.pCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
-                     data = gastricbypassL)
+## Visualize partial correlation
+data(gastricbypassW, package = "LMMstar")
+e.pCor <- partialCor(c(weight4,glucagonAUC4)~weight1+glucagonAUC1,
+                     data = gastricbypassW)
 plot(e.pCor)
+
+## with repeated measurements
+data(gastricbypassL, package = "LMMstar")
+e.mpCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
+                     data = gastricbypassL)
+plot(e.mpCor)
 }
 
 }

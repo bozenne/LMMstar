@@ -41,9 +41,9 @@ Different correlation structures can be specified:\itemize{
 \examples{
 ## no covariate
 TOEPLITZ(~time, var.cluster = "id", var.time = "time")
-TOEPLITZ(gender~time, var.cluster = "id", var.time = "time")
+TOEPLITZ(sex~time, var.cluster = "id", var.time = "time")
 TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
-TOEPLITZ(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
+TOEPLITZ(list(sex~time,sex~time), var.cluster = "id", var.time = "time")
 
 ## with covariates
 TOEPLITZ(~side, var.cluster = "id", type = "UN",
@@ -52,7 +52,7 @@ TOEPLITZ(~side, var.cluster = "id", type = "LAG",
          var.time = "time", add.time = TRUE)
 TOEPLITZ(~side, var.cluster = "id", type = "CS",
          var.time = "time", add.time = TRUE)
-TOEPLITZ(gender~side, var.cluster = "id", type = "CS",
+TOEPLITZ(sex~side, var.cluster = "id", type = "CS",
          var.time = "time", add.time = TRUE)
 }
 \keyword{multivariate}

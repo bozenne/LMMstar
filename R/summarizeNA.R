@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: dec  7 2022 (17:13) 
 ## Version: 
-## Last-Updated: jul 10 2024 (14:48) 
+## Last-Updated: okt 24 2025 (12:23) 
 ##           By: Brice Ozenne
-##     Update #: 125
+##     Update #: 128
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -137,6 +137,9 @@ summarizeNA <- function(data, formula, repetition = NULL, sep = "",
     name.cluster <- detail.repetition$var$cluster
     name.time <- detail.repetition$var$time
 
+    if(any(data[name.X]=="")){        
+        stop("Variable on the right hand side of the formula should not take value \"\". \n")
+    }
     if(!is.null(name.time) && is.null(name.cluster)){
         stop("Missing cluster variable in argument \'repetition\'. \n",
              "Should be something like ~time|cluster. \n")

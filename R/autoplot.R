@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:49) 
+## Last-Updated: okt 30 2025 (10:46) 
 ##           By: Brice Ozenne
-##     Update #: 1616
+##     Update #: 1751
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -371,10 +371,18 @@ autoplot.mlmm <- function(object, type = "forest", ...){
 ##' @description Extract and display the correlation modeled via the linear mixed model.
 ##'
 ##' @param object,x a \code{partialCor} object.
+##' @param type [character] the type of plot \itemize{
+##' \item \code{"fit"}: scatterplot of the partial residuals. Only feasible with a single repetition per cluster.
+##' \item \code{"correlation"}: headmap of the correlation matrix used by the underlying mixed model.
+##' }
+##' @param at [data.frame] values for the covariates at which to evaluate the partial residuals. Passed to \code{\link{residuals.lmm}}.
 ##' @param size.text [numeric, >0] size of the font used to display text.
 ##' @param limits [numeric vector of length 2] minimum and maximum value of the colorscale relative to the correlation.
 ##' @param low,mid,high [character] color for the the colorscale relative to the correlation.
 ##' @param midpoint [numeric] correlation value associated with the color defined by argument \code{mid}.
+##' @param labeller [character] Passed to \code{ggplot2::facet_wrap}.
+##' @param obs.size [numeric vector of length 2] size of the points and line.
+##' @param digits [integer, >0] Number of digits used to display the covariate values relative to which the partial residuals are computed.
 ##' @param ... Not used. For compatibility with the generic method.
 ##'
 ##' @return A list with two elements \itemize{
@@ -386,46 +394,143 @@ autoplot.mlmm <- function(object, type = "forest", ...){
 ##' 
 ##' @examples
 ##' if(require(ggplot2)){
-##' data(gastricbypassL, package = "LMMstar")
-##' 
-##' e.pCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
-##'                      data = gastricbypassL)
+##'
+##' ## Visualize partial correlation
+##' data(gastricbypassW, package = "LMMstar")
+##' e.pCor <- partialCor(c(weight4,glucagonAUC4)~weight1+glucagonAUC1,
+##'                      data = gastricbypassW)
 ##' plot(e.pCor)
+##' 
+##' ## with repeated measurements
+##' data(gastricbypassL, package = "LMMstar")
+##' e.mpCor <- partialCor(c(weight,glucagonAUC)~time, repetition = ~visit|id,
+##'                      data = gastricbypassL)
+##' plot(e.mpCor)
 ##' }
 ##' 
 
 ## * autoplot.partialCor (code)
 ##' @export
-autoplot.partialCor <- function(object, size.text = 16,
-                                limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0, ...){
-
-    object.lmm <- attr(object,"lmm")
-    Sigma_t <- stats::sigma(object.lmm)
-    name.time <- object.lmm$time$levels
-    if(!is.matrix(Sigma_t)){
-        stop("Could not extract a unique covariance matrix. \n")
+autoplot.partialCor <- function(object, type = NULL,  at, 
+                                limits = c(-1,1.00001), low = "blue", mid = "white", high = "red", midpoint = 0,
+                                labeller = "label_value", size.text = 16, obs.size = NULL, digits = 2, ...){
+    object.lmm <- lmm(object)
+    if(inherits(object.lmm,"lmm")){
+        object.lmm <- list(object.lmm)
     }
-    Sigma_t <- stats::cov2cor(Sigma_t)
-        
-    ## from matrix to long format
-    table <- as.data.frame(cbind(which(is.na(NA*Sigma_t), arr.ind = TRUE),value = as.numeric(Sigma_t)))
-    rownames(table) <- NULL
-    table$col <- factor(colnames(Sigma_t)[table$col], levels = name.time)
-    table$row <- factor(rownames(Sigma_t)[table$row], levels = name.time)
-    
-    gg <- ggplot2::ggplot(table) + ggplot2::geom_tile(ggplot2::aes(x = .data$row, y = .data$col, fill = .data$value))
+    name.time <- lapply(object.lmm, function(iO){iO$time$levels})
+    n.lmm <- length(object.lmm)
 
-    if(!is.null(mid)){
-        gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+    ## ** normalize user input
+    name.by <- attr(object,"args")$by
+    if(is.null(type)){
+        type <- ifelse(any(lengths(name.time)>2),"correlation","fit")
     }else{
-        gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
+        type <- match.arg(type, c("fit","correlation"))
+        if(any(lengths(name.time)>1) && type == "fit"){
+            stop("Argument \'type\' cannot be \"fit\" with multiple repetitions per cluster. \n")
+        }
     }
-    gg <- gg + ggplot2::labs(x = NULL, y = NULL, fill = "correlation") + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1))
+
+    
+    if(type == "fit"){
+        ## variable to adjust on in each model
+        ls.nameAdj <- lapply(lapply(object.lmm, variable.names, effects = "mean"), setdiff, "CCvariableCC")
+        nameAdj <- unique(unlist(ls.nameAdj))
+        if(missing(at) && length(nameAdj)>0){
+            at <- as.data.frame(lapply(do.call(rbind,lapply(object.lmm, stats::model.frame))[nameAdj], function(iX){
+                if(is.numeric(iX) || is.integer(iX)){
+                    return(mean(iX))
+                }else if(is.character(iX)){
+                    return(sort(iX)[1])
+                }else if(is.factor(iX)){
+                    return(levels(iX)[1])
+                }
+            }))
+        }else{
+            at <- NULL
+        }
+        ls.gg.dataL <- lapply(object.lmm, residuals.lmm, type = "partial", variable = c("(Intercept)","CCvariableCC"), at = at, keep.data = TRUE, simplify = FALSE)
+        gg.dataL <- do.call(rbind,ls.gg.dataL)
+        nameXY <- levels(gg.dataL$CCvariableCC)
+        gg.data <- stats::reshape(gg.dataL[,c("CCindexCC","r.partial","CCvariableCC",name.by)], direction = "wide",
+                                  idvar = "CCindexCC", v.names = "r.partial", timevar = "CCvariableCC", varying = nameXY)
+
+        if(!is.null(name.by)){
+            gg <- ggplot2::ggplot(gg.data, ggplot2::aes(x = .data[[nameXY[1]]],
+                                                        y = .data[[nameXY[2]]],
+                                                        color = .data[[name.by]], shape = .data[[name.by]]))
+        }else{
+            gg <- ggplot2::ggplot(gg.data, ggplot2::aes(x = .data[[nameXY[1]]],
+                                                        y = .data[[nameXY[2]]]))
+        }
+        if(length(obs.size)>=1){
+            gg <- gg + ggplot2::geom_point(size = obs.size[1])
+        }else{
+            gg <- gg + ggplot2::geom_point()
+        }
+        if(length(nameAdj)>0){
+            gg <- gg + ggplot2::labs(x = paste0(nameXY[1], " (counterfactual)"), y = paste0(nameXY[2], " (counterfactual)"))            
+            if(is.null(at)){
+                at2 <- attr(ls.gg.dataL[[1]],"reference")[nameAdj]
+            }else{
+                at2 <- at
+            }
+            if(!is.null(digits)){
+                at2[sapply(at2,is.numeric)] <- round(at2[sapply(at2,is.numeric)], digits = digits)
+            }
+            gg <- gg + ggplot2::ggtitle(paste0("Counterfactual: ",paste(paste(names(at2), at2, sep = "="), collapse = ", ")))
+            
+        }
+        if(is.null(name.by)){
+            e.slope <- stats::lm(stats::reformulate(response = nameXY[2], termlabels = nameXY[1]), data = gg.data)
+            gg.line <- data.frame(gg.data[[nameXY[1]]], fitted(e.slope))
+        }else{
+            e.slope <- stats::lm(stats::reformulate(response = nameXY[2], termlabels = c(name.by,paste0(nameXY[1],":",name.by))), data = gg.data)
+            gg.line <- data.frame(gg.data[[nameXY[1]]], fitted(e.slope), gg.data[[name.by]])            
+        }
+        names(gg.line) <- c(nameXY, name.by)
+        if(length(obs.size)>=2){
+            gg <- gg + ggplot2::geom_line(data = gg.line, linewidth = obs.size[2])
+        }else{            
+            gg <- gg + ggplot2::geom_line(data = gg.line)
+        }
+    }else if(type == "correlation"){
+        Sigma_t <- lapply(object.lmm, stats::sigma)
+        if(any(sapply(Sigma_t, is.matrix)==FALSE)){
+            stop("Could not extract a unique covariance matrix. \n")
+        }
+        Sigma_t <- lapply(Sigma_t, stats::cov2cor)
         
-    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+        ## from matrix to long format
+        ls.table <- lapply(1:n.lmm, function(iN){
+            iTable <- as.data.frame(cbind(which(is.na(NA*Sigma_t[[iN]]), arr.ind = TRUE),value = as.numeric(Sigma_t[[iN]])))
+            rownames(iTable) <- NULL
+            iTable$col <- factor(colnames(Sigma_t[[iN]])[iTable$col], levels = name.time[[iN]])
+            iTable$row <- factor(rownames(Sigma_t[[iN]])[iTable$row], levels = name.time[[iN]])            
+            if(!is.null(name.by)){
+                iTable[[name.by]] <- names(object.lmm)[iN]
+            }
+            return(iTable)
+        })
+        gg.data <- do.call(rbind,ls.table)
+        
+        gg <- ggplot2::ggplot(gg.data) + ggplot2::geom_tile(ggplot2::aes(x = .data$row, y = .data$col, fill = .data$value))
+
+        if(!is.null(mid)){
+            gg <- gg + ggplot2::scale_fill_gradient2(limits = limits, midpoint = midpoint, low = low, mid = mid, high = high)
+        }else{
+            gg <- gg + ggplot2::scale_fill_gradient(limits = limits, low = low, high = high)
+        }
+        if(!is.null(name.by)){
+            gg <- gg + ggplot2::facet_wrap(stats::reformulate(name.by))
+        }
+        gg <- gg + ggplot2::labs(x = NULL, y = NULL, fill = "correlation") + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1))
+    }
 
     ## ** export
-    return(list(data = table,
+    gg <- gg + ggplot2::theme(text = ggplot2::element_text(size=size.text))
+    return(list(data = gg.data,
                 plot = gg))
 }
 
@@ -1347,24 +1452,24 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
     }
 
     ## ** subject object to focus on a single 'outcome'
-    if(!is.null(object[[newnames[1]]]) && length(unique(object[[newnames[1]]]))>1){
-        if(is.null(variable)){
+    if(is.null(variable)){
+        if(!is.null(object[[newnames[1]]]) && length(unique(object[[newnames[1]]]))>1){
             stop("Missing patterns for several ",newnames[1]," could be displayed. \n",
                  "Consider specifying which one via the argument \'variable\'. \n")
-        }else if(length(variable)!=1){
-            stop("Argument \'variable\' should have length 1. \n")
-        }else{
-            if(variable %in% object[[newnames[1]]] == FALSE){
-                stop("Incorrect value passed to argument \'variable\'. \n",
-                     "Possible values: \"",paste(unique(object[[newnames[1]]]), collapse = "\", \""),"\"\n")
-            }
-            object1 <- object[object[[newnames[1]]] == variable,,drop=FALSE]
-        ## NOTE: print may not work because object1 is of class summarizeNA but without all necessary variables for a nice print
         }
-    }else{
         object1 <- object
+    }else{    
+        if(length(variable)!=1){
+            stop("Argument \'variable\' should have length 1. \n")
+        }
+        if(variable %in% object[[newnames[1]]] == FALSE){
+            stop("Incorrect value passed to argument \'variable\'. \n",
+                 "Possible values: \"",paste(unique(object[[newnames[1]]]), collapse = "\", \""),"\"\n")
+        }
+        object1 <- object[object[[newnames[1]]] == variable,,drop=FALSE]
         ## NOTE: print may not work because object1 is of class summarizeNA but without all necessary variables for a nice print
     }
+    
     class(object1) <- setdiff(class(object1),"summarizeNA")
     if(newnames[1] %in% names(object1)==FALSE){
         object1[[newnames[1]]] <- "1"
@@ -1401,12 +1506,12 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
         if(length(order.pattern)!=1){
             stop("Incorrect argument \'order.pattern\': should have length 1 when a character. \n")
         }else if(order.pattern %in% newnames){
-                dataL <- dataL[order(dataL[[old2new.names[order.pattern]]], decreasing = decreasing.order),,drop=FALSE]
+            dataL <- dataL[order(dataL[[old2new.names[order.pattern]]], decreasing = decreasing.order),,drop=FALSE]
         }else{
             stop("Incorrect value for argument \'order.pattern\'. \n",
                  "When a character should be one of \"",paste(newnames,collapse ="\" \""),"\".\n")
         }
-         
+        
     }else if(!is.null(order.pattern)){
         if(!is.numeric(order.pattern)){
             stop("Argument \'order.pattern\' should either be a numeric vector or a character (\"",paste(newnames,collapse ="\" \""),"\").\n ")
@@ -1429,7 +1534,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
     dataL$missing.pattern.strata <- paste(dataL$missing.pattern,dataL$strata,sep=".")
     dataL$nX.NA <- tapply(dataL$frequency*dataL$indicator,dataL$variable.strata,sum)[dataL$variable.strata]
     dataL$nY.NA <- tapply(dataL$frequency,dataL$missing.pattern.strata,unique)[dataL$missing.pattern.strata]
-        
+    
     ## ** re-order variables
     ## re-order X axis
     dataL$variable.strata <- factor(dataL$variable.strata, levels = unique(dataL$variable.strata))
@@ -1442,7 +1547,7 @@ autoplot.summarizeNA <- function(object, variable = NULL, size.text = 16,
     ## ** graphical display
     gg.NA <- ggplot2::ggplot(dataL, ggplot2::aes(y = .data$missing.pattern.strata, x = .data$variable.strata, fill = .data$indicator))
     gg.NA <- gg.NA + ggplot2::geom_tile(color = "black")
-        
+    
     if(!is.null(name.X)){
         gg.NA <- gg.NA + ggplot2::facet_wrap(stats::reformulate(name.X), labeller = labeller, scales = "free")
     }
@@ -1951,7 +2056,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         U.time <- levels(preddata[[time.var.plot]])
     }else{
         U.time <- sort(unique(preddata[[time.var.plot]]))
-    }
+    }    
     keep.col <- c("XXclusterXX",time.var.plot,outcome.var,color,all.vars(facet),"estimate","lower","upper")
     preddata <- do.call(rbind,by(preddata[keep.col], preddata$XXclusterXX, function(iDF){ ## iDF <- preddata[preddata$XXclusterXX==1,]
         if(all(U.time %in% iDF[[time.var.plot]])){
@@ -2039,10 +2144,10 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
         }
     }
     if(!is.null(facet) & length(all.vars(facet))>0){
-        if(attr(stats::terms(facet),"response")==0){
+        if(attr(stats::terms(facet),"response")==0 || !is.null(facet_nrow) || !is.null(facet_ncol)){
             gg  <- gg + ggplot2::facet_wrap(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
         }else{
-            gg  <- gg + ggplot2::facet_grid(facet, nrow = facet_nrow, ncol = facet_ncol, scales = scales, labeller = labeller)
+            gg  <- gg + ggplot2::facet_grid(facet, scales = scales, labeller = labeller)
         }
     }
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))

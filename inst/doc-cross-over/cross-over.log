@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  13 OCT 2025 17:26
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  22 OCT 2025 15:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1452,7 +1452,7 @@ File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 
 {C:/Users/hpl802/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/hpl
 802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc}]
-<./figures/gg-spaghetti.pdf, id=72, 650.43pt x 433.62pt>
+<./figures/gg-spaghetti.pdf, id=88, 650.43pt x 433.62pt>
 File: ./figures/gg-spaghetti.pdf Graphic file (type pdf)
 <use ./figures/gg-spaghetti.pdf>
 Package pdftex.def Info: ./figures/gg-spaghetti.pdf  used on input line 339.
@@ -1483,32 +1483,43 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 [5
 
 ]
-
-[6]
-<./figures/spa-BCO.pdf, id=139, 578.16pt x 289.08pt>
+<./figures/spa-BCO.pdf, id=151, 578.16pt x 289.08pt>
 File: ./figures/spa-BCO.pdf Graphic file (type pdf)
 <use ./figures/spa-BCO.pdf>
-Package pdftex.def Info: ./figures/spa-BCO.pdf  used on input line 598.
+Package pdftex.def Info: ./figures/spa-BCO.pdf  used on input line 555.
 (pdftex.def)             Requested size: 540.60239pt x 270.31488pt.
 
 
-[7
+[6
 
 ]
 
-[8 <./figures/spa-BCO.pdf>]
+[7 <./figures/spa-BCO.pdf>]
 
-[9]
+[8]
 
-[10]
+[9
 
-[11]
+]
+
+[10
+
+]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 8
-84.
+48.
  (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Overfull \hbox (6.62952pt too wide) in paragraph at lines 882--924
+Overfull \hbox (6.62952pt too wide) in paragraph at lines 846--888
+[][] [] [] 
+ []
+
+
+
+[11
+
+{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}]
+Overfull \hbox (6.62952pt too wide) in paragraph at lines 979--1022
 [][] [] [] 
  []
 
@@ -1516,18 +1527,9 @@ Overfull \hbox (6.62952pt too wide) in paragraph at lines 882--924
 
 [12
 
-{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}]
-Overfull \hbox (6.62952pt too wide) in paragraph at lines 1015--1058
-[][] [] [] 
- []
-
-
-
-[13
-
 ]
 
-[14]
+[13]
 \Changes@OutFile=\write6
 \openout6 = `cross-over.soc'.
 
@@ -1536,7 +1538,7 @@ Overfull \hbox (6.62952pt too wide) in paragraph at lines 1015--1058
 
 
 
-[15
+[14
 
 ] (cross-over.aux)
  ***********
@@ -1548,16 +1550,16 @@ L3 programming layer <2025-06-09>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `cross-over.out' has not changed.
-(rerunfilecheck)             Checksum: 96FDFB70B6D27050DC0A3F02F0F05ABB;2500.
+(rerunfilecheck)             Checksum: 90AEFE7DCE5518F127FDE90FD5ED8B4A;2892.
  ) 
 Here is how much of TeX's memory you used:
- 31253 strings out of 468221
- 569467 string characters out of 5432408
- 1651579 words of memory out of 5000000
- 58920 multiletter control sequences out of 15000+600000
+ 31290 strings out of 468221
+ 569983 string characters out of 5432408
+ 1650758 words of memory out of 5000000
+ 58945 multiletter control sequences out of 15000+600000
  690234 words of font info for 108 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,7n,117p,666b,2107s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 114i,7n,117p,666b,1933s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx6.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.p
@@ -1566,9 +1568,9 @@ fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.
 pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10
 .pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt1
 2.pfb>
-Output written on cross-over.pdf (15 pages, 266357 bytes).
+Output written on cross-over.pdf (14 pages, 267529 bytes).
 PDF statistics:
- 450 PDF objects out of 1000 (max. 8388607)
- 251 named destinations out of 1000 (max. 500000)
- 117 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 474 PDF objects out of 1000 (max. 8388607)
+ 263 named destinations out of 1000 (max. 500000)
+ 149 words of extra memory for PDF output out of 10000 (max. 10000000)
 

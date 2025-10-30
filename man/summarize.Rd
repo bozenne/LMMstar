@@ -16,6 +16,7 @@ summarize(
   skip.reference = FALSE,
   digits = NULL,
   filter = NULL,
+  order = FALSE,
   ...
 )
 }
@@ -46,7 +47,7 @@ When specifying a grouping variable, it will also attempt to count missing rows 
 \item \code{"correlation"}: correlation matrix between the outcomes (when feasible, see detail section).
 }}
 
-\item{FUN}{[function] user-defined function for computing summary statistics.
+\item{FUN}{[function or character] user-defined function or character string referring to a function used to compute summary statistics.
 It should take a vector as an argument and output a named single value or a named vector.}
 
 \item{na.action}{[function] a function which indicates what should happen when the data contain 'NA' values.
@@ -62,6 +63,8 @@ Passed to the \code{stats::aggregate} function.}
 
 \item{filter}{[character] a regular expression passed to \code{grep} to filter the columns of the dataset.
 Relevant when using \code{.} to indicate all other variables.}
+
+\item{order}{[logical] should the output be order in alphabetic order w.r.t. the outcome names?}
 
 \item{...}{additional arguments passed to argument \code{FUN}.}
 }
@@ -105,6 +108,8 @@ summarize( ~ X1 + treat, data = d)
 ## user defined summary statistic
 summarize(Y1 ~ 1, data = d, FUN = quantile)
 summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
+summarize(treat ~ 1, data = d, FUN = "sum")
+summarize(Y2 ~ 1, data = d2, FUN = "sum", na.rm = TRUE)
 ## complete case summary statistic
 summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 ## shortcut to consider all outcomes with common naming 

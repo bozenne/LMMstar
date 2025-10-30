@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  21 OCT 2025 12:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  29 OCT 2025 15:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1349,6 +1349,30 @@ LaTeX Warning: Label `' multiply defined.
 
 LaTeX Warning: Label `' multiply defined.
 
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
 )
 \openout1 = `equivalenceTest.aux'.
 
@@ -1482,13 +1506,13 @@ LaTeX Font Info:    Trying to load font information for U+stmry on input line 2
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/stmaryrd\ustmry.fd)
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 2
-69.
+70.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 2
-70.
+71.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1503,11 +1527,11 @@ File: lstlang2.sty 2024/09/23 1.10c listings language file
 File: lstlang3.sty 2024/09/23 1.10c listings language file
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 298.
+(Font)              <10.95> on input line 299.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 298.
+(Font)              <8> on input line 299.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 298.
+(Font)              <6> on input line 299.
 
 
 [1
@@ -1559,16 +1583,18 @@ ppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}]
 
 ]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 1062.
+(Font)              <12> on input line 1063.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 1063.
+(Font)              <5> on input line 1064.
 
 
 [13
 
 ]
 
-[14]
+[14
+
+]
 
 [15
 
@@ -1581,12 +1607,18 @@ enc}{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc
 [17
 
 ]
+<./figures/gg-pCor.pdf, id=418, 722.7pt x 433.62pt>
+File: ./figures/gg-pCor.pdf Graphic file (type pdf)
+<use ./figures/gg-pCor.pdf>
+Package pdftex.def Info: ./figures/gg-pCor.pdf  used on input line 1444.
+(pdftex.def)             Requested size: 540.60239pt x 324.36067pt.
+
 
 [18
 
 ]
 
-[19]
+[19 <./figures/gg-pCor.pdf>]
 
 [20
 
@@ -1594,9 +1626,15 @@ enc}{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc
 
 [21]
 
-[22] (equivalenceTest.bbl)
+[22
 
-[23
+]
+
+[23]
+
+[24] (equivalenceTest.bbl)
+
+[25
 
 ]
 \Changes@OutFile=\write6
@@ -1615,13 +1653,13 @@ L3 programming layer <2025-06-09>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `equivalenceTest.out' has not changed.
-(rerunfilecheck)             Checksum: 201743C8F0015677FC57D75F93742AD7;2498.
+(rerunfilecheck)             Checksum: 9FF12755023146DEC886440747B11037;2775.
  ) 
 Here is how much of TeX's memory you used:
- 31410 strings out of 468221
- 570576 string characters out of 5432408
- 1392181 words of memory out of 5000000
- 58958 multiletter control sequences out of 15000+600000
+ 31481 strings out of 468221
+ 571606 string characters out of 5432408
+ 1392306 words of memory out of 5000000
+ 58988 multiletter control sequences out of 15000+600000
  707787 words of font info for 119 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  114i,8n,117p,672b,1971s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1642,9 +1680,9 @@ b><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr7.pfb
 b><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt12.
 pfb>
-Output written on equivalenceTest.pdf (23 pages, 376662 bytes).
+Output written on equivalenceTest.pdf (25 pages, 397287 bytes).
 PDF statistics:
- 634 PDF objects out of 1000 (max. 8388607)
- 356 named destinations out of 1000 (max. 500000)
- 133 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 700 PDF objects out of 1000 (max. 8388607)
+ 397 named destinations out of 1000 (max. 500000)
+ 146 words of extra memory for PDF output out of 10000 (max. 10000000)
 

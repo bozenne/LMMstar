@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: sep 29 2025 (17:09) 
+## Last-Updated: okt 29 2025 (18:30) 
 ##           By: Brice Ozenne
-##     Update #: 3328
+##     Update #: 3340
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -52,7 +52,7 @@
 
 ## * model.matrix.lmm (code)
 ##' @export
-model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, na.rm = TRUE, ...){
+model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify = TRUE, drop.X = NULL, na.rm = FALSE, ...){
 
     ## ** normalize user input
     ## *** dots
@@ -138,7 +138,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         ## *** index and exclude missing values
         var.strata <- attr(object$strata$var,"original")
         var.outcome <- object$outcome$var
-        structure.var <- stats::na.omit(c(var.cluster, var.time, var.strata))
+        structure.var <- stats::na.omit(c(var.cluster, var.time, var.strata))        
         keep.col_testNA <- intersect(names(newdata), var.manifest)
 
         if(any(c("index","variance","correlation") %in% effects) || (!simplify && all(structure.var %in% names(newdata))) || (na.rm && all(structure.var %in% names(newdata)))){
@@ -184,9 +184,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             design$index.clusterTime <- outInit$index.clusterTime
             design$index.na <- newdata.norm$index.na
             newdata <- newdata.norm$data 
-            
-            
-            
+                        
         }else if(na.rm){
             ## same as before but does not require all cluster/time/strata variables as input
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: okt 17 2025 (11:15) 
+## Last-Updated: okt 24 2025 (17:33) 
 ##           By: Brice Ozenne
-##     Update #: 2227
+##     Update #: 2234
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -484,8 +484,8 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
                                                         y = cbind(index = 1:n.grid, grid[c("type","term")]),
                                                         by = c("type","term"), sort = FALSE)$index]
         }
-        rownames(out$univariate) <- unname(unlist(sapply(unlist(contrast, recursive = FALSE), rownames)))
-
+        rownames(out$univariate) <- unname(unlist(lapply(unlist(contrast, recursive = FALSE), rownames)))
+        
         ## back-transformation
         ## no need when mean parameters
         out$univariate[out$univariate$type == "mu",c("transformed","tobacktransform")] <- FALSE

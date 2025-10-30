@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:20) 
+## Last-Updated: okt 30 2025 (10:56) 
 ##           By: Brice Ozenne
-##     Update #: 1411
+##     Update #: 1552
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -43,28 +43,28 @@
 ##' \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 ##' \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 ##' \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
-##' \item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
-##' \item \code{"normalized2"}: raw residuals are multiplied, within clusters, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{Omega}^{-1}}.
+##' \item \code{"normalized"}: raw residuals are multiplied, within cluster, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{i} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
+##' \item \code{"normalized2"}: raw residuals are multiplied, within cluster, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{i} = ( Y_{i} - X_{i} \hat{\beta} )\hat{\Omega}^{-1}}.
 ##' \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS). Numerically identical to \code{"normalized"} but computed by sequentially scaling and centering the residuals, to make them conditionally independent of previous residuals from the same cluster at previous repetitions.
-##' \item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
-##' \code{"partial-center"}: partial residuals with centered continuous covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)
+##' \item \code{"partial"}: partial residuals (\eqn{\varepsilon_{ij} = Y_{ij} - \hat{\delta} W_{ij} = \hat{\gamma} E_{ij} + \hat{\varepsilon}_{ij}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals. The corresponding fitted values are then \eqn{\hat{\gamma} E_{ij}}.
+##' \item \code{"partial-center"}: same as the partial residuals except that the \eqn{E} variable(s) are centered when they are continuous covariates: \eqn{\varepsilon_{ij} = Y_{ij} - \hat{\delta} W_{ij} - \hat{\gamma} \hat{\mu}_E  = \hat{\gamma} (E-{ij}-\hat{\mu}_E) + \hat{\varepsilon}}. The corresponding fitted values are then \eqn{\hat{\gamma} (E_{ij}-\hat{\mu}_E)}.
 ##' }
 ##' where
 ##' \itemize{
 ##' \item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{variable} (\eqn{E}) and the rest (\eqn{W}).
 ##' \item \eqn{Y} the outcome
-##' \item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
+##' \item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}. \eqn{\hat{\mu}_E} denotes the empirical mean of \eqn{E}.
 ##' \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
 ##' \item \eqn{\hat{C}} the upper Cholesky factor of \eqn{\hat{\Omega}}, i.e. upper triangular matrix satisfying \eqn{\hat{C}^{t} \hat{C} = \hat{\Omega}}
 ##' \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
 ##' \item \eqn{\hat{D}_i} the upper Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 ##' }
 ##'
-##' Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
-##'
 ##' @return
 ##' \bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),
-##' a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint).
+##' a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint). \cr
+##' 
+##' Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
 ##' 
 ##' @keywords methods
 ##' 
@@ -202,9 +202,8 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
     ## *** special checks for partial residuals
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
-        if((length(type.residual)>2) || (length(type.residual) == 2 && "response" %in% type.residual == FALSE)){
-            stop("Argument \'type.residual\' should have length 1 when it contains \"partial\" or  \"partial-center\". \n",
-                 "It can also have length 2 but then the second element should be \"response\". \n")
+        if((length(type.residual)!=1)){
+            stop("Argument \'type.residual\' should have length 1 when it contains \"partial\" or  \"partial-center\". \n")
         }
         if(is.null(variable)){
             stop("Argument \'variable\' should indicate the covariate effects to preserve when computing the partial residuals. \n")
@@ -222,7 +221,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                  "Valid covariates: \"",paste(variableMu.name, collapse = "\" \""),"\". \n",
                  "Invalid covariates: \"",paste(variable[variable %in% variableMu.name == FALSE],collapse="\" \""),"\". \n")
         }
-        
         if(any(variableMu.name %in% name.time) && (name.time %in% variable == FALSE)){
             stop("Argument \'variable\' should not contain the time variable \"",name.time,"\" when computing the partial residuals. \n",
                  "Consider refitting the lmm with a different name for variables in the mean structure and repetition argument. \n")
@@ -248,17 +246,38 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         stop("Argument \'format\' must be \"long\" when exporting several types of residuals. \n")
     }
 
-    ## *** check data and create data.reference used for export and for partial residuals 
+    ## *** check data
     if(!is.null(newdata)){
-        data.reference <- as.data.frame(newdata)
-        if(keep.data && any(colnames(data.reference) %in% name.residual)){
-            stop("Argument \'newdata\' should not contain a column named \"",paste(name.residual[name.residual %in% colnames(data.reference)], collapse = "\" \""),"\". \n",
+        df.newdata <- as.data.frame(newdata)
+        if(object$outcome$var %in% names(df.newdata) == FALSE){
+            stop("Argument \'newdata\' should contain a column \"",object$outcome$var,"\" indicating the outcome values. \n")
+        }
+        if(keep.data && any(names(df.newdata) %in% name.residual)){
+            stop("Argument \'newdata\' should not contain a column named \"",paste(setdiff(name.residual,names(df.newdata)), collapse = "\" \""),"\". \n",
                  "This name is used to export the residuals. \n")
-        }        
+        }
+        design <- NULL
+        index.na <- NULL
+        if(("partial" %in% type.residual) || ("partial-center" %in% type.residual)){
+            X.tempo <- model.matrix(object, newdata = df.newdata, effects = "mean", na.rm = TRUE, simplify = FALSE)
+            grad.res <- -X.tempo$mean
+            res <- as.vector(df.newdata[[object$outcome$var]][setdiff(1:NROW(df.newdata),X.tempo$index.na)] + grad.res %*% theta[colnames(grad.res)])
+        }    
+        
     }else{
-        data.reference <- object$data.original
+        df.newdata <- object$data.original ## with NAs
+        if(("partial" %in% type.residual == FALSE) && ("partial-center" %in% type.residual == FALSE)){
+            design <- stats::model.matrix(object, simplify = FALSE, na.rm = TRUE, options = options) ## without NAs
+            index.na <- object$index.na
+            res <- NULL
+        }else{
+            design <- NULL
+            index.na <- NULL
+            res <- object$residuals ## without NAs
+            grad.res <- -model.matrix(object, na.rm = TRUE, effects = "mean", options = options)
+        }
     }
-
+    
     ## *** simplify
     if(!is.numeric(simplify) && !is.logical(simplify)){
         stop("Argument \'simplify\' must be numeric or logical. \n")
@@ -286,29 +305,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
     }
 
-    ## ** update design
-    if(is.null(newdata)){
-        design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
-        index.na <- object$index.na
-    }else{
-        ## rm.na
-        object.manifest <- stats::variable.names(object)
-        df.newdata <- as.data.frame(newdata)
-        index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
-
-        design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE, options = options)
-        index.na <- setdiff(1:NROW(df.newdata),index.NNA)
-    }
-
+    ## ** counterfactual dataset for partial residuals
     if("partial" %in% type.residual || "partial-center" %in% type.residual){
-        ## extract data and design matrix
-        if(is.null(newdata)){
-            design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
-        }else{
-            design <- stats::model.matrix(object, newdata = newdata, effects = effects, simplify = FALSE, rm.na = TRUE, options = options)
-        }
-
-        ## *** design matrix relative to a reference value
+        
+        ## *** reference value for each covariate
         reference <- stats::setNames(as.list(rep(NA, length = length(variableMu.name))), variableMu.name)
         ## reference: reference level of all variables not in var
         if(is.null(at)){
@@ -318,12 +318,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             if(length(setdiff(variableMuNum.name,variable))>0){
                 reference[setdiff(variableMuNum.name,variable)] <- as.list(stats::setNames(rep(0, length(setdiff(variableMuNum.name,variable))), setdiff(variableMuNum.name,variable)))
             }
-            if("partial-center" %in% type.residual){
-                ## do nothing for categorical variables
-
-                ## center numeric variables
-                reference[intersect(variableMuNum.name, variable)] <- lapply(intersect(variableMuNum.name, variable), function(iName){mean(object$data[[iName]])})
+            if("partial-center" %in% type.residual && length(intersect(variableMuNum.name,variable))>0){
+                reference[intersect(variableMuNum.name,variable)] <- stats::setNames(lapply(intersect(variableMuNum.name, variable), function(iName){mean(object$data[[iName]])}), intersect(variableMuNum.name,variable))
             }
+            
             reference <- data.frame(reference, stringsAsFactors = FALSE)
         }else if(!is.data.frame(at)){
             stop("Argument \'at\' must inherit from data.frame. \n")
@@ -336,57 +334,65 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                 stop("Incorrect column names in argument \'at\'. \n",
                      "Valid column names: \"",paste(variableMu.name, collapse = "\", \""),"\". \n")
             }
+            if(any(is.na(reference))){
+                stop("Argument \'at\' should not contain missing values. \n")
+            }
+            ## check numeric variable have a numeric reference level
+            test.num <- sapply(reference[intersect(names(reference),variableMuNum.name)], is.numeric)
+            if(length(test.num)>0 && any(test.num==FALSE)){
+                stop("Values for column(s) \"",paste(names(which(test.num==FALSE)), collapse = "\", \""),"\" in argument \'at\' should be numeric. \n")
+            }
+            ## convert character variables to factor
+            test.char <- sapply(reference[intersect(names(reference),variableMuFac.name)], is.character)
+            if(length(test.char)>0 && any(test.char)){
+                lapply(names(which(test.char)), function(iVar){
+                    if(any(reference[[iVar]] %in% xfactorMu[[iVar]] == FALSE)){
+                        stop("Variable \"",iVar,"\" has unknown value(s) \"",paste(setdiff(reference[[iVar]], xfactorMu[[iVar]]),collapse = "\", \""),"\". \n",
+                             "Valid values: \"",paste(xfactorMu[[iVar]], collapse = "\", \""),"\". \n")
+                    }                    
+                })
+                reference[names(which(test.char))] <- mapply(x = reference[names(which(test.char))], levels = xfactorMu[names(which(test.char))], FUN = factor, SIMPLIFY = FALSE)                                      
+            }
+            ## check factor variables have the right levels
+            if(any(names(reference) %in% variableMuFac.name)){
+                test.fac <- sapply(reference[intersect(names(reference),variableMuFac.name)], is.factor)
+                if(any(test.fac==FALSE)){
+                        stop("Values for column(s) \"",paste(names(which(test.fac==FALSE)), collapse = "\", \""),"\" in argument \'at\' should be factor or character. \n")
+                    }
+                lapply(names(which(test.fac)), function(iVar){
+                    if(any(levels(reference[[iVar]]) %in% xfactorMu[[iVar]] == FALSE)){
+                        stop("Variable \"",iVar,"\" has unknown level(s) \"",paste(setdiff(levels(reference[[iVar]]), xfactorMu[[iVar]]),collapse = "\", \""),"\". \n",
+                             "Valid levels: \"",paste(xfactorMu[[iVar]], collapse = "\", \""),"\". \n")
+                    }                    
+                })
+                reference[names(which(test.fac))] <- mapply(x = reference[names(which(test.fac))], levels = xfactorMu[names(which(test.fac))], FUN = factor, SIMPLIFY = FALSE)                                      
+            }
         }
+        reference.effective <- reference[colSums(!is.na(reference))>0]
 
-        ## apply reference
-        reference.effective <- lapply(reference, function(iRef){if(all(is.na(iRef))){NULL}else{iRef}})
-        reference.effective <- as.data.frame(reference.effective[lengths(reference.effective)>0])
+        ## *** enforce reference
         for(iVar in names(reference.effective)){
-
-            if(is.factor(data.reference[[iVar]]) && !is.factor(reference[[iVar]])){
-                if(all(reference[[iVar]] %in% levels(data.reference[[iVar]]))){
-                    reference[[iVar]] <- factor(reference[[iVar]], levels = levels(data.reference[[iVar]]))
+            if(iVar %in% variableMuNum.name){
+                if(iVar %in% variable){ ## partial-center the variable(s) of interest
+                    df.newdata[[iVar]] <- df.newdata[[iVar]] - reference.effective[[iVar]]
                 }else{
-                    stop("Value relative to the variable ",iVar," in argument \'at\' should be a factor. \n")
+                    df.newdata[[iVar]] <- reference.effective[[iVar]]
                 }
-            }
-            if(is.factor(data.reference[[iVar]]) && !identical(levels(reference[[iVar]]),levels(data.reference[[iVar]]))){
-                stop("Levels of the variable \'",iVar,"\' in argument \'at\' should match those of the original data. \n",
-                     "Levels: \"",paste(levels(reference[[iVar]]), collapse = "\" \""),"\"\n")
-            }
-            if(iVar %in% variable){
-                data.reference[[iVar]] <- data.reference[[iVar]] - reference[[iVar]]
-            }else{
-                data.reference[[iVar]] <- reference[[iVar]]
-            }
+            }else if(iVar %in% variableMuFac.name)
+                df.newdata[[iVar]] <- reference.effective[[iVar]]
         }
-
-        ## build design matrix
-        design.reference <- stats::model.matrix(object, newdata = data.reference, effects = effects, simplify = TRUE, na.rm = FALSE, options = options)
-        if(length(object$index.na)>0){ ## handle missing values
-            design.reference <- design.reference[-object$index.na,,drop=FALSE]
-        }
-
-        ## handle intercept term
-        if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design.reference)){
-            design.reference[,"(Intercept)"] <- 0
-        }
-    }else{
-        object.manifest <- stats::variable.names(object)
-        outcome.var <- attr(object.manifest,"outcome")
-
-        if(is.null(newdata)){
-            design <- stats::model.matrix(object, effects = effects, simplify = FALSE, options = options)
-        }else{
-            df.newdata <- as.data.frame(newdata)
-
-            index.NNA <- which(rowSums(is.na(df.newdata[intersect(names(df.newdata),object.manifest)]))==0)
-            design <- stats::model.matrix(object, newdata = df.newdata[index.NNA,,drop = FALSE], effects = effects, simplify = FALSE, options = options)
-            index.na <- setdiff(1:NROW(df.newdata),index.NNA)
-        }
-        design.reference <- design$mean
     }
 
+    ## ** build design matrix
+    if(is.null(design)){
+        design <- stats::model.matrix(object, newdata = df.newdata, effects = effects, simplify = FALSE, na.rm = TRUE, options = options)
+        index.na <- design$index.na
+        ## handle intercept term for partial residuals
+        if(keep.intercept==FALSE && "(Intercept)" %in% colnames(design$mean)){
+            design$mean[,"(Intercept)"] <- 0
+        }
+    }
+    
     Y <- design$Y
     X <- design$mean
     n.cluster <- length(design$index.cluster)
@@ -402,8 +408,9 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
     ## ** update Omega
     beta <- theta[paramMu.name]
     if(any(type.residual %in% valid.normresiduals)){
+
         if(!is.null(p) || !is.null(newdata)){
-            Omega <- .calc_Omega(object = design$vcov, param = theta, simplify = !keep.grad)
+            Omega <- .calc_Omega(object = design$vcov, param = theta, simplify = FALSE)
             if(keep.grad){
                 dOmega <- .calc_dOmega(object = design$vcov, param = theta, Omega = Omega,
                                        ## Jacobian = object$reparametrize$Jacobian, ## not needed
@@ -500,37 +507,25 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
     }
 
-    ## ** (partially) fitted values
-    if(fitted.ci || "partial" %in% type.residual || "partial-center" %in% type.residual){
-        df.fitted <- stats::predict(object, p = p, newdata = design.reference, type = type.fit, se = fitted.ci,
+    ## ** fitted values
+    if(fitted.ci){        
+        df.fitted <- stats::predict(object, p = p, newdata = design$mean, type = type.fit, se = fitted.ci,
                                     keep.data = FALSE, format = "long", simplify = FALSE, options = options)
-
-        if(fitted.ci){
-            fitted <- cbind(fitted = df.fitted$estimate,
-                            fitted.lower = df.fitted$lower,
-                            fitted.upper = df.fitted$upper)
-            grad.fitted <- attr(df.fitted,"grad")[,paramMu.name,drop=FALSE]
-            res <-  as.vector(Y - fitted[,"fitted"])
-        }else{
-            fitted <- df.fitted$estimate
-            res <-  as.vector(Y - fitted)
-        }
+        fitted <- cbind(fitted = df.fitted$estimate,
+                        fitted.lower = df.fitted$lower,
+                        fitted.upper = df.fitted$upper)
+        grad.fitted <- attr(df.fitted,"grad")[,paramMu.name,drop=FALSE]
     }else{
-        if(!is.null(newdata) || !is.null(p)){
-            fitted <- (X %*% beta)[,1]
-        }else{
-            fitted <- object$fitted
+        fitted <- (X %*% beta)
+        colnames(fitted) <- "fitted"
+        if(keep.grad){
+            grad.fitted <- X
         }
-        grad.fitted <- X
     }
 
     ## ** raw residuals
-    if(is.null(newdata) && is.null(p)){
-        res <- object$residuals        
-    }else if("partial" %in% type.residual || "partial-center" %in% type.residual){
-        res <- as.vector(Y - (X %*% beta)[,1])
-    }else{
-        res <-  as.vector(Y - fitted)        
+    if(("partial" %in% type.residual == FALSE) && ("partial-center" %in% type.residual == FALSE)){
+        res <-  as.vector(Y - fitted[,"fitted"])
     }
     
     ## ** normalization of the residuals 
@@ -545,7 +540,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
     }
 
-
     if ("response" %in% type.residual) {
         M.res[,"r.response"] <- res
         if(keep.grad){
@@ -553,10 +547,10 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }
     }
     if ("partial" %in% type.residual || "partial-center" %in% type.residual){
-        M.res[,"r.partial"] <-  design.reference %*% beta + res
+        M.res[,"r.partial"] <-  fitted[,"fitted"] + res
         attr(M.res,"reference") <- reference
         if(keep.grad){
-            attr(M.res,"grad")[,paramMu.name,"r.partial"] <- design.reference-X
+            attr(M.res,"grad")[,paramMu.name,"r.partial"] <- grad.fitted + grad.res
         }
     }
 
@@ -620,7 +614,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
                         iPrecision_kk <- solve(Omega[[pattern[iId]]][1:(iTime-1),1:(iTime-1),drop=FALSE])
                         iOmega_lk <- Omega[[pattern[iId]]][iTime,1:(iTime-1),drop=FALSE]
                         iOmega_kl <- Omega[[pattern[iId]]][1:(iTime-1),iTime,drop=FALSE]
-                                
+                        
                         num <- iResidual[iTime] - iOmega_lk %*% as.double(iPrecision_kk %*% iResidual[1:(iTime-1)])
                         denom <- iVar - as.double(iOmega_lk %*% iPrecision_kk %*% iOmega_kl)
                         M.res[iIndex[iOrder][iTime],"r.scaled"] <- num/sqrt(denom) ## issue in term of dimension
@@ -638,13 +632,9 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             attr(M.res,"grad") <- restaureNA(attr(M.res,"grad"), index.na = index.na, level = "obs") 
         }
     }
-       
+    
     ## ** export
-    if(is.matrix(fitted)){ ## when using partial residuals with ci for the fitted values
-        data.reference <- cbind(data.reference, fitted)
-    }else{ ## normal case
-        data.reference <- cbind(data.reference, fitted = fitted)
-    }
+    data.reference <- cbind(df.newdata, fitted)
 
     out <- .reformat(M.res, name = names(format), format = format, simplify = simplify,
                      keep.data = keep.data, data = data.reference, index.na = index.na,
@@ -665,7 +655,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             attr(out,"args")$var <- c("(Intercept)",attr(out,"args")$var)
         }
         if(all(is.na(attr(object.time$var,"original")))){
-            if(is.null(mycall$newdata)){
+            if(is.null(newdata)){
                 attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = index.na, level = "obs", cluster = object$cluster)
             }else{
                 attr(out,"index.time") <- restaureNA(as.character(index.time), index.na = numeric(0), level = "obs", cluster = object$cluster)
@@ -677,7 +667,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
         }else if(format == "long" && !is.null(attr(format,"original"))){
             attr(out,"wide") <- .reformat(M.res, name = names(format), format = "wide", simplify = simplify,
-                                          keep.data = FALSE, data = newdata, index.na = index.na,
+                                          keep.data = FALSE, data = df.newdata, index.na = index.na,
                                           object.cluster = object.cluster, index.cluster = index.cluster,
                                           object.time = object.time, index.time = index.time,                     
                                           call = mycall)

@@ -65,7 +65,9 @@ Otherwise, information about the call and reference values used for partial resi
 }
 \value{
 \bold{lmm}: a vector or a data.frame when \code{format="long"} (one line per observation, one column per type of residual),
-a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint).
+a matrix when \code{format="wide"}  (one line per cluster, one column per timepoint). \cr
+
+Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
 }
 \description{
 Extract or compute the residuals of a linear mixed model.
@@ -76,24 +78,22 @@ The argument \code{type} defines how the residuals are computed:
 \item \code{"response"}: raw residual, i.e. observed outcome minus fitted value \eqn{\varepsilon_{ij} = Y_{ij} - X_{ij} \hat{\beta}}.
 \item \code{"pearson"}: each raw residual is divided by its modeled standard deviation \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}}}}.
 \item \code{"studentized"}: same as \code{"pearson"} but excluding the contribution of the cluster in the modeled standard deviation  \eqn{\varepsilon_{ij} = \frac{Y_{ij} - X_{ij} \hat{\beta}}{\sqrt{\hat{\omega}_{ij}-\hat{q}_{ij}}}}.
-\item \code{"normalized"}: raw residuals are multiplied, within clusters, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
-\item \code{"normalized2"}: raw residuals are multiplied, within clusters, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{ij} = ( Y_{i} - X_{i} \hat{\beta} )\hat{Omega}^{-1}}.
+\item \code{"normalized"}: raw residuals are multiplied, within cluster, by the inverse of the (upper) Cholesky factor of the modeled residual variance covariance matrix \eqn{\varepsilon_{i} = ( Y_{i} - X_{i} \hat{\beta} )\hat{C}^{-1}}.
+\item \code{"normalized2"}: raw residuals are multiplied, within cluster, by the inverse of the modeled residual variance covariance matrix \eqn{\varepsilon_{i} = ( Y_{i} - X_{i} \hat{\beta} )\hat{\Omega}^{-1}}.
 \item \code{"scaled"}: scaled residuals (see PROC MIXED in SAS). Numerically identical to \code{"normalized"} but computed by sequentially scaling and centering the residuals, to make them conditionally independent of previous residuals from the same cluster at previous repetitions.
-\item \code{"partial"}: partial residuals (\eqn{\gamma E + \hat{\varepsilon}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals.
-\code{"partial-center"}: partial residuals with centered continuous covariates (\eqn{\gamma E + \hat{\varepsilon}} where \eqn{E} has been centered, i.e., has 0-mean)
+\item \code{"partial"}: partial residuals (\eqn{\varepsilon_{ij} = Y_{ij} - \hat{\delta} W_{ij} = \hat{\gamma} E_{ij} + \hat{\varepsilon}_{ij}}). A reference level can be also be specified via the attribute \code{"reference"} to change the absolute level of the partial residuals. The corresponding fitted values are then \eqn{\hat{\gamma} E_{ij}}.
+\item \code{"partial-center"}: same as the partial residuals except that the \eqn{E} variable(s) are centered when they are continuous covariates: \eqn{\varepsilon_{ij} = Y_{ij} - \hat{\delta} W_{ij} - \hat{\gamma} \hat{\mu}_E  = \hat{\gamma} (E-{ij}-\hat{\mu}_E) + \hat{\varepsilon}}. The corresponding fitted values are then \eqn{\hat{\gamma} (E_{ij}-\hat{\mu}_E)}.
 }
 where
 \itemize{
 \item \eqn{X=(E,W)} the design matrix. For partial residuals, it is split according to the variable(s) in argument \code{variable} (\eqn{E}) and the rest (\eqn{W}).
 \item \eqn{Y} the outcome
-\item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}
+\item \eqn{\hat{\beta}=(\hat{\gamma},\hat{\delta})} the estimated mean coefficients relative to \eqn{X=(E,W)}. \eqn{\hat{\mu}_E} denotes the empirical mean of \eqn{E}.
 \item \eqn{\hat{\Omega}} the modeled variance-covariance of the residuals and \eqn{\hat{\omega}} its diagonal elements
 \item \eqn{\hat{C}} the upper Cholesky factor of \eqn{\hat{\Omega}}, i.e. upper triangular matrix satisfying \eqn{\hat{C}^{t} \hat{C} = \hat{\Omega}}
 \item \eqn{\hat{Q}_i= X_i (X^{t}\hat{\Omega}X)^{-1}X_i^{t}} a cluster specific correction factor, approximating the contribution of cluster i to \eqn{\hat{\Omega}}. Its diagonal elements are denoted \eqn{\hat{q}_i}.
 \item \eqn{\hat{D}_i} the upper Cholesky factor of \eqn{\hat{\Omega}-\hat{Q}_i}
 }
-
-Setting argument \code{fitted.ci} to \code{TRUE}, \code{simplify} to \code{FALSE}, \code{format} to \code{"long"} returns an attribute \code{"grad"} containing the first order partial derivatives of the residuals with respect to the model parameters.
 }
 \examples{
 

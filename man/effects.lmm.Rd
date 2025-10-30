@@ -25,11 +25,12 @@
 \arguments{
 \item{object}{a \code{lmm} object.}
 
-\item{variable}{[character/list] exposure variable relative to which the effect should be computed.
-Can also be a list with two elements: the first being the variable (i.e. a character) and the second the levels or values for this variable to be considered.}
+\item{variable}{[character/list/formula] exposure variable relative to which the effect should be computed.
+Can also be a list with two elements: the first being the variable (i.e. a character) and the second the levels or values for this variable to be considered.
+Or a formula ~variable | conditional to match the emmeans syntax.}
 
 \item{effects}{[character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
-Or the difference in average counterfactual outcome between each pair of variable level (\code{"difference"})?}
+Or the difference in averagae counterfactual outcome between each pair of variable level (\code{"difference"})?}
 
 \item{type}{[character/numeric vector] Possible transformation of the outcome: no transformation (\code{"outcome"}),
 change from baseline (\code{"change"}),
@@ -79,7 +80,7 @@ set.seed(10)
 dL <- sampleRem(100, n.times = 3, format = "long")
 
 #### Linear Mixed Model ####
-eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+eUN.lmm <- lmm(Y ~ 0 + visit + X1 + X2 + X5,
                repetition = ~visit|id, structure = "UN", data = dL)
 
 ## outcome

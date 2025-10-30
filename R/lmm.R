@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 16 2025 (18:38) 
+## Last-Updated: okt 29 2025 (13:46) 
 ##           By: Brice Ozenne
-##     Update #: 3260
+##     Update #: 3269
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -462,6 +462,19 @@ lmm.rbindWald_lmm <- function(object, data, repetition, structure, weights,
 ##' @export
 lmm.mlmm <- lmm.rbindWald_lmm
 
+## * lmm.partialCor (code)
+##' @export
+lmm.partialCor <- function(object, data, repetition, structure, weights, 
+                           method.fit, df, type.information, trace, control){
+
+    out <- attr(object,"lmm")
+    if(inherits(out,"lmm")){
+        return(out)
+    }else{ ## attr(object,"lmm") is an mlmm object
+        return(lmm(out))
+    }
+    
+}
 
 ## * .lmmNormalizeArgs 
 ##' @description Normalize all arguments for lmm

@@ -16,19 +16,29 @@ ID(formula, var.cluster, var.time, add.time)
 \item{add.time}{not used.}
 }
 \value{
-An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
+An object of class \code{ID} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
 Variance-covariance structure where the residuals are independent and identically distributed.
 Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be \code{~1}.
+A typical formula would be \code{~1}. It will model: \itemize{
+\item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
+\item \eqn{\rho_{j,j'}=0}: no correlation.
+}
+With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}}
+It is possibly to stratify covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{~sex}. This will lead to \eqn{\sigma^2_{j,sex}=\sigma_{sex}^2} and \eqn{\rho_{j,j',sex}=0}, i.e.:
+\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & \sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & \sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & \sigma_{\text{female}}^2 \end{bmatrix}
+\text{ and }
+      \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma_{\text{male}}^2 \end{bmatrix}
+}
 }
 \examples{
 ID(NULL, var.cluster = "id", var.time = "time")
 ID(~1, var.cluster = "id", var.time = "time")
-ID(~gender, var.cluster = "id", var.time = "time")
-ID(gender~1, var.cluster = "id", var.time = "time")
+ID(~sex, var.cluster = "id", var.time = "time")
+ID(sex~1, var.cluster = "id", var.time = "time")
 }
 \keyword{multivariate}

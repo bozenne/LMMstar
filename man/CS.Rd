@@ -35,18 +35,33 @@ Can be stratified on a categorical variable.
 The default has no covariate and therefore the variance and correlation are constant within cluster.
 }
 \details{
-A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
+A typical formula would be \code{~1}. It will model: \itemize{
+\item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
+\item \eqn{\rho_{j,j'}=\rho}: a correlation constant over repetitions.
+}
+With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_2^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_3^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_4\sigma^2 \end{bmatrix}}
+It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
+\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
+}
+Instead of stratifying one can also make the variance and correlation specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+}
 }
 \examples{
 ## no covariates
 CS(~1, var.cluster = "id", var.time = "time")
-CS(gender~1, var.cluster = "id", var.time = "time")
+CS(sex~1, var.cluster = "id", var.time = "time")
 
 ## covariates
 CS(~time, var.cluster = "id", var.time = "time")
-CS(gender~time, var.cluster = "id", var.time = "time")
+CS(sex~time, var.cluster = "id", var.time = "time")
 CS(list(~time,~1), var.cluster = "id", var.time = "time")
-CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
+CS(list(sex~time,sex~1), var.cluster = "id", var.time = "time")
 
 }
 \keyword{multivariate}

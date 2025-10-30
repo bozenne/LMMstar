@@ -1,9 +1,12 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  21 OCT 2025 12:07
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  21 OCT 2025 16:30
 entering extended mode
- \write18 enabled.
+ restricted \write18 enabled.
  %&-line parsing enabled.
-**./equivalenceSoftware.tex
-(equivalenceSoftware.tex
+**c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceSoft
+ware.tex
+
+(c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-equivalence/equivalenceSoftw
+are.tex
 LaTeX2e <2025-06-01> patch level 1
 L3 programming layer <2025-06-09>
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
@@ -1272,6 +1275,21 @@ LaTeX Warning: Label `' multiply defined.
 
 LaTeX Warning: Label `' multiply defined.
 
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
+
+LaTeX Warning: Label `' multiply defined.
+
 )
 \openout1 = `equivalenceSoftware.aux'.
 
@@ -1405,7 +1423,7 @@ LaTeX Font Info:    Trying to load font information for U+stmry on input line 2
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/stmaryrd\ustmry.fd)
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 2
-68.
+65.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1420,11 +1438,11 @@ File: lstlang2.sty 2024/09/23 1.10c listings language file
 File: lstlang3.sty 2024/09/23 1.10c listings language file
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 278.
+(Font)              <10.95> on input line 276.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 278.
+(Font)              <8> on input line 276.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 278.
+(Font)              <6> on input line 276.
 
 
 [1
@@ -1445,7 +1463,7 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 
 [5]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 5
-59.
+57.
  (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -1458,51 +1476,59 @@ File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 
 ]
 
-[8]
+[8
+
+]
+
+[9]
+
+[10]
+
+[11]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 731.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 731.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 731.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\eta' on input line 731.
+(hyperref)                removing `math shift' on input line 863.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 731.
+(hyperref)                removing `superscript' on input line 863.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 863.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\eta' on input line 863.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 863.
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 734.
+(Font)              <12> on input line 866.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 805.
+(hyperref)                removing `math shift' on input line 937.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 805.
+(hyperref)                removing `superscript' on input line 937.
 
 
 
-[9
+[12
 
 {C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc
 }{C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}]
 
-[10] (equivalenceSoftware.bbl
+[13] (equivalenceSoftware.bbl
 
 Package natbib Warning: Empty `thebibliography' environment on input line 3.
 
 )
 
-[11]
+[14]
 \Changes@OutFile=\write6
 \openout6 = `equivalenceSoftware.soc'.
 
@@ -1519,16 +1545,16 @@ L3 programming layer <2025-06-09>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `equivalenceSoftware.out' has not changed.
-(rerunfilecheck)             Checksum: 40BBD0EF24DEEB388B79949D27FF885A;1092.
+(rerunfilecheck)             Checksum: 98A85ECE3C2FF4DF93AF981BD6FBF5FE;1050.
  ) 
 Here is how much of TeX's memory you used:
- 31172 strings out of 468221
- 568498 string characters out of 5432408
- 1368976 words of memory out of 5000000
- 58877 multiletter control sequences out of 15000+600000
+ 31215 strings out of 468221
+ 569174 string characters out of 5432408
+ 1430791 words of memory out of 5000000
+ 58890 multiletter control sequences out of 15000+600000
  691498 words of font info for 108 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 114i,7n,117p,616b,2106s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 114i,7n,117p,676b,2107s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx6.p
 fb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi12.
@@ -1541,9 +1567,9 @@ pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10
 .pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt1
 0.pfb><C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt
 12.pfb>
-Output written on equivalenceSoftware.pdf (11 pages, 289715 bytes).
+Output written on equivalenceSoftware.pdf (14 pages, 298032 bytes).
 PDF statistics:
- 381 PDF objects out of 1000 (max. 8388607)
- 209 named destinations out of 1000 (max. 500000)
+ 427 PDF objects out of 1000 (max. 8388607)
+ 237 named destinations out of 1000 (max. 500000)
  75 words of extra memory for PDF output out of 10000 (max. 10000000)
 

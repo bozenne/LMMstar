@@ -11,10 +11,8 @@ library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 library(LMMstar, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 #+END_SRC
 
-This vignette make connexions between the output of a linear mixed
-model and well-known tests (t.test, ANCOVA, Pearson's correlation,
-Bartlett's test, \ldots). The second part of the vignette make
-connexion with other \Rlogo packages.
+This vignette shows   package to other \Rlogo packages,
+
 
 * nlme package
 
@@ -30,6 +28,7 @@ For instance, the compound symmetry is equivalent to =corCompSymm=
 correlation structure, or to a random intercept model (when the within
 subject correlation is positive):
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data(calciumL, package = "LMMstar")
 eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
                data = calciumL, repetition = ~visit|girl)
 eCS.gls <- gls(bmd ~ visit*grp, correlation = corCompSymm(form=~visit|girl),
@@ -52,7 +51,7 @@ range(ranef(eRI.lmm)-ranef(eCS.lme))
 #+END_SRC
 
 #+RESULTS:
-: [1] -6.6939e-08  3.1497e-08
+: [1] -6.6955e-08  3.1480e-08
 
 Unstructured residual covariance matrix can also be obtained with
 =gls=:
@@ -73,7 +72,7 @@ logLik(eUN.lmm)
 
 \clearpage
 
-** lme4 package
+* lme4 package
 
 The model class obtained with the =lmm= function overlaps the model
 class of the =lmer= function from the lme4 package.
@@ -219,7 +218,7 @@ range(ranef(eCRI.lmm)$estimate-rbind(ranef(eCRI.lmer)$plate,ranef(eCRI.lmer)$sam
 
 \clearpage
 
-** mmrm package
+* mmrm package
 
 The package =mmrm= is an alternative implementation of mixed models
 specified via covariance structures:
@@ -342,7 +341,209 @@ microbenchmark::microbenchmark(
 
 \clearpage
 
-** emmeans package
+* emmeans package
+
+While LMMstar does not have native support for the =emmeans= package,
+the =effects= method is provided as a replacement. For instance:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+library(emmeans)
+warp.lm <- lm(breaks ~ wool * tension, data = warpbreaks)
+warp.emmeans <- emmeans(warp.lm,  ~ wool | tension)
+warp.emmeans
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+tension = L:
+ wool emmean   SE df lower.CL upper.CL
+ A      44.6 3.65 48     37.2     51.9
+ B      28.2 3.65 48     20.9     35.6
+
+tension = M:
+ wool emmean   SE df lower.CL upper.CL
+ A      24.0 3.65 48     16.7     31.3
+ B      28.8 3.65 48     21.4     36.1
+
+tension = H:
+ wool emmean   SE df lower.CL upper.CL
+ A      24.6 3.65 48     17.2     31.9
+ B      18.8 3.65 48     11.4     26.1
+
+Confidence level used: 0.95
+#+end_example
+
+is equivalent to:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+warp.lmm <- lmm(breaks ~ wool * tension, data = warpbreaks)
+effects(warp.lmm, ~ wool | tension)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Average counterfactual outcome
+
+	Univariate Wald tests: 
+                     estimate    se df  lower  upper
+   wool=A(tension=H)   24.556 3.647 48 17.223 31.888
+   wool=A(tension=L)   44.556 3.647 48 37.223 51.888
+   wool=A(tension=M)       24 3.647 48 16.668 31.332
+   wool=B(tension=H)   18.778 3.647 48 11.446  26.11
+   wool=B(tension=L)   28.222 3.647 48  20.89 35.554
+   wool=B(tension=M)   28.778 3.647 48 21.446  36.11
+#+end_example
+
+\clearpage
+
+It is also possible to evaluate pairwise differences:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+pairs(warp.emmeans)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+tension = L:
+ contrast estimate   SE df t.ratio p.value
+ A - B       16.33 5.16 48   3.167  0.0027
+
+tension = M:
+ contrast estimate   SE df t.ratio p.value
+ A - B       -4.78 5.16 48  -0.926  0.3589
+
+tension = H:
+ contrast estimate   SE df t.ratio p.value
+ A - B        5.78 5.16 48   1.120  0.2682
+#+end_example
+
+using:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(warp.lmm, ~ difference(wool)|tension)
+#+END_SRC
+
+#+RESULTS:
+: 		Difference in average counterfactual outcome
+: 
+: 	Univariate Wald tests: 
+:                        estimate    se df   lower  upper
+:    wool=B-A(tension=H)   -5.778 5.157 48 -16.147  4.592
+:    wool=B-A(tension=L)  -16.333 5.157 48 -26.703 -5.964
+:    wool=B-A(tension=M)    4.778 5.157 48  -5.592 15.147
+
+
+The first key difference between =emmeans= and =effects= arises when
+averaging over groups of different sizes. Consider the dataset from a
+randomized trial comparing the vision between two groups (active
+vs. placebo). 
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+data(armd.wide, package = "nlmeU")
+## exclude subject with missing baseline information
+armd.wideNNA <- armd.wide[!is.na(armd.wide$lesion),]
+#+END_SRC
+
+#+RESULTS:
+
+Consider a model where the treatment may have a different effect
+depending on baseline severity of the lesion:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+vision.lm <- lm(visual52 ~ treat.f*lesion, data = armd.wideNNA)
+vision.lmm <- lmm(visual52 ~ treat.f*lesion, data = armd.wideNNA)
+#+END_SRC
+
+#+RESULTS:
+
+Using emmeans to obtain the marginal treatment effect:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+emmeans(vision.lm, ~treat.f)
+
+#+END_SRC
+
+#+RESULTS:
+: NOTE: Results may be misleading due to involvement in interactions
+:  treat.f emmean   SE  df lower.CL upper.CL
+:  Placebo   44.5 1.78 191     41.0     48.0
+:  Active    38.9 1.92 191     35.2     42.7
+: 
+: Confidence level used: 0.95
+
+leads to a different result compared to =effects=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(vision.lmm, ~treat.f)
+
+#+END_SRC
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+mean(predict(vision.lm, newdata = transform(armd.wideNNA, treat.f = "Placebo")))
+mean(predict(vision.lm, newdata = transform(armd.wideNNA, treat.f = "Active")))
+#+END_SRC
+
+#+RESULTS:
+: [1] 44.425
+: [1] 38.778
+
+
+
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+effects(warp.lmm, ~ wool)
+#+END_SRC
+
+#+RESULTS:
+: 		Average counterfactual outcome
+: 
+: 	Univariate Wald tests: 
+:           estimate    se df  lower  upper
+:    wool=A   31.037 2.105 48 26.804  35.27
+:    wool=B   25.259 2.105 48 21.026 29.493
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+emmeans(warp.lm, ~ wool)
+#+END_SRC
+
+#+RESULTS:
+: NOTE: Results may be misleading due to involvement in interactions
+:  wool emmean   SE df lower.CL upper.CL
+:  A      31.0 2.11 48     26.8     35.3
+:  B      25.3 2.11 48     21.0     29.5
+: 
+: Results are averaged over the levels of: tension 
+: Confidence level used: 0.95
+
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eRI.lmm <- lmm(bmd ~ visit*grp, structure = "RE",
+               data = calciumL, repetition = ~visit|girl)
+eCS.lme <- lme(bmd ~ visit*grp, random = ~1|girl,
+               data = calciumL, na.action = na.omit)
+effects(eRI.lmm, variable = NULL)
+emmeans(eCS.lme, specs=~visit)
+
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Average counterfactual outcome
+
+	Univariate Wald tests: 
+           estimate    se    df   lower   upper
+   visit=1   875.17  6.46 118.3 862.377 887.962
+   visit=2  898.484 6.481 119.8 885.651 911.317
+   visit=3  925.439 6.497 120.9 912.576 938.302
+   visit=4  952.501  6.51 121.9 939.614 965.387
+   visit=5  971.835 6.518 122.5 958.933 984.738
+NOTE: Results may be misleading due to involvement in interactions
+ visit emmean   SE  df lower.CL upper.CL
+ 1        875 6.46 110      862      888
+ 2        899 6.48 110      886      911
+ 3        926 6.50 110      913      939
+ 4        953 6.51 110      940      966
+ 5        972 6.52 110      959      985
+
+Results are averaged over the levels of: grp 
+Degrees-of-freedom method: containment 
+Confidence level used: 0.95
+#+end_example
+
+
+Instead the =effect.lmm= as a replacement to
+
 
 To illustrate a key difference between the emmeans package and the
 =effects.lmm= function we consider an informative and unbalanced group

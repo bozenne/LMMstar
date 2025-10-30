@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: maj 16 2024 (09:41) 
+## Last-Updated: okt 30 2025 (12:25) 
 ##           By: Brice Ozenne
-##     Update #: 1170
+##     Update #: 1191
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -25,17 +25,27 @@
 ##' @param var.time [character] time variable.
 ##' @param add.time not used.
 ##'
-##' @details A typical formula would be \code{~1}.
+##' @details A typical formula would be \code{~1}. It will model: \itemize{
+##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
+##' \item \eqn{\rho_{j,j'}=0}: no correlation.
+##' }
+##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}}
+##' It is possibly to stratify covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{~sex}. This will lead to \eqn{\sigma^2_{j,sex}=\sigma_{sex}^2} and \eqn{\rho_{j,j',sex}=0}, i.e.:
+##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & \sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & \sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & \sigma_{\text{female}}^2 \end{bmatrix}
+##' \text{ and }
+##'       \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma_{\text{male}}^2 \end{bmatrix}
+##' }
 ##'
-##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' @return An object of class \code{ID} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
 ##' @keywords multivariate
 ##' 
 ##' @examples
 ##' ID(NULL, var.cluster = "id", var.time = "time")
 ##' ID(~1, var.cluster = "id", var.time = "time")
-##' ID(~gender, var.cluster = "id", var.time = "time")
-##' ID(gender~1, var.cluster = "id", var.time = "time")
+##' ID(~sex, var.cluster = "id", var.time = "time")
+##' ID(sex~1, var.cluster = "id", var.time = "time")
 ##' @export
 ID <- function(formula, var.cluster, var.time, add.time){
 
@@ -75,9 +85,28 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' @param var.time [character] time variable.
 ##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
-##' @details A typical formula would be either \code{~1} indicating constant variance
-##' or \code{~time} indicating a time dependent variance.
-##' 
+##' @details A typical formula would be \code{~time}. It will model: \itemize{
+##' \item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
+##' \item \eqn{\rho_{j,j'}=0}: no correlation
+##' }
+##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_2^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_3^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_4\sigma^2 \end{bmatrix}}
+##' It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~time}. This will lead to:
+##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
+##' }
+##' Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
+##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+##' }
+##' and  \code{~time+sex}:
+##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{female}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{female}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{female}:4}\sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
+##' }
+##' which is just a re-parametrisation of \code{sex~time}.
 ##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
 ##' @keywords multivariate
@@ -85,9 +114,9 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' @examples
 ##' IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' IND(~1, var.cluster = "id", var.time = "time")
-##' IND(gender~1, var.cluster = "id", var.time = "time")
-##' IND(gender~time, var.cluster = "id", var.time = "time")
-##' IND(~gender+time, var.cluster = "id", var.time = "time")
+##' IND(sex~1, var.cluster = "id", var.time = "time")
+##' IND(sex~time, var.cluster = "id", var.time = "time")
+##' IND(~sex+time, var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
 IND <- function(formula, var.cluster, var.time, add.time){
@@ -154,8 +183,24 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects
 ##' @param add.time not used.
 ##'
-##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
-##'
+##' @details A typical formula would be \code{~1}. It will model: \itemize{
+##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
+##' \item \eqn{\rho_{j,j'}=\rho}: a correlation constant over repetitions.
+##' }
+##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_2^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_3^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_4\sigma^2 \end{bmatrix}}
+##' It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
+##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
+##' }
+##' Instead of stratifying one can also make the variance and correlation specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+##' }
+##' 
+##' 
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @keywords multivariate
@@ -163,13 +208,13 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @examples
 ##' ## no covariates
 ##' CS(~1, var.cluster = "id", var.time = "time")
-##' CS(gender~1, var.cluster = "id", var.time = "time")
+##' CS(sex~1, var.cluster = "id", var.time = "time")
 ##'
 ##' ## covariates
 ##' CS(~time, var.cluster = "id", var.time = "time")
-##' CS(gender~time, var.cluster = "id", var.time = "time")
+##' CS(sex~time, var.cluster = "id", var.time = "time")
 ##' CS(list(~time,~1), var.cluster = "id", var.time = "time")
-##' CS(list(gender~time,gender~1), var.cluster = "id", var.time = "time")
+##' CS(list(sex~time,sex~1), var.cluster = "id", var.time = "time")
 ##' 
 ##' @export
 CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, add.time){
@@ -293,8 +338,8 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
 ##' 
 ##' @examples
 ##' RE(~1, var.cluster = "id", var.time = "time")
-##' RE(~gender, var.cluster = "id", var.time = "time")
-##' RE(gender~(1|id), var.time = "time")
+##' RE(~sex, var.cluster = "id", var.time = "time")
+##' RE(sex~(1|id), var.time = "time")
 ##' 
 ##' @export
 RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
@@ -434,9 +479,9 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 ##' @examples
 ##' ## no covariate
 ##' TOEPLITZ(~time, var.cluster = "id", var.time = "time")
-##' TOEPLITZ(gender~time, var.cluster = "id", var.time = "time")
+##' TOEPLITZ(sex~time, var.cluster = "id", var.time = "time")
 ##' TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
-##' TOEPLITZ(list(gender~time,gender~time), var.cluster = "id", var.time = "time")
+##' TOEPLITZ(list(sex~time,sex~time), var.cluster = "id", var.time = "time")
 ##'
 ##' ## with covariates
 ##' TOEPLITZ(~side, var.cluster = "id", type = "UN",
@@ -445,7 +490,7 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 ##'          var.time = "time", add.time = TRUE)
 ##' TOEPLITZ(~side, var.cluster = "id", type = "CS",
 ##'          var.time = "time", add.time = TRUE)
-##' TOEPLITZ(gender~side, var.cluster = "id", type = "CS",
+##' TOEPLITZ(sex~side, var.cluster = "id", type = "CS",
 ##'          var.time = "time", add.time = TRUE)
 ##' @export
 TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
@@ -551,10 +596,10 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
 ##' 
 ##' @examples
 ##' UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' UN(~gender, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' UN(gender ~ 1, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' UN(list(~gender,~1), var.cluster = "id", var.time = "time", add.time = TRUE)
-##' UN(list(gender~age,gender~1), var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(~sex, var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(sex ~ 1, var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(list(~sex,~1), var.cluster = "id", var.time = "time", add.time = TRUE)
+##' UN(list(sex~age,sex~1), var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' 
 ##' @export
 UN <- function(formula, var.cluster, var.time, add.time){
@@ -843,7 +888,7 @@ CUSTOM <- function(formula, var.cluster, var.time,
 ##' @param add.X [character vector] additional covariates to be added to the variance and correlation structure.
 ##' @param strata.X [logical] all covariates should be used to stratify the variance and/or correlation structure.
 ##' @param correlation [logical] should a correlation structure be output? Otherwise no correlation parameter is considered.
-##' If greater than 1 then all interaction terms are considered when having multiple variables, e.g. time:gender instead of time + gender.
+##' If greater than 1 then all interaction terms are considered when having multiple variables, e.g. time:sex instead of time + sex.
 ##' 
 ##' @keywords internal
 .formulaStructure <- function(formula, add.X, strata.X, correlation){
@@ -997,10 +1042,10 @@ CUSTOM <- function(formula, var.cluster, var.time,
                 formula.cor <- stats::as.formula(paste("~0 + (",paste(ls.var.X$correlation, collapse="+"),"):",var.strata))
                 ## NOTE: wrapping the non-strata variable in () ensures proper ordering of the column names (i.e. strata variable at the end)
                 ##' df <- data.frame(day = c(1, 1, 2, 2, 1, 1, 2, 2),
-                ##'                  gender = c("1", "1", "1", "1", "0", "0", "0", "0"),
+                ##'                  sex = c("1", "1", "1", "1", "0", "0", "0", "0"),
                 ##'                  session = c(1, 2, 3, 4, 1, 2, 3, 4))
-                ##' X <- stats::model.matrix(~0 + session:gender + day:gender, df)
-                ##' colnames(X) ## "session:gender0" "session:gender1" "gender0:day" "gender1:day"
+                ##' X <- stats::model.matrix(~0 + session:sex + day:sex, df)
+                ##' colnames(X) ## "session:sex0" "session:sex1" "sex0:day" "sex1:day"
             }
         }
     }

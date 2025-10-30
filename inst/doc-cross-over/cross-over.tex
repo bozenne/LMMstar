@@ -1,4 +1,4 @@
-% Created 2025-10-13 ma 17:26
+% Created 2025-10-22 on 15:38
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -268,7 +268,7 @@ library(LMMstar)
 library(ggplot2)
 \end{lstlisting}
 \section{Illustrative dataset}
-\label{sec:orge69b6ff}
+\label{sec:org90ac8aa}
 
 The \texttt{bloodpressureL} dataset:
 \begin{lstlisting}[language=r,numbers=none]
@@ -341,7 +341,7 @@ ggTreat
 
 \clearpage
 \section{Matching the t-test results}
-\label{sec:org0555a47}
+\label{sec:org15d6bbf}
 
 One can use a paired t-test to assess the treatment effect when there
 is not missing values and no covariate to adjusted on (in particular
@@ -463,7 +463,7 @@ correlation).
 
 \clearpage
 \section{Accounting for a period effect}
-\label{sec:orgac4d037}
+\label{sec:org39483fe}
 
 A natural extension of the t-test to adjust for a possible period
 effect on the average outcome is to consider the corresponding mixed
@@ -471,63 +471,20 @@ model (i.e. treatment as repetition) and add period in the mean model:
 \begin{lstlisting}[language=r,numbers=none]
 eTreat.lmm <- lmm(duration ~ treatment + period, repetition = ~treatment|id,
                   data = bloodpressureL)
-summary(eTreat.lmm)
+model.tables(eTreat.lmm)
 \end{lstlisting}
 
 \phantomsection
 \label{}
 \begin{verbatim}
-		Linear Mixed Model 
- 
-Dataset: bloodpressureL 
-
-  - 12 clusters 
-  - 36 observations 
-  - 3 observations per cluster 
-
-Summary of the outcome and covariates: 
-
-    $ duration : num  1.9 2.9 4.3 1.4 2.3 3 1.4 2.8 3.5 0.6 ...
-    $ treatment: Factor w/ 3 levels "A","B","C": 1 2 3 1 2 3 1 2 3 1 ...
-    $ period   : Factor w/ 3 levels "1","2","3": 1 2 3 1 2 3 1 2 3 1 ...
-    reference level: treatment=A;period=1 
-
-Estimation procedure 
-
-  - Restricted Maximum Likelihood (REML) 
-  - log-likelihood :-21.065
-  - parameters: mean = 5, variance = 3, correlation = 3
-  - convergence: TRUE (17 iterations) 
-    largest |score| = 8.738e-05 for rho(A,B)
-            |change|= 2.65176445995996e-06 for rho(A,B)
- 
-Residual variance-covariance: unstructured 
-
-  - correlation structure: ~0 + treatment 
-          A     B     C
-    A 1.000 0.133 0.353
-    B 0.133 1.000 0.759
-    C 0.353 0.759 1.000
-
-  - variance structure: ~treatment 
-            standard.deviation ratio
-    sigma.A              0.524 1.000
-    sigma.B              0.330 0.629
-    sigma.C              0.564 1.075
-
-Fixed effects: duration ~ treatment + period 
-
-               estimate    se   df  lower upper p.value    
-   (Intercept)    1.549 0.166 13.9  1.193 1.905 < 1e-04 ***
-   treatmentB     0.575 0.168  9.4  0.198 0.952 0.00707  **
-   treatmentC     1.258 0.179  9.3  0.856 1.661 < 1e-04 ***
-   period2          0.2 0.127    4 -0.151 0.551 0.18984    
-   period3        0.328 0.121  4.9  0.014 0.641 0.04359   *
-   ------------------------------------------------------- 
-    :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-  df: Satterthwaite approximation w.r.t. model-based se. 
-  se: Modeled based on the observed information.
+            estimate      se      df     lower   upper    p.value
+(Intercept)  1.54915 0.16604 13.9154  1.192831 1.90547 2.3014e-07
+treatmentB   0.57500 0.16768  9.3858  0.198043 0.95196 7.0688e-03
+treatmentC   1.25833 0.17889  9.2795  0.855515 1.66115 5.2215e-05
+period2      0.19991 0.12698  4.0388 -0.151307 0.55112 1.8984e-01
+period3      0.32764 0.12109  4.8784  0.014028 0.64125 4.3588e-02
 \end{verbatim}
+
 
 
 Here because the design is balanced in term of period across
@@ -539,7 +496,7 @@ A). See appendix \ref{SM:lmm2average3} for details.
 
 \clearpage
 \section{What if there is a baseline measurement?}
-\label{sec:org53e67f9}
+\label{sec:org46a644a}
 
 Consider now another study design where all patients have a baseline
 measurement before receiving each treatment. As an illustrative
@@ -598,55 +555,61 @@ gg.BCO
 \includegraphics[trim={0 0 0 0},width=1\textwidth]{./figures/spa-BCO.pdf}
 \end{center}
 \subsection{First time period}
-\label{sec:org69c7936}
+\label{sec:org734089b}
 
-If we restrict the dataset to the first period (time 1 and 2):
+If we restrict the dataset to the first period (time 1 and 2) we
+obtain a standard 2 arm randomized trial. To compare mixed model
+results with t-test tests and ANCOVA, we will use the wide format of
+the dataset:
 \begin{lstlisting}[language=r,numbers=none]
-dfLred.BCO <- dfL.BCO[dfL.BCO$time %in% 1:2,]
+dfW.BCO <- reshape(dfL.BCO[c("id","time","treatment","Y")], direction = "wide",
+                   timevar = "time", idvar = "id", v.names = c("Y","treatment"))
 \end{lstlisting}
+\subsubsection{Change}
+\label{sec:org5b68991}
 
-\noindent we obtain a standard 2 arm randomized trial. A linear mixed
-model with baseline constraint:
+Performing a two-sample t-test on the change:
 \begin{lstlisting}[language=r,numbers=none]
-e0.lmm <- lmm(Y ~ treatment, repetition =~time|id, data = dfLred.BCO)
-model.tables(e0.lmm)
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-            estimate      se     df    lower   upper    p.value
-(Intercept) -0.23175 0.19023 29.005 -0.62081 0.15731 2.3294e-01
-treatmentA   1.12010 0.15613 28.838  0.80070 1.43950 6.9791e-08
-treatmentB   1.73010 0.15613 28.838  1.41070 2.04950 6.5641e-12
-\end{verbatim}
-
-
-estimates a treatment effect:
-\begin{lstlisting}[language=r,numbers=none]
-e0.lmm2ANCOVA <- anova(e0.lmm, effects = c("treatmentB-treatmentA=0"), multivariate=FALSE)
-summary(e0.lmm2ANCOVA, digits = 5)
+tt.change <- with(dfW.BCO, t.test(y = Y.2[treatment.2=="B"]-Y.1[treatment.2=="B"],
+                                  x = Y.2[treatment.2=="A"]-Y.1[treatment.2=="A"]))
+c(estimate = unname(diff(tt.change$estimate)),
+  se = tt.change$stderr,
+  lower = tt.change$conf.int[1],
+  upper = tt.change$conf.int[1],
+  df = tt.change$parameter,
+  p.value = tt.change$p.value)
 \end{lstlisting}
 
 \phantomsection
 \label{}
 \begin{verbatim}
-              Univariate Wald test 
-
-                         estimate      se   df   lower   upper p.value   
- treatmentB-treatmentA=0     0.61 0.21653 27.8 0.16628 1.05372 0.00882 **
- ------------------------------------------------------------------------ 
-  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-df: Satterthwaite approximation w.r.t. model-based se. 
-se: Modeled based on the observed information.
+estimate        se     lower     upper     df.df   p.value 
+ 0.529437  0.224916 -0.990797 -0.990797 27.165129  0.026059
 \end{verbatim}
 
 
-identical to an ANCOVA:
+is equivalent to a linear mixed model iwht interaction between:
 \begin{lstlisting}[language=r,numbers=none]
-dfWred.BCO <- reshape(dfLred.BCO, direction = "wide",
-                      timevar = "time", idvar = "id", v.names = c("Y","treatment"))
-e.ANCOVA <- lm(Y.2 ~ Y.1 + treatment.2, data = dfWred.BCO)
+e.lmm <- lmm(Y ~ time*sequence, repetition =~time|id,
+              data = dfL.BCO[dfL.BCO$time %in% 1:2,])
+model.tables(e.lmm)
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+                estimate      se     df     lower    upper    p.value
+(Intercept)     -1.59683 0.35438 28.004 -2.322738 -0.87092 1.0687e-04
+time             1.16038 0.15904 27.995  0.834599  1.48616 6.0708e-08
+sequenceBA      -0.12004 0.50117 28.004 -1.146632  0.90655 8.1244e-01
+time:sequenceBA  0.52944 0.22492 27.995  0.068714  0.99016 2.5827e-02
+\end{verbatim}
+\subsubsection{Ancova}
+\label{sec:orgdd521d5}
+
+Controlling for baseline difference using an ANCOVA:
+\begin{lstlisting}[language=r,numbers=none]
+e.ANCOVA <- lm(Y.2 ~ Y.1 + treatment.2, data = dfW.BCO)
 summary(e.ANCOVA)$coef
 \end{lstlisting}
 
@@ -660,163 +623,85 @@ treatment.2B  0.61000    0.22050  2.7664 1.0103e-02
 \end{verbatim}
 
 
-\Warning When fitting the mixed model, the variance was on purpose
-modeled to be time dependent instead of treatment dependent to match
-the ANCOVA. In many applications, however, a treatment dependent
-variance and correlation is preferable:
+has the same estimate of a linear mixed model with baseline
+constraint:
 \begin{lstlisting}[language=r,numbers=none]
-e0T.lmm <- lmm(Y ~ treatment, repetition =~treatment|id, data = dfLred.BCO)
-e0T.lmm2ANCOVA <- anova(e0T.lmm, effects = c("treatmentB-treatmentA=0"), multivariate=FALSE)
-summary(e0T.lmm2ANCOVA, digits = 5)
+e0.lmm <- lmm(Y ~ treatment, repetition =~time|id,
+              data = dfL.BCO[dfL.BCO$time %in% 1:2,])
+summary(anova(e0.lmm, effects = c("treatmentB-treatmentA=0")))
 \end{lstlisting}
 
 \phantomsection
 \label{}
 \begin{verbatim}
-              Univariate Wald test 
+              Hypothesis-specific Wald test 
 
-                         estimate      se   df   lower   upper p.value   
- treatmentB-treatmentA=0  0.60238 0.21631 27.7 0.15909 1.04567 0.00954 **
- ------------------------------------------------------------------------ 
+                         estimate    se   df lower upper p.value   
+ treatmentB-treatmentA=0     0.61 0.217 27.8 0.166 1.054 0.00882 **
+ ------------------------------------------------------------------ 
   :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
 df: Satterthwaite approximation w.r.t. model-based se. 
-se: Modeled based on the observed information.
+se: based on the observed information (model-based).
+\end{verbatim}
+
+
+\Warning When fitting the mixed model, the variance was on purpose
+modeled to be time dependent instead of treatment dependent to match
+the ANCOVA. In many applications, however, a treatment dependent
+variance and correlation is preferable:
+\begin{lstlisting}[language=r,numbers=none]
+e0T.lmm <- lmm(Y ~ treatment, repetition =~treatment|id,
+               data = dfL.BCO[dfL.BCO$time %in% 1:2,])
+summary(anova(e0T.lmm, effects = c("treatmentB-treatmentA=0")))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              Hypothesis-specific Wald test 
+
+                         estimate    se   df lower upper p.value   
+ treatmentB-treatmentA=0    0.602 0.216 27.7 0.159 1.046 0.00954 **
+ ------------------------------------------------------------------ 
+  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+df: Satterthwaite approximation w.r.t. model-based se. 
+se: based on the observed information (model-based).
 \end{verbatim}
 
 
 \textbf{Covariates}: to retrieve the same point estimate between the ANCOVA
 and the mixed model, covariates should be included in the mixed model
 with a time interaction.
+
+\clearpage
 \subsection{Multiple time periods}
-\label{sec:orgcf3dcd6}
+\label{sec:org92ebccc}
 
-When considering multiple time periods one can use a similar mixed
-model as before, possibly adjusting for a period effect:
+\subsubsection{Change}
+\label{sec:orge8f267f}
+
+A straightforward analysis with multiple time periods is to evaluate 
+the within-individual difference between treatment of the change from baseline:
 \begin{lstlisting}[language=r,numbers=none]
-eBCO.lmm <- lmm(Y ~ 0 + period + treatment, repetition =~time|id, data = dfL.BCO)
-model.tables(eBCO.lmm)
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-           estimate      se     df    lower   upper    p.value
-period1    -0.23365 0.18998 28.939 -0.62225 0.15494 2.2866e-01
-period2    -0.22767 0.18847 28.829 -0.61324 0.15790 2.3687e-01
-treatmentA  1.19661 0.12208 52.831  0.95173 1.44148 1.7431e-13
-treatmentB  1.62931 0.12235 52.956  1.38389 1.87472 0.0000e+00
-\end{verbatim}
-
-
-The corresponding treatment effect over both period is then:
-\begin{lstlisting}[language=r,numbers=none]
-eBCO.lmm2ANCOVA <- anova(eBCO.lmm, effects = c("treatmentB-treatmentA=0"), multivariate=FALSE)
-summary(eBCO.lmm2ANCOVA, digits = 5)
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-              Univariate Wald test 
-
-                         estimate      se   df   lower   upper p.value  
- treatmentB-treatmentA=0   0.4327 0.17556 26.5 0.07213 0.79327  0.0205 *
- ----------------------------------------------------------------------- 
-  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-df: Satterthwaite approximation w.r.t. model-based se. 
-se: Modeled based on the observed information.
-\end{verbatim}
-
-
-This is close, but not identical to, averaging the ANCOVA treatment
-effect estimates over periods:
-\begin{lstlisting}[language=r,numbers=none]
-dfWred2.BCO <- reshape(dfL.BCO[dfL.BCO$time %in% 3:4,], direction = "wide",
-                      timevar = "time", idvar = "id", v.names = c("Y","treatment"))
-e.ANCOVA2 <- lm(Y.4 ~ Y.3 + treatment.4, data = dfWred2.BCO)
-mean(c(summary(e.ANCOVA)$coef[3,"Estimate"],summary(e.ANCOVA2)$coef[3,"Estimate"]))
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-[1] 0.43672
-\end{verbatim}
-
-
-\Warning In many applications, however, a treatment dependent variance
-and correlation is preferable:
-\begin{lstlisting}[language=r,numbers=none]
-eBCOT.lmm <- lmm(Y ~ 0 + period + treatment, repetition =~time|id,
-                 structure = CS(list(~treatment,~treatment)), data = dfL.BCO)
-model.tables(eBCOT.lmm, effects = "all")
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-                estimate       se     df    lower   upper    p.value
-period1         -0.22434 0.190420 30.812 -0.61280 0.16412 2.4776e-01
-period2         -0.22920 0.190420 30.812 -0.61767 0.15926 2.3788e-01
-treatmentA       1.20288 0.138802 28.981  0.91899 1.48677 1.5370e-09
-treatmentB       1.61662 0.103330 28.960  1.40527 1.82797 1.1102e-15
-sigma            1.04573 0.132524 21.199  0.80358 1.36086         NA
-k.A              1.05138 0.128001 35.720  0.82129 1.34593 6.8315e-01
-k.B              0.91362 0.091255 33.724  0.74573 1.11930 3.7216e-01
-rho(baseline)    0.92897 0.025392 43.269  0.85573 0.96572 2.4213e-11
-rho(baseline,A)  0.73301 0.082718 23.079  0.51201 0.86300 2.6062e-05
-rho(baseline,B)  0.82435 0.056386 26.233  0.66887 0.91073 4.4893e-07
-rho(A,B)         0.58845 0.121439 19.844  0.27992 0.78680 1.6645e-03
-\end{verbatim}
-
-leading to the following treatment effect estimate:
-\begin{lstlisting}[language=r,numbers=none]
-eBCOT.lmm2ANCOVA <- anova(eBCOT.lmm, effects = c("treatmentB-treatmentA=0"),
-                          multivariate=FALSE)
-summary(eBCOT.lmm2ANCOVA, digits = 5)
-\end{lstlisting}
-
-\phantomsection
-\label{}
-\begin{verbatim}
-             Univariate Wald test 
-
-                         estimate      se df   lower  upper p.value  
- treatmentB-treatmentA=0  0.41374 0.17179 29 0.06237 0.7651  0.0226 *
- -------------------------------------------------------------------- 
-  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
-df: Satterthwaite approximation w.r.t. model-based se. 
-se: Modeled based on the observed information.
-\end{verbatim}
-
-
-
-\noindent If, instead of the ANCOVA, the change from baseline between
-treatments is of interest:
-\begin{lstlisting}[language=r,numbers=none]
-dfW.BCO <- reshape(dfL.BCO, direction = "wide",
-                   timevar = "time", idvar = "id", v.names = c("Y","period","treatment"))
 dfW.BCO$dY <- (dfW.BCO$Y.4-dfW.BCO$Y.3)-(dfW.BCO$Y.2-dfW.BCO$Y.1)
-t.test(c(dfW.BCO$dY[dfW.BCO$sequence == "AB"],-dfW.BCO$dY[dfW.BCO$sequence == "BA"]))
+tt.change2 <- with(dfW.BCO, t.test(c(dY[treatment.4 == "B"],-dY[treatment.4 == "A"])))
+c(estimate = unname(tt.change2$estimate),
+  se = tt.change2$stderr,
+  lower = tt.change2$conf.int[1],
+  upper = tt.change2$conf.int[1],
+  df = tt.change2$parameter,
+  p.value = tt.change2$p.value)
 \end{lstlisting}
 
 \phantomsection
 \label{}
 \begin{verbatim}
-
-	One Sample t-test
-
-data:  c(dfW.BCO$dY[dfW.BCO$sequence == "AB"], -dfW.BCO$dY[dfW.BCO$sequence == "BA"])
-t = 2.64, df = 29, p-value = 0.013
-alternative hypothesis: true mean is not equal to 0
-95 percent confidence interval:
- 0.10826 0.85027
-sample estimates:
-mean of x 
-  0.47927
+estimate        se     lower     upper     df.df   p.value 
+ 0.479266  0.181401  0.108260  0.108260 29.000000  0.013144
 \end{verbatim}
 
-one can retrieve this results by introducing 2 new design variables:
+
+One can retrieve this result by introducing 2 design variables:
 \begin{lstlisting}[language=r,numbers=none]
 dfL.BCO$treated <- (dfL.BCO$treatment!="baseline")
 dfL.BCO$periodB <- with(dfL.BCO, (period==1 & sequence=="BA") | (period==2 & sequence=="AB"))
@@ -841,6 +726,85 @@ treatedTRUE:periodBTRUE  0.47927 0.181401 28.988  0.10825 0.850279 1.3146e-02
 where the coefficient of interest in the last line, among the
 treatment periods (A or B) whether there is a difference between being
 under treatment B or treatment A.
+
+\clearpage
+\subsubsection{Ancova}
+\label{sec:org85bd3cd}
+
+A more 'natural' linear mixed model would simply adjust the treatment
+effect on period and sequence effect:
+\begin{lstlisting}[language=r,numbers=none]
+eBCO.lmm <- lmm(Y ~ period + sequence + treatment, repetition =~time|id,
+                data = dfL.BCO)
+summary(anova(eBCO.lmm, effects = c("treatmentB-treatmentA=0")))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              Hypothesis-specific Wald test 
+
+                         estimate    se   df lower upper p.value  
+ treatmentB-treatmentA=0    0.436 0.168 27.4 0.091 0.781  0.0153 *
+ ----------------------------------------------------------------- 
+  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+df: Satterthwaite approximation w.r.t. model-based se. 
+se: based on the observed information (model-based).
+\end{verbatim}
+
+
+but this does not match the average individual difference adjusted for
+both baselines:
+\begin{lstlisting}[language=r,numbers=none]
+dfW.BCO$dY <- with(dfW.BCO, (Y.4-Y.2)*(treatment.4=="B")+(Y.2-Y.4)*(treatment.2=="B"))
+summary(lm(dY ~ Y.1 + Y.3, data = dfW.BCO))$coef
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+Estimate Std. Error  t value Pr(>|t|)
+(Intercept)  0.40544    0.17976  2.25551 0.032412
+Y.1         -0.38831    0.46152 -0.84139 0.407522
+Y.3          0.36836    0.45811  0.80409 0.428370
+\end{verbatim}
+
+
+but is quite close to the average period-specific ANCOVA treatment
+effect:
+\begin{lstlisting}[language=r,numbers=none]
+e.ANCOVA2 <- lm(Y.4 ~ Y.3 + treatment.4, data = dfW.BCO)
+mean(c(summary(e.ANCOVA)$coef[3,"Estimate"],summary(e.ANCOVA2)$coef[3,"Estimate"]))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+[1] 0.43672
+\end{verbatim}
+
+
+\Warning In many applications, however, a treatment dependent variance
+and correlation is preferable:
+\begin{lstlisting}[language=r,numbers=none]
+eBCOT.lmm <- lmm(Y ~ period + sequence + treatment, repetition =~time|id,
+                 structure = CS(list(~treatment,~treatment)), data = dfL.BCO)
+summary(anova(eBCOT.lmm, effects = c("treatmentB-treatmentA=0")))
+\end{lstlisting}
+
+\phantomsection
+\label{}
+\begin{verbatim}
+              Hypothesis-specific Wald test 
+
+                         estimate    se df lower upper p.value  
+ treatmentB-treatmentA=0    0.414 0.172 29 0.062 0.765  0.0226 *
+ --------------------------------------------------------------- 
+  :  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1.
+df: Satterthwaite approximation w.r.t. model-based se. 
+se: based on the observed information (model-based).
+\end{verbatim}
+
 
 \clearpage
 

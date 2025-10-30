@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: sep 29 2025 (14:51) 
+## Last-Updated: okt 29 2025 (16:16) 
 ##           By: Brice Ozenne
-##     Update #: 792
+##     Update #: 870
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -44,13 +44,14 @@
 ##' \item \code{"predict.lower"}, \code{"predict.upper"}: prediction interval for normally distributed outcome.
 ##' \item \code{"correlation"}: correlation matrix between the outcomes (when feasible, see detail section).
 ##' }
-##' @param FUN [function] user-defined function for computing summary statistics.
+##' @param FUN [function or character] user-defined function or character string referring to a function used to compute summary statistics.
 ##' It should take a vector as an argument and output a named single value or a named vector.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
 ##' @param skip.reference [logical] should the summary statistics for the reference level of categorical variables be omitted?
 ##' @param digits [integer, >=0] the minimum number of significant digits to be used to display the results. Passed to \code{print.data.frame}
 ##' @param filter [character] a regular expression passed to \code{grep} to filter the columns of the dataset.
 ##' Relevant when using \code{.} to indicate all other variables.
+##' @param order [logical] should the output be order in alphabetic order w.r.t. the outcome names?
 ##' @param ... additional arguments passed to argument \code{FUN}.
 ##'
 ##' @details This function is essentially an interface to the \code{stats::aggregate} function. \cr
@@ -94,6 +95,8 @@
 ##' ## user defined summary statistic
 ##' summarize(Y1 ~ 1, data = d, FUN = quantile)
 ##' summarize(Y1 ~ 1, data = d, FUN = quantile, p = c(0.25,0.75))
+##' summarize(treat ~ 1, data = d, FUN = "sum")
+##' summarize(Y2 ~ 1, data = d2, FUN = "sum", na.rm = TRUE)
 ##' ## complete case summary statistic
 ##' summarize(Y1+Y2 ~ X1, data = d2, na.rm = TRUE)
 ##' ## shortcut to consider all outcomes with common naming 
@@ -133,6 +136,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
                       skip.reference = FALSE,
                       digits = NULL,
                       filter = NULL,
+                      order = FALSE,
                       ...){
 
     data <- as.data.frame(data)
@@ -209,11 +213,53 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     }
     n.X <- length(name.X)
 
-    ## *** FUN
+    ## ** handle categorical variables
+    to.rm <- NULL
+    to.add <- NULL
+
+    for(iY in 1:n.Y){ ## iY <- 3
+        ## Note: name.Y can be NULL when no left hand side of formula argument (n.Y-->1)
+        if(!is.null(name.Y) && (is.character(data[[name.Y[iY]]])||is.factor(data[[name.Y[iY]]]))){
+            data[[name.Y[iY]]] <- as.factor(data[[name.Y[iY]]])
+            iLevel <- levels(data[[name.Y[iY]]])
+            if(any(paste(name.Y[iY],iLevel,sep=":") %in% names(data))){
+                stop("Name(s) \"",paste(paste(name.Y[iY],iLevel,sep=":")[paste(name.Y[iY],iLevel,sep=":") %in% names(data)], collapse ="\" \""),"\" are being used internally. \n",
+                     "Consider rename or dropping columns from argument \'data\'.\n")
+            }
+            
+            for(iL in iLevel){
+                if(!skip.reference || iL != iLevel[1]){
+                    data[[paste(name.Y[iY],iL,sep=":")]] <- as.numeric(data[[name.Y[iY]]]==iL)
+                    to.add <- c(to.add, paste(name.Y[iY],iL,sep=":"))
+                }
+            }
+            to.rm <- c(to.rm, name.Y[iY])
+        }        
+    }
+    if(length(to.add)!=0 || length(to.rm)!=0){
+        name.Y <- unique(c(setdiff(name.Y,to.rm),to.add))
+        n.Y <- length(name.Y)
+    }
+
+    ## ** initialize FUN
     if(!is.null(FUN)){
 
-        formals.fun <- formals(FUN)
-        names.FUN <- setdiff(names(formals.fun[sapply(formals.fun,is.symbol)]), c("...",names(dots)))
+        if(is.character(FUN)){
+            FUN.char <- FUN
+            FUN <- try(eval(parse(text=FUN)), silent = TRUE)
+            if(inherits(FUN,"try-error")){
+                stop("Incorrect argument \'FUN\': should be a function or a character refering to a function such that eval(parse(text=FUN)) returns a function. \n")
+            }            
+        }else{
+            FUN.char <- NULL
+        }
+        if(identical(FUN.char,"sum") || identical(FUN.char,"prod")){
+            names.FUN <- c("...")
+            dots <- c(dots,list(na.rm = na.rm))
+        }else{
+            formals.fun <- formals(FUN)
+            names.FUN <- setdiff(names(formals.fun[sapply(formals.fun,is.symbol)]), c("...",names(dots)))
+        }
         
         if(length(names.FUN)==0){
 
@@ -222,7 +268,6 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
 
         }else{
             ## match user defined arguments to available variables
-
             if(any(names.FUN %in% names(data) == FALSE)){
                 possible.arg <- c(name.Y[1], name.time, name.X, name.cluster)
                 if(length(possible.arg) == 0){
@@ -256,47 +301,34 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
 
         if(inherits(try.FUN,"try-error")){
             return(invisible(try.FUN))
-        }else if(!inherits(try.FUN,"try-error")){
-            if(is.null(names(try.FUN))){
-                stop("Argument \'FUN\' should return values with names. \n")
-            }else if(any(names(try.FUN) %in% valid.columns)){
-                stop("Argument \'FUN\' should not return values named \"",paste(names(try.FUN)[names(try.FUN) %in% valid.columns], collapse = "\" \""),"\" are used internally. \n")
-            }
         }
-
-        name.outFUN <- names(try.FUN)
+        if(is.null(names(try.FUN))){
+            if(is.character(mycall$FUN)){
+                if(mycall$FUN %in% valid.columns){
+                    stop("Argument \'FUN\' should return values with names - cannot use function name as it is already part of the output. \n")
+                }else{
+                    FUN <- function(...){
+                        stats::setNames(do.call(eval(parse(text=mycall$FUN)), list(...)), mycall$FUN)
+                    }
+                    if(is.null(name.X)){
+                        try.FUN <- try(do.call(FUN, args = c(stats::setNames(as.list(data[Mnames.FUN[1,]]),names.FUN),dots)), silent = TRUE)
+                    }else{
+                        try.FUN <- try(do.call(FUN, args = c(stats::setNames(as.list(data[strata.X==levels(strata.X)[1],Mnames.FUN[1,],drop=FALSE]),names.FUN),dots)), silent = TRUE)
+                    }
+                    name.outFUN <- names(try.FUN)
+                }
+            }else{
+                stop("Argument \'FUN\' should return values with names. \n")
+            }
+        }else if(any(names(try.FUN) %in% valid.columns)){
+            stop("Argument \'FUN\' should not return values named \"",paste(names(try.FUN)[names(try.FUN) %in% valid.columns], collapse = "\" \""),"\" are used internally. \n")
+        }else{
+            name.outFUN <- names(try.FUN)
+        }
 
     }else{
         Mnames.FUN <- NULL
         name.outFUN <- NULL
-    }
-
-    ## ** handle categorical variables
-    to.rm <- NULL
-    to.add <- NULL
-
-    for(iY in 1:n.Y){ ## iY <- 3
-        ## Note: name.Y can be NULL when no left hand side of formula argument (n.Y-->1)
-        if(!is.null(name.Y) && (is.character(data[[name.Y[iY]]])||is.factor(data[[name.Y[iY]]]))){
-            data[[name.Y[iY]]] <- as.factor(data[[name.Y[iY]]])
-            iLevel <- levels(data[[name.Y[iY]]])
-            if(any(paste(name.Y[iY],iLevel,sep=":") %in% names(data))){
-                stop("Name(s) \"",paste(paste(name.Y[iY],iLevel,sep=":")[paste(name.Y[iY],iLevel,sep=":") %in% names(data)], collapse ="\" \""),"\" are being used internally. \n",
-                     "Consider rename or dropping columns from argument \'data\'.\n")
-            }
-            
-            for(iL in iLevel){
-                if(!skip.reference || iL != iLevel[1]){
-                    data[[paste(name.Y[iY],iL,sep=":")]] <- as.numeric(data[[name.Y[iY]]]==iL)
-                    to.add <- c(to.add, paste(name.Y[iY],iL,sep=":"))
-                }
-            }
-            to.rm <- c(to.rm, name.Y[iY])
-        }        
-    }
-    if(length(to.add)!=0 || length(to.rm)!=0){
-        name.Y <- unique(c(setdiff(name.Y,to.rm),to.add))
-        n.Y <- length(name.Y)
     }
 
     ## ** prepare 
@@ -319,15 +351,16 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
         }
     }
 
-    ## all output names
-    name.out <- setdiff(c(columns, name.outFUN), "correlation")
-
     ## type.Y
     if(!is.null(name.Y)){
         type.Y <- stats::setNames(c("continuous","binary")[sapply(name.Y, function(iName){
             all(data[[iName]] %in% 0:1)
         })+1], name.Y)
     }
+
+    ## all output names
+    name.out <- setdiff(c(columns, name.outFUN), "correlation")
+
 
     ## split according to formula
     if(is.null(name.X)){
@@ -350,13 +383,10 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
         
         ## *** observed
         if(is.null(name.Y)){ ## no outcome variable
-
             if("observed" %in% columns){
                 iOut$observed <- length(iIndex)
             }
-
         }else{
-
             iOut <- cbind(outcome = name.Y, iOut)
             iDataY <- data[iIndex,name.Y,drop=FALSE]
             iDataYcont <- iDataY[type.Y=="continuous"]
@@ -365,7 +395,6 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
             if("observed" %in% columns){
                 iOut$observed <- iN.obs
             }
-
         }
 
         ## *** missing
@@ -497,7 +526,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
             if(length(names.FUN)==0){
                 iOut[,name.outFUN] <- matrix(FUN(), byrow = TRUE, nrow = n.Y, ncol = length(name.outFUN))
             }else{
-                iLS.outfun <- lapply(1:n.Y, FUN = function(iY){
+                iLS.outfun <- lapply(1:n.Y, FUN = function(iY){ ## iY <- 1
                     do.call(FUN, args = c(stats::setNames(as.list(data[iIndex,Mnames.FUN[iY,],drop=FALSE]),names.FUN),dots))
                 })
                 iOut[,name.outFUN] <- do.call(rbind,iLS.outfun)
@@ -510,7 +539,7 @@ summarize <- function(formula, data, repetition = NULL, columns = NULL, FUN = NU
     })
 
     out <- do.call(rbind,ls.summary)
-    if(!is.null(name.Y)){
+    if(order && !is.null(name.Y)){
         out <- out[order(out$outcome),]
     }
     rownames(out) <- NULL

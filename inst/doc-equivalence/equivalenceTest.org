@@ -13,7 +13,8 @@ library(LMMstar, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 
 This vignette connects well-known tests (t.test, ANCOVA, Pearson's
 correlation, Bartlett's test, \ldots) with the output of a linear
-mixed model.  .
+mixed model. The connexion typically only holds in absence of missing
+data.
 
 * Illustrative datasets
 
@@ -667,7 +668,7 @@ model.tables(e.lmmHANCOVA)["visit.trt2",,drop=FALSE]
 
 * Test on the correlation
 
-** Person's correlation
+** Pearson's correlation
 
 One can retrieve Pearson's correlation:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -715,6 +716,20 @@ model.tables(eCor.lmm,  type.information = "expected", effects = "correlation")[
 :          estimate       se       df   lower   upper p.value
 : rho(1,5)  0.88901 0.021914 17285033 0.83738 0.92492       0
 
+\bigskip
+
+Equivalent results can be obtained with a linear regression:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmCor <- lm(bmd1 ~ bmd5, data = calciumW.NNA)
+coef(e.lmCor)["bmd5"]/sqrt(coef(e.lmCor)["bmd5"]^2+vcov(e.lmCor)["bmd5","bmd5"]*df.residual(e.lmCor))
+#+END_SRC
+
+#+RESULTS:
+: bmd5 
+: 0.88901
+
+\clearpage
+
 Of note the confidence intervals and p-value of =cor.test= are not
 computed in a consistent way: 
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -759,9 +774,12 @@ is the same but the confidence intervals and p-value differ more
 substantially (due to small sample approximations). They however are
 consistent with respect to whether to reject the null hypothesis.
 
+
+
+
 \clearpage
 
-** Comparing Person's correlations
+** Comparing Pearson's correlations 
 
 To compare the Pearson's correlation between two groups, one can use
 Fisher'z test:
@@ -962,7 +980,117 @@ exactly the square root (up to a sign) of the Wald F-test test
 statistic, leading to exactly the same p-value and compatible
 confidence intervals.
 
+\bigskip
+
+To retrieve these results with a linear regression, one should model a
+different variance in each group:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmCorG <- lmm(bmd1 ~ grp + bmd5:grp, data = calciumW.NNA, structure = IND(~grp))
+eI.lmCorG <- model.tables(e.lmCorG)[c("grpP:bmd5","grpC:bmd5"),]
+eI.lmCorG
+#+END_SRC
+
+#+RESULTS:
+:           estimate       se     df   lower   upper    p.value
+: grpP:bmd5  0.83283 0.053999 45.009 0.72407 0.94159 0.0000e+00
+: grpC:bmd5  0.74604 0.068412 42.008 0.60798 0.88410 7.9048e-14
+
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eI.lmCorG$estimate/sqrt(eI.lmCorG$estimate^2+eI.lmCorG$se^2*eI.lmCorG$df)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.91700 0.85963
+
 \clearpage
+
+** Comparing Pearson's partial correlations
+
+To evaluate the Pearson's correlation after regressing-out the effect
+of the covariate, one can do it explicitely in two steps:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+## regress-out covariate effect
+calciumW.NNA$bmd4adj <- residuals(lm(bmd4 ~ grp + grp:bmd2, data = calciumW.NNA))
+calciumW.NNA$bmd5adj <- residuals(lm(bmd5 ~ grp + grp:bmd2, data = calciumW.NNA))
+## evaluate correlations
+with(calciumW.NNA, cor(bmd4adj[grp=="P"],bmd5adj[grp=="P"]))
+with(calciumW.NNA, cor(bmd4adj[grp=="C"],bmd5adj[grp=="C"]))
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.8312
+: [1] 0.69114
+
+or in a single step via =partialCor=:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+ePcor <- partialCor(bmd4 + bmd5 ~ bmd2, data = calciumW.NNA, by = "grp")
+print(ePcor, digits = 5)
+#+END_SRC
+
+#+RESULTS:
+:   estimate       se     df   lower   upper    p.value
+: P  0.83120 0.046080 51.263 0.71275 0.90355 1.4225e-10
+: C  0.69114 0.080597 35.778 0.49080 0.82206 3.2049e-06
+
+The estimates are the same but the later approach also provides
+confidence intervals and p.values. The function internally move the
+dataset to the long format and fit a linear mixed model with a mean,
+covariate effect, and variance specific to each measurement (here
+=CCvariableCC= is =bmd1= or =bmd5=).
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+model.tables(attr(ePcor,"lmm")$model$P, effects = "all")
+#+END_SRC
+
+#+RESULTS:
+:                       estimate        se     df     lower     upper    p.value
+: (Intercept)           48.18469 36.685766 45.007 -25.70392 122.07330 1.9569e-01
+: CCvariableCCbmd5      63.38119 24.518113 44.996  13.99907 112.76332 1.3048e-02
+: CCvariableCCbmd4:bmd2  1.00328  0.041053 45.007   0.92060   1.08597 0.0000e+00
+: CCvariableCCbmd5:bmd2  0.95059  0.049349 45.013   0.85119   1.04998 0.0000e+00
+: sigma                 20.36981  2.147167 41.333  16.46485  25.20091         NA
+: k.bmd5                 1.20207  0.099628 53.146   1.01798   1.41946 3.0659e-02
+: rho(bmd4,bmd5)         0.83120  0.046080 51.263   0.71275   0.90355 1.4225e-10
+
+A graphical display of the two measurements, after regressing-out the
+covariate effects, and their relationship (under linearity assumption)
+can also be produced:
+#+BEGIN_SRC R :file ./figures/gg-pCor.pdf :results graphics file :session *R* :cache no :width 10 :height 6
+plot(ePcor)
+#+END_SRC
+
+#+RESULTS:
+[[file:./figures/gg-pCor.pdf]]
+
+#+ATTR_LaTeX: :width \textwidth :options trim={0 0 0 0} :placement [!h]
+[[./figures/gg-pCor.pdf]]
+
+A nearly identical estimate can be obtained using a linear regression,
+adjusting on group:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+e.lmpCorG <- lmm(bmd4 ~ grp + bmd5:grp + bmd2:grp,
+                 data = calciumW.NNA, structure = IND(~grp))
+eI.lmpCorG <- model.tables(e.lmpCorG)[c("grpP:bmd5","grpC:bmd5"),]
+eI.lmpCorG
+#+END_SRC
+
+#+RESULTS:
+: estimate       se     df   lower   upper    p.value
+: grpP:bmd5  0.69147 0.069727 44.009 0.55094 0.83199 8.6198e-13
+: grpC:bmd5  0.62242 0.101649 41.008 0.41714 0.82771 2.8871e-07
+
+and back-transforming the estimated regression parameter:
+#+BEGIN_SRC R :exports both :results output :session *R* :cache no
+eI.lmpCorG$estimate/sqrt(eI.lmpCorG$estimate^2+eI.lmpCorG$se^2*eI.lmpCorG$df)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.83117 0.69110
+
+
+
+
+\clearpage
+
 
 ** Correlation between changes 
 

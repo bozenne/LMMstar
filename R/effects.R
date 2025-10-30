@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jan 29 2024 (09:47) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:35) 
+## Last-Updated: okt 24 2025 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 1157
+##     Update #: 1212
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,10 +20,11 @@
 ##' @description Estimate average counterfactual outcome or contrast of outcome based on a linear mixed model.
 ##' 
 ##' @param object a \code{lmm} object. 
-##' @param variable [character/list] exposure variable relative to which the effect should be computed.
+##' @param variable [character/list/formula] exposure variable relative to which the effect should be computed.
 ##' Can also be a list with two elements: the first being the variable (i.e. a character) and the second the levels or values for this variable to be considered.
+##' Or a formula ~variable | conditional to match the emmeans syntax.
 ##' @param effects [character] should the average counterfactual outcome for each variable level be evaluated (\code{"identity"})?
-##' Or the difference in average counterfactual outcome between each pair of variable level (\code{"difference"})?
+##' Or the difference in averagae counterfactual outcome between each pair of variable level (\code{"difference"})?
 ##' @param type [character/numeric vector] Possible transformation of the outcome: no transformation (\code{"outcome"}),
 ##' change from baseline (\code{"change"}),
 ##' area under the outcome curve (\code{"auc"}),
@@ -59,7 +60,7 @@
 ##' dL <- sampleRem(100, n.times = 3, format = "long")
 ##' 
 ##' #### Linear Mixed Model ####
-##' eUN.lmm <- lmm(Y ~ visit + X1 + X2 + X5,
+##' eUN.lmm <- lmm(Y ~ 0 + visit + X1 + X2 + X5,
 ##'                repetition = ~visit|id, structure = "UN", data = dL)
 ##'
 ##' ## outcome
@@ -108,7 +109,6 @@
 ##' effects(eUN.lmmI, effect = "difference", type = "change", variable = "X1.factor",
 ##'         conditional = data.frame(X5=0:2))
 
-
 ## * effects.lmm (code)
 ##' @export
 effects.lmm <- function(object, variable, effects = "identity", type = "outcome",
@@ -118,7 +118,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
 
     mycall <- match.call()
     time.var <- object$time$var
-    alltime.var <- attr(time.var,"original")
+    oritime.var <- attr(time.var,"original")
 
     ## ** check arguments
     ## *** dots
@@ -176,24 +176,69 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
              "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
     }
     
-    if(!is.null(variable)){
-        if(is.list(variable)){
-            if(length(variable)!=2){
-                stop("Argument \'variable\' must have length 2 when a list. \n",
-                     "The first element being the variable and the second its levels to be considered. \n")
-            }
-            if(!is.character(variable[[1]])){
-                stop("Argument \'variable\' must have length 2 when a list. \n",
-                     "The first element being the variable and the second its levels to be considered. \n")
-            }
-            Ulevel.variable <- variable[[2]]
-            variable <- variable[[1]]
-        }else if(!is.character(variable)){
-            stop("Argument \'variable\' must be a character value, a list, or NULL. \n")
-        }else{
-            Ulevel.variable <- NULL
+    if(inherits(variable,"formula")){
+        
+        terms.variable <- formula2var(variable)
+
+        ## normalize
+        if(terms.variable$special=="repetition"){
+            terms.variable$vars$regressor <- terms.variable$vars$time
+            terms.variable$terms$regressor <- strsplit(terms.variable$terms$repetition, split = "|", fixed = TRUE)[[1]][1]
+        }else if(terms.variable$special=="ranef"){
+            stop("Incorrect formula for argument \'variable\': should not contain any 'random effect' like elements. \n",
+                 "Can be ~G or ~G|X or change ~ difference(G)|X but not ~(G|X).")
         }
-    } 
+
+        ## type of outcome
+        if(!is.null(terms.variable$vars$response)){
+            if(is.null(mycall$type)){
+                type <- terms.variable$vars$response
+            }else{
+                stop("Argument \'type\' should be NULL when argument \'variable\' is a formula with a left hand side, e.g. change ~ G|X. \n",
+                     "Or use variable = ~G|X and type = \"change\". \n")
+            }
+        }
+        ## variable
+        variable <- terms.variable$vars$regressor
+
+        ## conditional
+        if(terms.variable$special=="repetition"){    
+            if(!is.null(conditional)){
+                stop("Argument \'conditional\' should be NULL when argument \'variable\' is a formula. \n")
+            }
+            conditional <- terms.variable$vars$cluster
+        }
+
+        ## effects
+        if(grepl("(", terms.variable$terms$regressor, fixed = TRUE)){
+            if(is.null(mycall$effects)){
+                effects <- strsplit(terms.variable$terms$regressor, split = "(", fixed = TRUE)[[1]][1]
+            }else{
+                stop("Argument \'effects\' should be NULL when argument \'variable\' is a formula with an operator, e.g. ~ difference(G). \n",
+                     "Or use variable = ~G and effects = \"difference\". \n")
+            }                       
+        }
+        
+        
+        Ulevel.variable <- NULL
+
+    }else if(is.list(variable)){
+        if(length(variable)!=2){
+            stop("Argument \'variable\' must have length 2 when a list. \n",
+                 "The first element being the variable and the second its levels to be considered. \n")
+        }
+        if(!is.character(variable[[1]])){
+            stop("Argument \'variable\' must have length 2 when a list. \n",
+                 "The first element being the variable and the second its levels to be considered. \n")
+        }
+        Ulevel.variable <- variable[[2]]
+        variable <- variable[[1]]
+    }else if(!is.character(variable) && !is.null(variable)){
+        stop("Argument \'variable\' must be a character value, a list, or NULL. \n")
+    }else{
+        Ulevel.variable <- NULL
+    }
+
     valid.variable <- attr(object$design$mean, "variable")
     rhs <- 0
 
@@ -255,10 +300,10 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                      "Valid values: integer from 1 to ",length(Ulevel.variable),". \n")
             }
         }else if(is.null(ref.variable) || all(is.na(ref.variable))){
-             ref.variable <- 1:length(Ulevel.variable)
-         }else{
-             stop("Incorrect specification of argument \'ref.variable\'. Should be numeric, character, or NA. \n")
-         }
+            ref.variable <- 1:length(Ulevel.variable)
+        }else{
+            stop("Incorrect specification of argument \'ref.variable\'. Should be numeric, character, or NA. \n")
+        }
     }else{        
         Ulevel.variable <- ""
     }
@@ -273,7 +318,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                     "Corresponding lines in the dataset will be removed. \n",
                     "Consider specifying the argument \'newdata\' to specifying the marginal covariate distribution. \n")
         }
-    }else{
+    }else{        
         data.augmented <- stats::model.frame(object, newdata = newdata, add.index = TRUE, na.rm = FALSE, options = options)
     }
     ## data.augmented$XXstrataXX <- 1
@@ -312,9 +357,10 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     }
 
     ## define conditioning set (normalize user input)
-    if("conditional" %in% names(mycall) == FALSE){
-        if(!is.na(alltime.var) && type %in% c("outcome","change")){
-            conditional <- alltime.var
+    if("conditional" %in% names(mycall) == FALSE && is.null(conditional)){
+        ## is.null important to catch when conditional is defined via variable in the formula interface
+        if(!is.na(oritime.var) && type %in% c("outcome","change")){
+            conditional <- oritime.var
         }else{
             conditional <- NULL
         }
@@ -324,17 +370,17 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
         conditional.time <- FALSE
         grid.conditional <- NULL
     }else if(is.character(conditional)){
-        valid.conditional <- union(c(alltime.var,time.var),setdiff(names(object$xfactor$mean),variable))
+        valid.conditional <- union(c(oritime.var,time.var),setdiff(names(object$xfactor$mean),variable))
         if(any(conditional %in% valid.conditional == FALSE)){
             stop("Incorrect value for argument \'conditional\'. \n",
                  "If a character, it should only include the time variable and factor variables influencing the mean structure.\n",
                  "Valid values: \"",paste0(valid.conditional, collapse = "\" \""),"\".\n")
         }        
-        conditional.time <- (type %in% c("outcome","change")) && ((time.var %in% conditional) || all(alltime.var %in% c(variable,conditional)))
-        grid.conditional <- expand.grid(object$xfactor$mean[setdiff(conditional,c(alltime.var,time.var))])
+        conditional.time <- (type %in% c("outcome","change")) && ((time.var %in% conditional) || all(oritime.var %in% c(variable,conditional)))
+        grid.conditional <- expand.grid(object$xfactor$mean[setdiff(conditional,c(oritime.var,time.var))])
     }else if(is.data.frame(conditional)){
         if(is.null(repetition)){
-            valid.conditional <- union(c(alltime.var,time.var),setdiff(valid.variable,variable))
+            valid.conditional <- union(c(oritime.var,time.var),setdiff(valid.variable,variable))
         }else{
             ## cannot allow multiple time variable as repetition only takes vectors in
             valid.conditional <- union(time.var,setdiff(valid.variable,variable))
@@ -349,8 +395,8 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                  "Valid values: \"",paste0(valid.conditional, collapse = "\" \""),"\".\n")
         }
 
-        conditional.time <- (type %in% c("outcome","change")) && ((time.var %in% names(conditional)) || all(alltime.var %in% c(variable,names(conditional))))
-        if((time.var %in% names(conditional)) || all(alltime.var %in% c(variable,names(conditional)))){
+        conditional.time <- (type %in% c("outcome","change")) && ((time.var %in% names(conditional)) || all(oritime.var %in% c(variable,names(conditional))))
+        if((time.var %in% names(conditional)) || all(oritime.var %in% c(variable,names(conditional)))){
             if(!is.null(repetition)){
                 if(!identical(sort(unname(conditional[[time.var]])),sort(unname(repetition)))){
                     stop("Mismatch between argument \'repetition\' and \'conditional\' regarding timepoint values. \n")
@@ -367,9 +413,9 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                         repetition <- U.time[repetition]
                     }
                 }else{
-                    repetition <- merge(x = unique(cbind(stats::setNames(list(Ulevel.variable),variable),conditional)[alltime.var]),
+                    repetition <- merge(x = unique(cbind(stats::setNames(list(Ulevel.variable),variable),conditional)[oritime.var]),
                                         y = cbind(attr(object$time$levels,"original"),levels = object$time$levels),
-                                        by = alltime.var, all.x = TRUE)$levels
+                                        by = oritime.var, all.x = TRUE)$levels
                     if(any(is.na(repetition))){
                         stop("Argument \'repetition\' incorrect: values do not match those stored in the lmm. \n")
                     }
@@ -379,7 +425,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 repetition <- union(U.time[ref.repetition],repetition)
             }
         }
-        grid.conditional <- unique(conditional[setdiff(names(conditional),c(alltime.var,time.var))])
+        grid.conditional <- unique(conditional[setdiff(names(conditional),c(oritime.var,time.var))])
 
         test.positivity <- interaction(grid.conditional) %in% interaction(object$data[names(grid.conditional)])
         if(all(test.positivity==FALSE)){
@@ -459,13 +505,17 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
     ## ** individual specific contrast matrix
     if(is.null(prefix.time)){
 
-        if(length(attr(time.var,"original"))>1){
-            alltime.var <- paste(attr(time.var,"original"),collapse=".")
+        if(length(oritime.var)>1){
+            alltime.var <- paste(oritime.var,collapse=".")
+        }else if(!is.na(oritime.var)){
+            alltime.var <- oritime.var
         }else{
-            alltime.var <- time.var
+            alltime.var <- NULL
         }
 
-        if(conditional.time){
+        if(is.null(alltime.var)){
+            prefix.time <- NA
+        }else if(conditional.time){
             prefix.time <- switch(type,
                                   "outcome" = paste0(alltime.var,"="),
                                   "change" = paste0("\u0394",alltime.var,"="),
@@ -507,8 +557,8 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                     iData[[variable]] <- iLevel
                 }
                 
-            }
-            iX <- stats::model.matrix(object, newdata = iData, effects = "mean", options = options)
+            }            
+            iX <- stats::model.matrix(object, newdata = iData, effects = "mean", options = options, na.rm=FALSE)
 
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData$XXtimeXX, 
@@ -575,8 +625,8 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 iData2[[variable]] <- Upair.variable[2,iPair]
             }
 
-            iX1 <- stats::model.matrix(object, newdata = iData1, effects = "mean", options = options)
-            iX2 <- stats::model.matrix(object, newdata = iData2, effects = "mean", options = options)
+            iX1 <- stats::model.matrix(object, newdata = iData1, effects = "mean", options = options, na.rm = FALSE)
+            iX2 <- stats::model.matrix(object, newdata = iData2, effects = "mean", options = options, na.rm = FALSE)
             
             if(length(grid.conditional)==0){
                 iStrata <- droplevels(factor(iData1$XXtimeXX,
@@ -749,7 +799,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
 
     ## ** possible stratification
     if(length(grid.conditional)>0){
- 
+        
         if(any(attr(U.strata,"table")==0)){
             ## in cross-over designs, there will be no observation at period drug=placebo under condition=active
             ## this case should be removed from the contrast matrix
@@ -786,11 +836,14 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
             attr(out,"strata.row") <- unlist(lapply(U.strata, rep, times = NROW(M.contrast)))
         }
         colnames(out) <- paste0(attr(out,"time.col"), sep.var, attr(out,"strata.col"))
-
         if(type %in% c("outcome","change")){
-            rownames(out) <- paste0(prefix.time,attr(out,"time.row"),sep.var,attr(out,"strata.row"))
+            if(is.na(prefix.time)){
+                rownames(out) <- paste0(attr(out,"strata.row"))
+            }else{
+                rownames(out) <- paste0(prefix.time,attr(out,"time.row"),sep.var,attr(out,"strata.row"))
+            }
         }else if(type %in%c("auc","auc-b","user")){
-            if(nchar(prefix.time)==0){
+            if(nchar(prefix.time)==0 || is.na(prefix.time)){
                 rownames(out) <- paste0(attr(out,"strata.row"))
             }else{
                 rownames(out) <- paste0(prefix.time,sep.var,attr(out,"strata.row"))
@@ -807,16 +860,20 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
         colnames(out) <- attr(out,"time.col")
 
         if(type %in% c("outcome","change")){
-            rownames(out) <- paste0(prefix.time,attr(out,"time.row"))
+            if(is.na(prefix.time)){
+                rownames(out) <- ""
+            }else{
+                rownames(out) <- paste0(prefix.time,attr(out,"time.row"))
+            }
         }else if(type %in% c("auc","auc-b")){
-            if(nchar(prefix.time)==0){
+            if(nchar(prefix.time)==0 || is.na(prefix.time)){
                 rownames(out) <- ""
             }else{
                 rownames(out) <- paste0(prefix.time)
             }
         }else if(type == "user"){
-            if(is.null(attr(out,"time.row"))){
-                if(nchar(prefix.time)==0){
+            if(is.null(attr(out,"time.row")) || is.na(prefix.time)){
+                if(nchar(prefix.time)==0 || is.na(prefix.time)){
                     rownames(out) <- ""
                 }else{
                     rownames(out) <- paste0(prefix.time)
@@ -855,7 +912,7 @@ effects.lmm <- function(object, variable, effects = "identity", type = "outcome"
                 return(iN/sum(iN))
             }))
             rownames(attr(out,"weight")) <- U.strata
-
+            
             if(nchar(prefix.time)==0){
                 if(n.strata>1){
                     attr(out,"weight.name") <- stats::setNames(paste0(U.strata), U.strata)

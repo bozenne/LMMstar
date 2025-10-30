@@ -24,15 +24,35 @@ Variance-covariance structure where the residuals are independent but may have d
 Can be stratified on a categorical variable.
 }
 \details{
-A typical formula would be either \code{~1} indicating constant variance
-or \code{~time} indicating a time dependent variance.
+A typical formula would be \code{~time}. It will model: \itemize{
+\item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
+\item \eqn{\rho_{j,j'}=0}: no correlation
+}
+With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_2^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_3^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_4\sigma^2 \end{bmatrix}}
+It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~time}. This will lead to:
+\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
+}
+Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
+\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+}
+and  \code{~time+sex}:
+\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{female}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{female}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{female}:4}\sigma^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
+}
+which is just a re-parametrisation of \code{sex~time}.
 }
 \examples{
 IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
 IND(~1, var.cluster = "id", var.time = "time")
-IND(gender~1, var.cluster = "id", var.time = "time")
-IND(gender~time, var.cluster = "id", var.time = "time")
-IND(~gender+time, var.cluster = "id", var.time = "time")
+IND(sex~1, var.cluster = "id", var.time = "time")
+IND(sex~time, var.cluster = "id", var.time = "time")
+IND(~sex+time, var.cluster = "id", var.time = "time")
 
 }
 \keyword{multivariate}
