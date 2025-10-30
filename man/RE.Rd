@@ -29,9 +29,36 @@ Can be stratified on a categorical variable.
 A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 }
 \examples{
-RE(~1, var.cluster = "id", var.time = "time")
-RE(~sex, var.cluster = "id", var.time = "time")
-RE(sex~(1|id), var.time = "time")
+\dontrun{
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
+                             labels = c("female", "male"))
+gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+                             labels = c("baseline", "follow-up"))
 
+#### Random intercept ####
+eRI <- lmm(glucagonAUC ~ visit + (1|id), data = gastricbypassL)
+sigma(eRI)
+nlme::ranef(eRI, effects = "variance")
+model.tables(eRI, effects = "all")
+
+#### Nested random effects ####
+eNRI <- lmm(glucagonAUC ~ visit + (1|id/baseline), data = gastricbypassL)
+sigma(eNRI)
+## nlme::ranef(eNRI, effects = "variance")
+model.tables(eNRI, effects = "all")
+
+#### Cross random effects ####
+eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit), data = gastricbypassL)
+summary(eCRI)
+## nlme::ranef(eCRI, effects = "variance")
+model.tables(eCRI, effects = "all") ## to few observations
+
+data(Penicillin, package = "lme4")
+eCRI.2 <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
+nlme::ranef(eCRI.2, effects = "variance")
+model.tables(eCRI.2, effects = "all")
+
+}
 }
 \keyword{multivariate}

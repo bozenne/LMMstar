@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 11 2024 (09:49) 
 ## Version: 
-## Last-Updated: maj 14 2024 (18:32) 
+## Last-Updated: okt 30 2025 (14:36) 
 ##           By: Brice Ozenne
-##     Update #: 113
+##     Update #: 115
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,7 @@
 
 ## * .nameUpatterns.IND
 .nameUpatterns.IND <- function(structure, xfactor, ignore.time = FALSE, sep){
-        
+
     ## ** find groups
     Upattern <- structure$Upattern
     out <- groupSet(Upattern$param, strata = Upattern$strata)

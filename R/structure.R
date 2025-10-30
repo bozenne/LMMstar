@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: okt 30 2025 (12:25) 
+## Last-Updated: okt 30 2025 (17:21) 
 ##           By: Brice Ozenne
-##     Update #: 1191
+##     Update #: 1270
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -42,10 +42,29 @@
 ##' @keywords multivariate
 ##' 
 ##' @examples
-##' ID(NULL, var.cluster = "id", var.time = "time")
-##' ID(~1, var.cluster = "id", var.time = "time")
-##' ID(~sex, var.cluster = "id", var.time = "time")
-##' ID(sex~1, var.cluster = "id", var.time = "time")
+##' \dontrun{
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) %% 2,
+##'                              labels = c("female", "male"))
+##'
+##' ## default: single variance parameter
+##' eID.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = ID, data = gastricbypassL)
+##' sigma(eID.default)
+##' model.tables(eID.default, effects = "variance")
+##' 
+##' ## stratified: one variance parameter per strata
+##' eID.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = ID(sex~1), data = gastricbypassL)
+##' sigma(eID.strata)
+##' model.tables(eID.strata, effects = "variance")
+##' 
+##' ## same as
+##' eID.reg <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = ID(~sex), data = gastricbypassL)
+##' sigma(eID.reg)
+##' model.tables(eID.reg, effects = "variance")
+##' }
 ##' @export
 ID <- function(formula, var.cluster, var.time, add.time){
 
@@ -96,27 +115,54 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' \text{and}
 ##' \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
 ##' }
-##' Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
-##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
-##' \text{and}
-##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
-##' }
-##' and  \code{~time+sex}:
+##' Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex}:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{female}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{female}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{female}:4}\sigma^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
 ##' }
-##' which is just a re-parametrisation of \code{sex~time}.
+##' which is just a re-parametrisation the stratified structure since, by default, the variance is taken dependent of a time effect.
+##' Removing the time effect by setting \code{add.time} to \code{FALSE}) leads to:
+##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+##' }
+##' 
 ##' @return An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
 ##' @keywords multivariate
 ##' 
 ##' @examples
-##' IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
-##' IND(~1, var.cluster = "id", var.time = "time")
-##' IND(sex~1, var.cluster = "id", var.time = "time")
-##' IND(sex~time, var.cluster = "id", var.time = "time")
-##' IND(~sex+time, var.cluster = "id", var.time = "time")
+##' \dontrun{
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) %% 2,
+##'                              labels = c("female", "male"))
+##'
+##' ## default: repetition specific variance
+##' eIND.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = IND, data = gastricbypassL)
+##' sigma(eIND.default)
+##' paramIND.default <- model.tables(eIND.default, effects = "variance")
+##' paramIND.default
+##' paramIND.default[1,"estimate"]^2 * c(1,paramIND.default[-1,"estimate"]^2)
+##' 
+##' ## stratified: repetition and strata specific variance parameter
+##' eIND.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                    structure = IND(sex~1), data = gastricbypassL)
+##' sigma(eIND.strata)
+##' model.tables(eIND.strata, effects = "variance")
+##' 
+##' ## same as
+##' eIND.reg <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = IND(~sex), data = gastricbypassL)
+##' sigma(eIND.reg) 
+##' model.tables(eIND.reg, effects = "variance") 
+##'
+##' ## to not only use sex dependent variance
+##' eIND.reg0 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = IND(~sex, add.time = FALSE), data = gastricbypassL)
+##' sigma(eIND.reg0)
+##' model.tables(eIND.reg0, effects = "variance") 
+##' }
 ##' 
 ##' @export
 IND <- function(formula, var.cluster, var.time, add.time){
@@ -175,12 +221,15 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' @param var.time [character] time variable.
 ##' @param type [character] \itemize{
 ##' \item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
-##' Analogous to crossed or nested random effects.
+##' Analogous to nested random effects.
 ##' \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
-##' Can be seen as more flexible crossed or nested random effects model.
+##' Can be seen as more flexible nested random effects model.
+##' \item \code{"cs"}, \code{"cross"}: constant variance and covariate-specific correlation under 0 correlation of between pairs with different covariate levels.
+##' Analogous to crossed random effects.
 ##' }
-##' @param group.type [integer vector] grouping of the regressor for the correlation structure.
-##' A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects
+##' Can also be a vector of integers indicating the grouping of the regressor for the correlation structure:
+##' a constant value corresponds to nested random effects (default)
+##' and a regressor-specific value to crossed random effects. Mainly for internal use.
 ##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
@@ -188,46 +237,136 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' \item \eqn{\rho_{j,j'}=\rho}: a correlation constant over repetitions.
 ##' }
 ##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
-##' \deqn{ \begin{bmatrix} \sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_2^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_3^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_4\sigma^2 \end{bmatrix}}
-##' It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
-##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
-##' \text{and}
-##' \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
-##' }
-##' Instead of stratifying one can also make the variance and correlation specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
-##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 \end{bmatrix}
-##' \text{and}
-##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
-##' }
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \sigma^2 \end{bmatrix}}
+##' With positive correlation, this is reparametrisation of a random intercept model. \cr
 ##' 
-##' 
+##' \bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
+##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 \end{bmatrix}
+##' } 
+##' By default, the argument \code{type} is set to \code{"homogeneous"} meaning that \code{~sex} will only make the correlation sex dependent:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  \end{bmatrix}
+##' }
+##' To obtain a sex-dependent variance one can either set the argument \code{type} to \code{"heterogeneous"} or specify a separate formula for the variance and correlation using a list: \code{list(~sex,~sex)}
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
+##' \text{and}
+##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} \end{bmatrix}
+##' }
+##' This is a reparametrization of the stratified CS structure. \cr \cr
+##'
+##' \bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters. But one can make the variance and correlation dependent on such variable. By default (\code{type="homogeneous"}) two correlation parameters are used: one when the variable values are same between the two repetitions (\eqn{\rho_W}) and another when the variable values differ between the two repetitions (\eqn{\rho_B}), e.g. if baseline refers to the firt two repetitions then using the formula \code{~baseline} will model:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_W\sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_W\sigma^2 & \sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \sigma^2 & \rho_W\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \rho_W\sigma^2 & \sigma^2 \end{bmatrix}}
+##' With positive correlation, this is reparametrisation of a nested random effect model. \cr
+##'
+##' Setting \code{type="heterogeneous"} enables to obtain a correlation parameter specific to each variable value and each difference in variable value:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{baseline}}\sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} \\ \rho_{\text{baseline}}\sigma^2 & \sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} \end{bmatrix}} 
+##'
+##' Setting \code{type="cross"} only considers correlation between observations with identical covariate values. Consider clusters of two subjects and modeling the within subject correlation, within timepoint correlation for subjects from the same cluster but assuming independence between observations measured at different timepoints on different subjects:
+##' \deqn{ \begin{bmatrix}
+##' \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{time}}\sigma^2  & 0 & 0 & 0 \\
+##' \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & 0 & \rho_{\text{time}}\sigma^2 & 0 & 0 \\
+##' \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & 0 & 0  & \rho_{\text{time}}\sigma^2 & 0 \\
+##' \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & 0 & 0 & 0 & \rho_{\text{time}}\sigma^2 \\
+##' \rho_{\text{time}}\sigma^2 & 0 & 0 & 0 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2\\
+##' 0 & \rho_{\text{time}}\sigma^2 & 0 & 0 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 \\
+##' 0 & 0  & \rho_{\text{time}}\sigma^2 & 0 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2\\
+##' 0 & 0 & 0 & \rho_{\text{time}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 \\
+##' \end{bmatrix}} 
 ##' @return An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @keywords multivariate
 ##' 
 ##' @examples
-##' ## no covariates
-##' CS(~1, var.cluster = "id", var.time = "time")
-##' CS(sex~1, var.cluster = "id", var.time = "time")
+##' \dontrun{
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) %% 2,
+##'                              labels = c("female", "male"))
+##' gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+##'                              labels = c("baseline", "follow-up"))
+##' gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) %/% 2)
 ##'
-##' ## covariates
-##' CS(~time, var.cluster = "id", var.time = "time")
-##' CS(sex~time, var.cluster = "id", var.time = "time")
-##' CS(list(~time,~1), var.cluster = "id", var.time = "time")
-##' CS(list(sex~time,sex~1), var.cluster = "id", var.time = "time")
+##' #### default: constant variance and correlation ####
+##' eCS.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = CS, data = gastricbypassL)
+##' sigma(eCS.default)
+##' paramCS.default <- model.tables(eCS.default, effects = "all")
+##' paramCS.default
+##' paramCS.default["sigma","estimate"]^2 * paramCS.default["rho(id)","estimate"]
+##'
+##' #### Covariate constant within-cluster #### 
+##' ## stratified: strata specific variance and correlation
+##' eCS.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = CS(sex~1), data = gastricbypassL)
+##' sigma(eCS.strata)
+##' model.tables(eCS.strata, effects = "all")
+##' 
+##' ## covariate: constant variance and sex-dependent correlation
+##' eCS.sexCor <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                   structure = CS(~sex), data = gastricbypassL)
+##' sigma(eCS.sexCor)
+##' 
+##' ## covariate: sex-dependent variance and correlation
+##' eCS.sex <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                structure = CS(~sex, type = "he"), data = gastricbypassL)
+##' sigma(eCS.sex)
+##' 
+##' eCS.sex2 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                structure = CS(list(~sex, ~sex)), data = gastricbypassL)
+##' sigma(eCS.sex2)
+##'
+##' #### Covariate varying within-cluster ####
+##'
+##' ## homogeneous: within (rho id/basline) and between (rho id) correlation
+##' eBCS.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = CS(~baseline), data = gastricbypassL)
+##' sigma(eBCS.default)
+##' model.tables(eBCS.default, effects = "all")
+##' 
+##' ## heterogeneous: within (rho id/basline) and between (rho id) correlation
+##' eBCS.hetero <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                     structure = CS(~baseline, type = "he"), data = gastricbypassL)
+##' sigma(eBCS.hetero)
+##' model.tables(eBCS.hetero, effects = "all")
+##' 
+##' #### Cross compound symmetry ####
+##' ## artificially create a two level structure family-id
+##' ## assumed observations correlated within id
+##' ##                                 within family at the same time
+##' ## index family member: first, second
+##' gastricbypassL$member.index <- ave(gastricbypassL$id,gastricbypassL$family,
+##'                                    FUN=function(x){as.numeric(factor(x))})
+##' ## index observations within family
+##' gastricbypassL$member.visit <- with(gastricbypassL,
+##'   paste0(member.index,"(t=",visit,")")
+##' )
+##'
+##' ## constant correlation within subject, constant correlation within time,
+##' ## no correlation within family for different subjects at different times
+##' eCS.family <- lmm(glucagonAUC ~ visit, repetition = ~member.visit|family,
+##'                   structure = CS(~id+visit, type = "cross"),
+##'                   data = gastricbypassL)
+##' sigma(eCS.family)
+##' model.tables(eCS.family, effects = "all")
+##' }
 ##' 
 ##' @export
-CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, add.time){
+CS <- function(formula, var.cluster, var.time, type = NULL, add.time){
 
     ## ** normalize input
     type.ho <- c("ho","homo","homogeneous")
     type.he <- c("he","hetero","heterogeneous")
+    type.cs <- c("cs","cross")
     if(!is.null(type)){
-        type <- match.arg(type, c(type.ho,type.he))
+        type <- match.arg(type, c(type.ho,type.he,type.cs))
         if(type %in% type.ho){
             type <- type.ho[3]
         }else if(type %in% type.he){
             type <- type.he[3]
+        }else if(type %in% type.cs){
+            type <- type.cs[2]
         }
     }else if(inherits(formula,"formula") || (is.list(formula) && length(formula)==1)){
         type <- type.ho[3]
@@ -236,7 +375,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
     }
 
     if(!missing(formula) && inherits(formula,"formula")){
-        if(type == "homogeneous"){
+        if(type %in% c("homogeneous","cross")){
             if(attr(stats::terms(formula),"response")==0){
                 formula <- list(variance = ~1,
                                 correlation = formula)
@@ -271,27 +410,14 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
         outCov <- NULL
     }
 
-    if(is.null(group.type) || length(group.type) == 0){
+    if(type %in% c("heterogeneous","homogeneous")){
         if(length(outCov$X.cor)==0){
             group.type <- NULL
         }else{
             group.type <- stats::setNames(rep(1,length(outCov$X.cor)), outCov$X.cor)
         }
-    }else{
-        if(length(group.type) != length(outCov$X.cor)){
-            stop("Argument \'group.type\' should have length ",length(outCov$X.cor),", i.e. one value for each variable. \n")
-        }
-        if(any(duplicated(names(group.type)))){
-            stop("Argument \'group.type\' should no have duplicated names. \n")
-        }
-        if(!is.null(names(group.type))){
-            if(any(names(group.type) %in% outCov$X.cor == FALSE)){
-                stop("Argument \'group.type\' should contain regressors for the correlation structure. \n",
-                     "Valid values: \"",paste(outCov$X.cor, collapse = "\", \""),"\". \n")
-            }
-        }else{
-            names(group.type) <- outCov$X.cor
-        }
+    }else if(type == "cross"){
+        group.type <- stats::setNames(1:length(outCov$X.cor), outCov$X.cor)
     }
     if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
         stop("Argument \'var.cluster\' should not be a formula. \n",
@@ -308,7 +434,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                type = type,
+                type = ifelse(type=="heterogeneous","heterogeneous","homogeneous"),
                 group.type = group.type,
                 class = "CS")
 
@@ -337,10 +463,37 @@ CS <- function(formula, var.cluster, var.time, type = NULL, group.type = NULL, a
 ##' @keywords multivariate
 ##' 
 ##' @examples
-##' RE(~1, var.cluster = "id", var.time = "time")
-##' RE(~sex, var.cluster = "id", var.time = "time")
-##' RE(sex~(1|id), var.time = "time")
+##' \dontrun{
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) %% 2,
+##'                              labels = c("female", "male"))
+##' gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+##'                              labels = c("baseline", "follow-up"))
+##'
+##' #### Random intercept ####
+##' eRI <- lmm(glucagonAUC ~ visit + (1|id), data = gastricbypassL)
+##' sigma(eRI)
+##' nlme::ranef(eRI, effects = "variance")
+##' model.tables(eRI, effects = "all")
+##'
+##' #### Nested random effects ####
+##' eNRI <- lmm(glucagonAUC ~ visit + (1|id/baseline), data = gastricbypassL)
+##' sigma(eNRI)
+##' ## nlme::ranef(eNRI, effects = "variance")
+##' model.tables(eNRI, effects = "all")
 ##' 
+##' #### Cross random effects ####
+##' eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit), data = gastricbypassL)
+##' summary(eCRI)
+##' ## nlme::ranef(eCRI, effects = "variance")
+##' model.tables(eCRI, effects = "all") ## to few observations
+##'
+##' data(Penicillin, package = "lme4")
+##' eCRI.2 <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
+##' nlme::ranef(eCRI.2, effects = "variance")
+##' model.tables(eCRI.2, effects = "all")
+##'
+##' }
 ##' @export
 RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 
@@ -427,18 +580,12 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
     group <- unlist(lapply(1:n.group, function(iG){
         stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
     }))
-    if(!missing(var.cluster) && !is.null(attr(var.cluster,"original")) && attr(var.cluster,"original") %in% names(group)){
-        groupCS <- group[names(group) != attr(var.cluster,"original")]
-    }else{
-        groupCS <- group
-    }
 
     ## ** create structure
     out <- CS(list(variance = ff.var, correlation = ff.cor),
               var.cluster = var.cluster, var.time = var.time,
-              type = "homogeneous",
-              group.type = groupCS) ## modify group.type to remove cluster variable (otherwise error as it does not match the design matrix)
-    out$group.type <- group ## use the proper group variable later
+              type = "homogeneous") 
+    out$group.type <- group ## remove cluster variable for cross-random effects (otherwise error as it does not match the design matrix)
     out$ranef <- ranef
 
     ## ** export

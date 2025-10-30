@@ -36,9 +36,28 @@ It is possibly to stratify covariance pattern on a categorical variable (e.g. se
 }
 }
 \examples{
-ID(NULL, var.cluster = "id", var.time = "time")
-ID(~1, var.cluster = "id", var.time = "time")
-ID(~sex, var.cluster = "id", var.time = "time")
-ID(sex~1, var.cluster = "id", var.time = "time")
+\dontrun{
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
+                             labels = c("female", "male"))
+
+## default: single variance parameter
+eID.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = ID, data = gastricbypassL)
+sigma(eID.default)
+model.tables(eID.default, effects = "variance")
+
+## stratified: one variance parameter per strata
+eID.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = ID(sex~1), data = gastricbypassL)
+sigma(eID.strata)
+model.tables(eID.strata, effects = "variance")
+
+## same as
+eID.reg <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = ID(~sex), data = gastricbypassL)
+sigma(eID.reg)
+model.tables(eID.reg, effects = "variance")
+}
 }
 \keyword{multivariate}

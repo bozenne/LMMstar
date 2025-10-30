@@ -35,24 +35,50 @@ It is possibly to stratify the covariance pattern on a categorical variable (e.g
 \text{and}
 \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
 }
-Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
-\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
-\text{and}
-\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
-}
-and  \code{~time+sex}:
+Instead of stratifying one can also make the multiplier parameter specific to arbitrary (categorical) variables, e.g.  \code{~sex}:
 \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{female}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{female}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{female}:4}\sigma^2 \end{bmatrix}
 \text{and}
 \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
 }
-which is just a re-parametrisation of \code{sex~time}.
+which is just a re-parametrisation the stratified structure since, by default, the variance is taken dependent of a time effect.
+Removing the time effect by setting \code{add.time} to \code{FALSE}) leads to:
+\deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+}
 }
 \examples{
-IND(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)
-IND(~1, var.cluster = "id", var.time = "time")
-IND(sex~1, var.cluster = "id", var.time = "time")
-IND(sex~time, var.cluster = "id", var.time = "time")
-IND(~sex+time, var.cluster = "id", var.time = "time")
+\dontrun{
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
+                             labels = c("female", "male"))
+
+## default: repetition specific variance
+eIND.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = IND, data = gastricbypassL)
+sigma(eIND.default)
+paramIND.default <- model.tables(eIND.default, effects = "variance")
+paramIND.default
+paramIND.default[1,"estimate"]^2 * c(1,paramIND.default[-1,"estimate"]^2)
+
+## stratified: repetition and strata specific variance parameter
+eIND.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                   structure = IND(sex~1), data = gastricbypassL)
+sigma(eIND.strata)
+model.tables(eIND.strata, effects = "variance")
+
+## same as
+eIND.reg <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = IND(~sex), data = gastricbypassL)
+sigma(eIND.reg) 
+model.tables(eIND.reg, effects = "variance") 
+
+## to not only use sex dependent variance
+eIND.reg0 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = IND(~sex, add.time = FALSE), data = gastricbypassL)
+sigma(eIND.reg0)
+model.tables(eIND.reg0, effects = "variance") 
+}
 
 }
 \keyword{multivariate}

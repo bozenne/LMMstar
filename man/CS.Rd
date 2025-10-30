@@ -4,7 +4,7 @@
 \alias{CS}
 \title{Compound Symmetry Structure}
 \usage{
-CS(formula, var.cluster, var.time, type = NULL, group.type = NULL, add.time)
+CS(formula, var.cluster, var.time, type = NULL, add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -16,13 +16,15 @@ and variables influencing the residual variance and correlation (right hand side
 
 \item{type}{[character] \itemize{
 \item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
-Analogous to crossed or nested random effects.
+Analogous to nested random effects.
 \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
-Can be seen as more flexible crossed or nested random effects model.
-}}
-
-\item{group.type}{[integer vector] grouping of the regressor for the correlation structure.
-A constant value corresponds to nested random effects (default) and a regressor-specific value to crossed random effects}
+Can be seen as more flexible nested random effects model.
+\item \code{"cs"}, \code{"cross"}: constant variance and covariate-specific correlation under 0 correlation of between pairs with different covariate levels.
+Analogous to crossed random effects.
+}
+Can also be a vector of integers indicating the grouping of the regressor for the correlation structure:
+a constant value corresponds to nested random effects (default)
+and a regressor-specific value to crossed random effects. Mainly for internal use.}
 
 \item{add.time}{not used.}
 }
@@ -40,28 +42,117 @@ A typical formula would be \code{~1}. It will model: \itemize{
 \item \eqn{\rho_{j,j'}=\rho}: a correlation constant over repetitions.
 }
 With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
-\deqn{ \begin{bmatrix} \sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_2^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_3^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_4\sigma^2 \end{bmatrix}}
-It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
-\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & \rho^2\sigma^2 \\ \rho^2\sigma^2 & \rho^2\sigma^2 & \rho^2\sigma^2 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
+\deqn{ \begin{bmatrix} \sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \sigma^2 \end{bmatrix}}
+With positive correlation, this is reparametrisation of a random intercept model. \cr
+
+\bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
+\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 \end{bmatrix}
 \text{and}
-\begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
-}
-Instead of stratifying one can also make the variance and correlation specific to arbitrary (categorical) variables, e.g.  \code{~sex} (setting \code{add.time} to \code{FALSE}):
-\deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 & \rho_{\text{female}} \sigma^2 \\ \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \rho_{\text{female}} \sigma^2 & \sigma^2 \end{bmatrix}
+\begin{bmatrix} \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 \end{bmatrix}
+} 
+By default, the argument \code{type} is set to \code{"homogeneous"} meaning that \code{~sex} will only make the correlation sex dependent:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
 \text{and}
-\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 \\ \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
+\begin{bmatrix} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  \end{bmatrix}
 }
+To obtain a sex-dependent variance one can either set the argument \code{type} to \code{"heterogeneous"} or specify a separate formula for the variance and correlation using a list: \code{list(~sex,~sex)}
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
+\text{and}
+\begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} \end{bmatrix}
+}
+This is a reparametrization of the stratified CS structure. \cr \cr
+
+\bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters. But one can make the variance and correlation dependent on such variable. By default (\code{type="homogeneous"}) two correlation parameters are used: one when the variable values are same between the two repetitions (\eqn{\rho_W}) and another when the variable values differ between the two repetitions (\eqn{\rho_B}), e.g. if baseline refers to the firt two repetitions then using the formula \code{~baseline} will model:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_W\sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_W\sigma^2 & \sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \sigma^2 & \rho_W\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \rho_W\sigma^2 & \sigma^2 \end{bmatrix}}
+With positive correlation, this is reparametrisation of a nested random effect model. \cr
+
+Setting \code{type="heterogeneous"} enables to obtain a correlation parameter specific to each variable value and each difference in variable value:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{baseline}}\sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} \\ \rho_{\text{baseline}}\sigma^2 & \sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} \end{bmatrix}} 
+
+Setting \code{type="cross"} only considers correlation between observations with identical covariate values. Consider clusters of two subjects and modeling the within subject correlation, within timepoint correlation for subjects from the same cluster but assuming independence between observations measured at different timepoints on different subjects:
+\deqn{ \begin{bmatrix}
+\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{time}}\sigma^2  & 0 & 0 & 0 \\
+\rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & 0 & \rho_{\text{time}}\sigma^2 & 0 & 0 \\
+\rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & 0 & 0  & \rho_{\text{time}}\sigma^2 & 0 \\
+\rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & 0 & 0 & 0 & \rho_{\text{time}}\sigma^2 \\
+\rho_{\text{time}}\sigma^2 & 0 & 0 & 0 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2\\
+0 & \rho_{\text{time}}\sigma^2 & 0 & 0 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 \\
+0 & 0  & \rho_{\text{time}}\sigma^2 & 0 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2\\
+0 & 0 & 0 & \rho_{\text{time}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \sigma^2 \\
+\end{bmatrix}}
 }
 \examples{
-## no covariates
-CS(~1, var.cluster = "id", var.time = "time")
-CS(sex~1, var.cluster = "id", var.time = "time")
+\dontrun{
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
+                             labels = c("female", "male"))
+gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+                             labels = c("baseline", "follow-up"))
+gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) \%/\% 2)
 
-## covariates
-CS(~time, var.cluster = "id", var.time = "time")
-CS(sex~time, var.cluster = "id", var.time = "time")
-CS(list(~time,~1), var.cluster = "id", var.time = "time")
-CS(list(sex~time,sex~1), var.cluster = "id", var.time = "time")
+#### default: constant variance and correlation ####
+eCS.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = CS, data = gastricbypassL)
+sigma(eCS.default)
+paramCS.default <- model.tables(eCS.default, effects = "all")
+paramCS.default
+paramCS.default["sigma","estimate"]^2 * paramCS.default["rho(id)","estimate"]
+
+#### Covariate constant within-cluster #### 
+## stratified: strata specific variance and correlation
+eCS.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = CS(sex~1), data = gastricbypassL)
+sigma(eCS.strata)
+model.tables(eCS.strata, effects = "all")
+
+## covariate: constant variance and sex-dependent correlation
+eCS.sexCor <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                  structure = CS(~sex), data = gastricbypassL)
+sigma(eCS.sexCor)
+
+## covariate: sex-dependent variance and correlation
+eCS.sex <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+               structure = CS(~sex, type = "he"), data = gastricbypassL)
+sigma(eCS.sex)
+
+eCS.sex2 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+               structure = CS(list(~sex, ~sex)), data = gastricbypassL)
+sigma(eCS.sex2)
+
+#### Covariate varying within-cluster ####
+
+## homogeneous: within (rho id/basline) and between (rho id) correlation
+eBCS.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                 structure = CS(~baseline), data = gastricbypassL)
+sigma(eBCS.default)
+model.tables(eBCS.default, effects = "all")
+
+## heterogeneous: within (rho id/basline) and between (rho id) correlation
+eBCS.hetero <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                    structure = CS(~baseline, type = "he"), data = gastricbypassL)
+sigma(eBCS.hetero)
+model.tables(eBCS.hetero, effects = "all")
+
+#### Cross compound symmetry ####
+## artificially create a two level structure family-id
+## assumed observations correlated within id
+##                                 within family at the same time
+## index family member: first, second
+gastricbypassL$member.index <- ave(gastricbypassL$id,gastricbypassL$family,
+                                   FUN=function(x){as.numeric(factor(x))})
+## index observations within family
+gastricbypassL$member.visit <- with(gastricbypassL,
+  paste0(member.index,"(t=",visit,")")
+)
+
+## constant correlation within subject, constant correlation within time,
+## no correlation within family for different subjects at different times
+eCS.family <- lmm(glucagonAUC ~ visit, repetition = ~member.visit|family,
+                  structure = CS(~id+visit, type = "cross"),
+                  data = gastricbypassL)
+sigma(eCS.family)
+model.tables(eCS.family, effects = "all")
+}
 
 }
 \keyword{multivariate}
