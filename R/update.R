@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: jul 24 2025 (17:30) 
+## Last-Updated: feb 11 2026 (13:16) 
 ##           By: Brice Ozenne
-##     Update #: 27
+##     Update #: 39
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -14,6 +14,231 @@
 ##----------------------------------------------------------------------
 ## 
 ### Code:
+
+## * update.ID
+##' @description update structure according to information from the repetition argument
+##' @noRd
+update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## ** what to update
+    if(length(var.strata)==0){
+        update.strata <- FALSE
+    }else if(identical(object$name$strata,NA)){
+        update.strata <- TRUE        
+    }else{
+        stop("Argument \'repetition\' should not contain a left hand side to indicate the strata as a strata variable has already been defined in the \'structure\' argument. \n")
+    }
+    
+
+    ## ** update
+    ## *** strata
+    if(update.strata){
+
+        object$formula$var <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
+        call.structure <- object$call
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
+
+        
+        if(update.strata){
+            if(is.list(args.structure$formula)){
+                
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
+            }
+        }
+
+        object <- do.call(fct.structure, args = args.structure)
+        object$call <- call.structure
+    }
+
+    ## *** cluster
+    if(is.na(object$name$cluster) && !is.na(var.cluster)){
+        object$name$cluster <- var.cluster
+    }
+
+    ## *** time
+    browser()
+    if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
+        object$name$time <- var.time
+    }
+    
+    ## ** export
+    return(object)
+}
+
+## * update.IND
+##' @description update structure according to information from the repetition argument
+##' @details May add argument \code{var.time} as covariate.
+##' @noRd
+update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## ** what to update
+    if(n.time>1 && length(object$name$time)==1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && all(!is.na(attr(var.time,"original")))){
+        add.time <- TRUE
+    }else{
+        add.time <- FALSE
+    }
+
+    if(!identical(sort(object$name$strata),sort(var.strata))){
+        update.strata <- TRUE
+        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
+    }else{
+        update.strata <- FALSE
+    }
+
+    ## ** update
+    if(add.time || update.strata){
+        call.structure <- object$call
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
+
+        if("var.cluster" %in% names(args.structure) == FALSE){
+            args.structure$var.cluster <- var.cluster
+        }
+        if("var.time" %in% names(args.structure) == FALSE){
+            args.structure$var.time <- var.time
+        }
+        if("add.time" %in% names(args.structure) == FALSE && !is.list(args.structure$formula)){
+            args.structure$add.time <- attr(var.time,"original")
+        }
+
+        if(update.strata){
+            if(is.list(args.structure$formula)){
+                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
+            }
+        }
+        object <- do.call(fct.structure, args = args.structure)
+        object$call <- call.structure
+    }else{
+        if(is.na(object$name$cluster) && !is.na(var.cluster)){
+            object$name$cluster <- var.cluster
+        }
+        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
+            object$name$time <- var.time
+        }
+    }
+
+    ## ** export
+    return(object)
+}
+
+## * update.CS
+##' @noRd
+update.CS <- function(object, var.cluster, var.time, var.strata, n.time, ...){
+
+    if(object$cross %in% c("TOEPLITZ","DUN","UN")){
+        ## add var.time as covariate
+        out <- update.IND(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, n.time = n.time, ...)
+    }else{
+        ## does not add var.time as covariate
+        out <- update.ID(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, n.time = n.time, ...)
+    }
+
+    ## ** export
+    return(out)
+
+}
+
+## * update.RE
+##' @description update structure according to information from the repetition argument
+##' @details May add argument \code{var.time} as covariate.
+##' @noRd
+##' @param ranef Random effect structure identified via the formula argument of lmm (mean structure).
+update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
+
+    dots <- list(...)
+    if(length(dots)>0){
+        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
+    }
+
+    ## ** what to update
+    if(!identical(sort(object$name$strata),sort(var.strata))){
+        update.strata <- TRUE
+        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
+    }else{
+        update.strata <- FALSE
+    }
+
+    if(!missing(ranef) && !is.null(ranef) && is.null(object$ranef)){
+        ## handle the case where structure = RE(~strata) or RE(strata~1) whereas formula = Y ~ (1|id/session)
+        ## one needs to update the correlation formula with the ranef
+        add.RE <- TRUE
+    }else{
+        add.RE <- FALSE
+    }
+
+    ## ** update
+    if(update.strata || add.RE){
+        call.structure <- object$call
+        ranef.structure <- object$ranef
+
+        ls.call.structure <- as.list(call.structure)
+        fct.structure <- eval(ls.call.structure[[1]])
+        args.structure <- lapply(ls.call.structure[-1], eval)
+
+        if("var.cluster" %in% names(args.structure) == FALSE){
+            args.structure$var.cluster <- var.cluster
+        }
+        if("var.time" %in% names(args.structure) == FALSE){
+            args.structure$var.time <- var.time
+        }
+
+        if(update.strata){
+            if(is.list(args.structure$formula)){
+                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
+                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata, add.x = ranef$term))
+            }else if(inherits(args.structure$formula,"formula")){
+                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata, add.x = ranef$term)
+            }
+        }
+
+        object <- do.call(fct.structure, args = args.structure)
+        object$call <- call.structure
+        if(add.RE){
+            object$ranef <- ranef
+        }
+    }else{
+        if(is.na(object$name$cluster) && !is.na(var.cluster)){
+            object$name$cluster <- var.cluster
+        }
+        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
+            object$name$time <- var.time
+        }
+    }
+
+    ## ** export
+    return(object)
+
+}
+
+## * update.TOEPLITZ
+##' @noRd
+update.TOEPLITZ <- update.IND
+
+## * update.UN
+##' @noRd
+update.UN <- update.IND
+
+## * update.CUSTOM
+##' @noRd
+update.CUSTOM <- update.ID
 
 ## * update.lmm
 ##' @export

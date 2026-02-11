@@ -4,7 +4,7 @@
 \alias{RE}
 \title{Random Effect Structure}
 \usage{
-RE(formula, var.cluster, var.time, ranef = NULL, add.time)
+RE(formula, var.cluster, ranef = NULL, var.time, add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -12,9 +12,9 @@ and variables influencing the residual variance and correlation (right hand side
 
 \item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] time variable.}
-
 \item{ranef}{[list] characteristics of the random effects}
+
+\item{var.time}{[character] time variable.}
 
 \item{add.time}{not used.}
 }
@@ -35,6 +35,7 @@ gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
                              labels = c("female", "male"))
 gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
                              labels = c("baseline", "follow-up"))
+gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) \%/\% 2)
 
 #### Random intercept ####
 eRI <- lmm(glucagonAUC ~ visit + (1|id), data = gastricbypassL)
@@ -48,17 +49,27 @@ sigma(eNRI)
 ## nlme::ranef(eNRI, effects = "variance")
 model.tables(eNRI, effects = "all")
 
+## more than two blocks
+data("sleepL", package = "LMMstar")
+eNRI3 <- lmm(signal.34 ~ day + (1|id/day), data = sleepL)
+sigma(eNRI3)
+
 #### Cross random effects ####
-eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit), data = gastricbypassL)
-summary(eCRI)
+gastricbypassL <- gastricbypassL[order(gastricbypassL$id),]
+gastricbypassL$member <- repetition(~id|family, data = gastricbypassL,
+                                    type = "consecutive", label.rep = c("I","II"))
+gastricbypassL$visit.member <- interaction(gastricbypassL[,c("visit","member")])
+
+eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit),
+            repetition = ~visit.member|family, data = gastricbypassL)
 ## nlme::ranef(eCRI, effects = "variance")
-model.tables(eCRI, effects = "all") ## to few observations
+sigma(eCRI)
+model.tables(eCRI, effects = "all")
 
 data(Penicillin, package = "lme4")
 eCRI.2 <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
 nlme::ranef(eCRI.2, effects = "variance")
 model.tables(eCRI.2, effects = "all")
-
 }
 }
 \keyword{multivariate}

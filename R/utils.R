@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: okt 30 2025 (14:37) 
+## Last-Updated: feb  9 2026 (10:31) 
 ##           By: Brice Ozenne
-##     Update #: 355
+##     Update #: 389
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -503,19 +503,25 @@ tr <- function(object){
 ##' @noRd
 ##'
 ##' @param x vector of values
-##' @param distinct [logical] should pairs containing the same value be removed?
+##' @param distinct [logical] should pairs containing the same observations be removed?
+##' @param unique [logical] should pairs leading to the same values be removed? 
 ##' 
 ##' @details adapted from RecordLinkage package
 ##'
 ##' @examples
+##' ## single observations
 ##' unorderedPairs(1, distinct = FALSE)
 ##' unorderedPairs(1, distinct = TRUE)
+##' 
+##' ## two observations
+##' unorderedPairs(c(1,1), distinct = FALSE) ## all possible pairs
+##' unorderedPairs(c(1,1), distinct = TRUE) ## only pairs between distinct observations
 ##' 
 ##' unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
 ##' unorderedPairs(1:5, distinct = FALSE)
 ##' unorderedPairs(rep(1,5), distinct = TRUE) - (utils::combn(5, m = 2)>0)
 ##' 
-unorderedPairs <- function(x, distinct = FALSE){
+unorderedPairs <- function(x, distinct = FALSE, unique = FALSE){
     n.x <- length(x)
     ## work on integers
     y <- 1:n.x
@@ -609,6 +615,55 @@ findQ.trans2origin <- function(value, transformed, original){
     return(out)
 }
 
+## * many.letters
+##' @title Generate letters
+##' @param n [integer vector] number of letters to be generated.
+##' @param basis [vector] symbols used for the letters.
+##' 
+##' @noRd
+##' 
+##' @examples
+##' many.letters(1)
+##' many.letters(1:28)
+##' many.letters(5:6)
+##' many.letters(1:28, basis =  LETTERS)
+##' many.letters(1:28, basis = 1:9)
+many.letters <- function(vec, basis = letters){ ## n <- 28
+
+    ## ** check user input
+    if(!is.numeric(vec) || !is.vector(vec)){
+        stop("Argument \'vec\' should be a numeric vector. \n")
+    }
+    if(any(vec %% 1 > 0)){
+        stop("Argument \'vec\' should be a vector of integers. \n")
+    }
+    if(!is.vector(basis)){
+        stop("Argument \'basis\' should be a vector. \n")
+    }
+
+    ## ** generate symbols
+    ## number of symbols 
+    n.basis <- length(basis)
+    ## upper bounds 
+    n.letters_bound <- max(1,ceiling(log(max(vec), base = n.basis))) ## number of symbols in a single identifer (e.g. 2--> aa, 3--> aaa) max is necessary when vec=1 as log=0    
+    n.combination <- n.basis^(1:n.letters_bound) ## number of combinations added by each combination of symbols
+    nEnd.letters_bound <- cumsum(n.combination) ## number of combinations at the end of each combination of symbols
+    nStart.letters_bound <- c(1,nEnd.letters_bound+1)[1:n.letters_bound] ## number of combinations at the start of each combination of symbols
+    ## necessary
+    n.letters <- sum(n.combination>=nStart.letters_bound)
+    nEnd.letters <- n.combination[1:n.letters] - ((1:n.letters)==n.letters)*(nEnd.letters_bound[n.letters]-n.combination)
+    ## run combinations
+    ls.out <- lapply(1:n.letters, function(iN){
+        iOut <- interaction(expand.grid(replicate(basis, n = iN,simplify = FALSE))[1:nEnd.letters[iN],iN:1,drop=FALSE],sep="")
+        return(as.character(iOut))
+    })
+
+    ## ** export
+    return(unlist(ls.out)[vec])
+}
+many.LETTERS <- function(n, basis = LETTERS){
+    many.letters(n, basis = LETTERS)
+}
 
 ##----------------------------------------------------------------------
 ### utils-formula.R ends here

@@ -7,16 +7,22 @@
 repetition(
   formula,
   data,
+  type = "cumulate",
   format = "factor",
   keep.time = TRUE,
-  sep = c(":", ".")
+  sep = c(":", "."),
+  label.rep = "integer"
 )
 }
 \arguments{
-\item{formula}{[formula] Specify the structure of the data: the time/repetition variable and the grouping variable,
-e.g. ~1|id, ~ time|id, or ~time+region|id.}
+\item{formula}{[formula] Specify the structure of the data: the id/grouping variable and an optional time/ordering variable
+e.g. ~1|id, ~ time|id.}
 
 \item{data}{[data.frame] dataset containing the observations.}
+
+\item{type}{[character] by default output the number of repetitions (\code{"cumulate"}).
+In presence of a time/ordering variable, can instead be used to relabel the variable with consecutive value within cluster (\code{"consecutive"}),
+e.g. move from id within family to family member 1, family member 2.}
 
 \item{format}{[character] the type of the output: a numeric vector (\code{"numeric"}), a character vector (\code{"character"}), or a factor vector (\code{"factor"}).}
 
@@ -24,6 +30,8 @@ e.g. ~1|id, ~ time|id, or ~time+region|id.}
 Only relevant when argument \code{formula} contain a time/repetition variable and \code{format="character"} or \code{format="factor"}.}
 
 \item{sep}{[character vector of length 2] character strings used to combine time variables (first element) and the name of the time variable with its values (second element).}
+
+\item{label.rep}{[vector] symbols used to label the repetitions. By default integers but can also be \code{letters}, \code{LETTERS}.}
 }
 \value{
 A numeric/character/factor vector, depending on argument \code{format}.
@@ -34,9 +42,19 @@ Can stratify the number of occurences on one or several variables.
 }
 \examples{
 data(sleepL, package = "LMMstar")
-sleepL$dday <- paste0("d",sleepL$day)
+## number of already observed observations with the same id
 sleepL$rep <- repetition(~1|id, data = sleepL)
-sleepL$repDay <- repetition(~dday|id, data = sleepL)
-sleepL$repDay.num <- repetition(~dday|id, data = sleepL, format = "numeric")
+## number of already observed observations with the same id and time
+sleepL$repDay <- repetition(~day|id, data = sleepL)
+sleepL$repDay.letter <- repetition(~day|id, data = sleepL, label.rep = letters)
+sleepL$repDay.num <- repetition(~day|id, data = sleepL, format = "numeric")
 head(sleepL,15)
+
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) \%/\% 2)
+gastricbypassL$member <- repetition(~id|family, type = "consecutive",
+                                    data = gastricbypassL)
+gastricbypassL$MEMBER <- repetition(~id|family, type = "consecutive",
+                                     data = gastricbypassL, label.rep = "LETTERS")
+gastricbypassL[order(gastricbypassL$family,gastricbypassL$id),]
 }

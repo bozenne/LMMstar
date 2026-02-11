@@ -4,7 +4,7 @@
 \alias{TOEPLITZ}
 \title{Toeplitz Structure}
 \usage{
-TOEPLITZ(formula, var.cluster, var.time, type = "LAG", add.time)
+TOEPLITZ(formula, var.cluster, type = "LAG", var.time, add.time)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
@@ -12,10 +12,16 @@ and variables influencing the residual variance and correlation (right hand side
 
 \item{var.cluster}{[character] cluster variable.}
 
-\item{var.time}{[character] time variable.}
+\item{type}{[character] degree of flexibility of the covariance structure within covariate.
+For a binary covariate the correlation structure can be decomposed into 4 blocks: within level 0 of the covariate (\eqn{A}),
+C within level 1 (\eqn{A}), and B between level 0 and 1 (\eqn{A}). The following parametrisations are available:
+\itemize{ 
+\item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
+\item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
+\item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
+}}
 
-\item{type}{[character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CS"}).
-Will also affect the variance structure when not explicit.}
+\item{var.time}{[character] time variable.}
 
 \item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
 }
@@ -30,29 +36,122 @@ Can be stratified on a categorical variable.
 \bold{formula}: there can only be at most one covariate for the correlation structure.
 A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 
-\bold{type}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
-A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
-Different correlation structures can be specified:\itemize{ 
-\item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
-\item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
-\item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
+A typical formula would be \code{~1}. It will model: \itemize{
+\item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
+\item \eqn{\rho_{j,j'}=\rho_{|j-j'|}}: a correlation specific to the difference in index between repetitions.
 }
+With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_1\sigma^2 k_2 & \rho_2\sigma^2 k_3 & \rho_3\sigma^2 k_4 \\
+                       \rho_1\sigma^2 k_2 & \sigma^2 k_2^2 & \rho_1\sigma^2 k_2 k_3 & \rho_2\sigma^2 k_2 k_4 \\
+                       \rho_2\sigma^2 k_3 & \rho_1\sigma^2 k_2 k_3 & \sigma^2 k_3^2 & \rho_1\sigma^2 k_3 k_4 \\
+                       \rho_3\sigma^2 k_4 & \rho_2\sigma^2 k_2 k_4 & \rho_1 \sigma^2 k_3 k_4 & \sigma^2 k_4^2
+\end{bmatrix}}
+WARNING: the variance-covariance pattern is not invariant under reparametrisation of the repetition variable. For instance with \eqn{(j,j') \in \{0,1,2,5\}^2}:
+\deqn{ \begin{bmatrix} \sigma^2 & \rho_1\sigma^2 k_1 & \rho_2\sigma^2 k_2 & \rho_5\sigma^2 k_5 \\
+                       \rho_1\sigma^2 k_1 & \sigma^2 k_1^2 & \rho_1\sigma^2 k_1 k_2 & \rho_4\sigma^2 k_1 k_5 \\
+                       \rho_2\sigma^2 k_2 & \rho_1\sigma^2 k_1 k_2 & \sigma^2 k_2^2 & \rho_3\sigma^2 k_2 k_5 \\
+                       \rho_5\sigma^2 k_5 & \rho_4\sigma^2 k_1 k_5 & \rho_3 \sigma^2 k_2 k_5 & \sigma^2 k_5^2
+\end{bmatrix}}
+
+\bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) specifying it in the left hand side of the formula, e.g. \code{sex~1}.
+\deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{1\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} & \rho_{3,\text{female}}\sigma_{\text{female}}^2 k_{4,\text{female}} \\
+                       \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} & \sigma_{\text{female}}^2 k_{2,\text{female}}^2 & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{3,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{4,\text{female}} \\
+                       \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{3,\text{female}} & \sigma_{\text{female}}^2 k_{3,\text{female}}^2 & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} k_{4,\text{female}} \\
+                       \rho_{3,\text{female}}\sigma_{\text{female}}^2 k_{4,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{4,\text{female}} & \rho_{1,\text{female}} \sigma_{\text{female}}^2 k_{3,\text{female}} k_{4,\text{female}} & \sigma_{\text{female}}^2 k_{4,\text{female}}^2
+\end{bmatrix}
+\text{ and }
+\begin{bmatrix} \sigma_{\text{male}}^2 & \rho_{1\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} & \rho_{3,\text{male}}\sigma_{\text{male}}^2 k_{4,\text{male}} \\
+                       \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} & \sigma_{\text{male}}^2 k_{2,\text{male}}^2 & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{3,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{4,\text{male}} \\
+                       \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{3,\text{male}} & \sigma_{\text{male}}^2 k_{3,\text{male}}^2 & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} k_{4,\text{male}} \\
+                       \rho_{3,\text{male}}\sigma_{\text{male}}^2 k_{4,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{4,\text{male}} & \rho_{1,\text{male}} \sigma_{\text{male}}^2 k_{3,\text{male}} k_{4,\text{male}} & \sigma_{\text{male}}^2 k_{4,\text{male}}^2
+\end{bmatrix}
+}
+
+\bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters.
+Such variables should be cateorical covariate and specified on the right-hand side of the formula, e.g. \code{~baseline} to divide the variance-covariance matrix by block.
+Each block can be a compound symmetry matrix (\code{type=="LAG"}), e.g. consider 3 baseline and 3 follow-up observations per subject:
+\deqn{ \begin{bmatrix} \sigma^2           & \rho_X \sigma^2   & \rho_X \sigma^2       & \rho \sigma^2 k_Y \\
+                       \rho_X\sigma^2     & \sigma^2          & \rho \sigma^2 k_Y     & \rho \sigma^2 k_Y \\
+                       \rho \sigma^2 k_Y  & \rho \sigma^2 k_Y & \sigma^2 k_Y^2        & \rho_Y \sigma^2 k_Y^2 \\
+                       \rho \sigma^2 k_Y  & \rho \sigma^2 k_Y & \rho_Y \sigma^2 k_Y^2 & \sigma^2 k_Y^2
+\end{bmatrix}}
+or compound symmetry matrix (\code{type=="CS"}), e.g.:
+
+or unstructure (\code{type=="UN"}), e.g.:
 }
 \examples{
-## no covariate
-TOEPLITZ(~time, var.cluster = "id", var.time = "time")
-TOEPLITZ(sex~time, var.cluster = "id", var.time = "time")
-TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
-TOEPLITZ(list(sex~time,sex~time), var.cluster = "id", var.time = "time")
+\dontrun{
+data(gastricbypassL, package = "LMMstar")
+gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) \%\% 2,
+                             labels = c("female", "male"))
+gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+                             labels = c("baseline", "follow-up"))
 
-## with covariates
-TOEPLITZ(~side, var.cluster = "id", type = "UN",
-         var.time = "time", add.time = TRUE)
-TOEPLITZ(~side, var.cluster = "id", type = "LAG",
-         var.time = "time", add.time = TRUE)
-TOEPLITZ(~side, var.cluster = "id", type = "CS",
-         var.time = "time", add.time = TRUE)
-TOEPLITZ(sex~side, var.cluster = "id", type = "CS",
-         var.time = "time", add.time = TRUE)
+data("sleepL", package = "LMMstar")
+sleepL$sex <- factor(as.numeric(sleepL$id) \%\% 2,
+                     labels = c("female", "male"))
+sleepL$baseline <- factor(sleepL$day==1, c(TRUE,FALSE))
+sleepL$visit <- repetition(~1|id, data = sleepL, format = "numeric")
+sleepL <- sleepL[sleepL$visit<=6,]
+
+#### default ####
+## time as integer: 1, 2, 3 (traditional TOEPLITZ structure)
+eTOEint.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                       structure = "TOEPLITZ", data = gastricbypassL)
+sigma(eTOEint.default)
+cov2cor(sigma(eTOEint.default))
+model.tables(eTOEint.default, effects = "all")
+
+## time as numeric: here -13 vs -1 and -1 vs 1 are one index appart
+##                  but lead to different correlation coefficients
+##                  rho(12) and rho(2)
+eTOEnum.default <- lmm(glucagonAUC ~ visit, repetition = ~time|id,
+                    structure = "TOEPLITZ", data = gastricbypassL)
+sigma(eTOEnum.default)
+cov2cor(sigma(eTOEnum.default))
+model.tables(eTOEnum.default, effects = "all")
+
+## another example with more timepoints
+eTOEint6.default <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+                        structure = "TOEPLITZ", data = sleepL)
+sigma(eTOEint6.default)
+cov2cor(sigma(eTOEint6.default))
+model.tables(eTOEint6.default, effects = "all")
+
+#### Covariate constant within-cluster ####
+eTOE.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+                    structure = TOEPLITZ(sex~1), data = gastricbypassL)
+sigma(eTOE.strata)
+model.tables(eTOE.strata, effects = "all")
+
+#### Covariate varying within-cluster ####
+
+## block compound symmetry structure
+eTOE.CS <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+               structure = TOEPLITZ(~baseline, type = "CS"), data = sleepL)
+sigma(eTOE.CS)
+cov2cor(sigma(eTOE.CS))
+paramTOE.CS <- model.tables(eTOE.CS, effects = "all")
+paramTOE.CS
+paramTOE.CS["rho1","estimate"]*paramTOE.CS["sigma","estimate"]^2
+paramTOE.CS["rho2","estimate"]*prod(paramTOE.CS[c("sigma","k.FALSE"),"estimate"]^2)
+prod(paramTOE.CS[c("rho(1,2,dt=1)","k.FALSE"),"estimate"])*paramTOE.CS[c("sigma"),"estimate"]^2
+
+## block toeplitz structure
+eTOE.LAG <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+               structure = TOEPLITZ(~baseline, type = "LAG"), data = sleepL)
+sigma(eTOE.LAG, cluster = 1)
+cov2cor(sigma(eTOE.LAG, cluster = 1))
+model.tables(eTOE.LAG, effects = "all")
+
+## block unstructured structure
+eTOE.UN <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+               structure = TOEPLITZ(~baseline, type = "UN"), data = gastricbypassL)
+sigma(eTOE.UN)
+cov2cor(sigma(eTOE.UN))
+model.tables(eTOE.UN, effects = "all")
+
+
+}
 }
 \keyword{multivariate}

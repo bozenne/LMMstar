@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 29 2025 (18:30) 
+## Last-Updated: feb 11 2026 (13:16) 
 ##           By: Brice Ozenne
-##     Update #: 3340
+##     Update #: 3397
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -328,100 +328,63 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     var.strata <- structure$name$strata
     U.cluster <- sort(unique(data[[var.cluster]]))
     U.time <- sort(unique(data[[var.time]]))
-    structure.class <- structure$class
-    structure.type <- structure$type
-    formula <- structure$formula
-
-    out <- list(var = list(), cor = list(),
-                xfactor = list(var = NULL, cor = NULL))
-    test.newdata <- !is.null(structure$param) ## if TRUE then model.matrix call on newdata otherwise call from lmm->.model.matrix on original data
-
-    ## ** normalize dataset
-    ## time
     n.time <- length(U.time)
 
-    ## formula
-    out$var$formula <- structure$formula$var
-    out$cor$formula <- structure$formula$cor
-
-    ## *** variance: convert variable to numeric/factor according to the structure
-    if("xfactor" %in% names(structure$var)){ ## from model.matrix.lmm
-        out$var$data <- .updateFactor(data, xfactor = structure$var$xfactor)
-    }else{ ## from .model.matrix
-        out$var$data <- data
-        col2factor.var <- switch(structure.class,
-                                 "ID" = all.vars(structure$formula$var),
-                                 "IND" = all.vars(structure$formula$var),
-                                 "CS" = all.vars(structure$formula$var),
-                                 "RE" = all.vars(structure$formula$var),
-                                 "UN" = all.vars(structure$formula$var),
-                                 "TOEPLITZ" = all.vars(structure$formula$var),
-                                 stats::na.omit(structure$name$strata))
-
-        for(iVar in col2factor.var){
-            out$var$data[[iVar]] <- as.factor(data[[iVar]])
-        }
-    }        
-
-    ## *** correlation: convert variable to numeric/factor according to the structure
-    if("xfactor" %in% names(structure$cor)){ ## from model.matrix.lmm
-        out$cor$data <- .updateFactor(data, xfactor = structure$cor$xfactor)
-        col2factor.cor <- names(structure$cor$xfactor)
-    }else{ ## from .model.matrix
-        out$cor$data <- data
-        if(structure.class == "UN" || (structure.class == "CS" && structure.type %in% "heterogeneous")){
-            col2factor.cor <- all.vars(structure$formula$cor)
-        }else if(!is.na(structure$name$strata)){
-            col2factor.cor <- structure$name$strata
-        }else{
-            col2factor.cor <- NULL
-        }
-        for(iVar in col2factor.cor){
-            out$cor$data[[iVar]] <- as.factor(data[[iVar]])
-        }
-    }
-
-    if(structure.class %in% c("RE","TOEPLITZ") || (structure.class == "CS" && structure.type %in% "homogeneous")){
-        col2num.cor <- setdiff(all.vars(structure$formula$cor), col2factor.cor)
-    }else{
-        col2num.cor <- NULL
-    }
-    for(iVar in col2num.cor){
-        if(is.logical(data[[iVar]])){ 
-            out$cor$data[[iVar]] <- as.numeric(data[[iVar]]) + 1
-        }else if(!is.numeric(data[[iVar]])){ 
-            out$cor$data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-        }else if(is.numeric(data[[iVar]])){ 
-            out$cor$data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
-        }
-    }
+    structure.CUSTOM <- inherits(structure,"CUSTOM")
+    structure.timeFormat <- attr(time(structure),"format")
+    
+    out <- list(var = list(formula = structure$formula$var),
+                cor = list(formula = structure$formula$cor),
+                xfactor = list(var = NULL, cor = NULL))
+    test.newdata <- !is.null(structure$param) ## if TRUE then model.matrix call on newdata otherwise call from lmm->.model.matrix on original data
 
     ## ** variance and correlation design lists
     for(iMoment in c("var","cor")){ ## iMoment <- "var"
 
-        iMoment.txt <- c(var = "variance", cor = "correlation")[iMoment]
-        iData <- out[[iMoment]]$data
-        iU.strata <- levels(iData[[var.strata]])
+        ## *** normalize dataset (e.g. set right levels to factor variables)
+        if("xfactor" %in% names(structure[[iMoment]])){ ## from model.matrix.lmm
+            out[[iMoment]]$data <- .updateFactor(data, xfactor = structure[[iMoment]]$xfactor)
+        }else{ ## from .model.matrix
+            out[[iMoment]]$data <- data
+            
+            if("factor" %in% structure.timeFormat[[iMoment]][1]){
+                iCol2factor <- all.vars(structure$formula[[iMoment]])
+            }else{
+                iCol2factor <- stats::na.omit(structure$name$strata)
+            }
+            for(iVar in iCol2factor){
+                out[[iMoment]]$data[[iVar]] <- as.factor(data[[iVar]])
+            }
+        }
+
+        if("numeric" %in% structure.timeFormat[[iMoment]][1]){ 
+            iCol2num <- setdiff(all.vars(structure$formula[[iMoment]]), iCol2factor)
+            
+            for(iVar in iCol2num){
+                if(is.logical(data[[iVar]])){ 
+                    out[[iMoment]]$data[[iVar]] <- as.numeric(data[[iVar]]) + 1
+                }else if(!is.numeric(data[[iVar]])){ 
+                    out[[iMoment]]$data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+                }else if(is.numeric(data[[iVar]])){ 
+                    out[[iMoment]]$data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
+                }
+            }        
+        }        
+        iU.strata <- levels(out[[iMoment]]$data[[var.strata]])
         iFormula <- out[[iMoment]]$formula
 
         ## *** design matrix
-        if(test.newdata == FALSE){ ## structure
-            if(!is.null(iFormula)){
-                if(structure.class == "CUSTOM"){
-                    out[[iMoment]]$X <- iData[,all.vars(iFormula),drop=FALSE]                    
-                }else{
-                    out[[iMoment]]$X <- .model.matrix_regularize(iFormula, data = iData, augmodel = TRUE, type = iMoment.txt, drop.X = drop.X)
-                }
+        if(structure.CUSTOM){
+            out[[iMoment]]$X <- out[[iMoment]]$data[,all.vars(iFormula),drop=FALSE]                    
+        }else if(!is.null(iFormula)){
+            if(test.newdata == FALSE){ ## model fit (structure)
+                out[[iMoment]]$X <- .model.matrix_regularize(iFormula, data = out[[iMoment]]$data, augmodel = TRUE, type = iMoment, drop.X = drop.X)
                 attr(out[[iMoment]]$X, "original.colnames") <- colnames(out[[iMoment]]$X)
-                out$xfactor[[iMoment]] <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,iData))
-            }
-
-        }else{ ## newdata
-
-            if(!is.null(iFormula)){
+                out$xfactor[[iMoment]] <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,out[[iMoment]]$data))
+            }else{ ## newdata
                 iAttr.X <- structure[[iMoment]]$X.attr
                 iKeep.attr <- setdiff(names(iAttr.X), c("dim","dimnames"))
-                out[[iMoment]]$X <- stats::model.matrix(iFormula, data = iData)[,iAttr.X$original.colnames,drop=FALSE]
+                out[[iMoment]]$X <- stats::model.matrix(iFormula, data = out[[iMoment]]$data)[,iAttr.X$original.colnames,drop=FALSE]
                 colnames(out[[iMoment]]$X) <- iAttr.X$dimnames[[2]]
                 for(iAssign in iKeep.attr){
                     attr(out[[iMoment]]$X,iAssign) <- iAttr.X[[iAssign]]
@@ -442,7 +405,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 if(NCOL(out[[iMoment]]$X)>1){
                     if(is.na(var.strata)){
                         iNewlevel <- orderLtoR(out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE], strata = NULL)
-                    }else if(structure.class == "CUSTOM"){
+                    }else if(structure.CUSTOM){
                         iNewOrder <- c(setdiff(colnames(out[[iMoment]]$X),var.strata),var.strata)
                         iNewlevel <- orderLtoR(out[[iMoment]]$X[iIndex.Ulp,iNewOrder,drop=FALSE], strata = NULL)
                     }else{                        
@@ -459,13 +422,13 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                     iIndex.Ulp <- iIndex.Ulp[order(out[[iMoment]]$lp[iIndex.Ulp], decreasing = FALSE)]
                 }
                 ##--## re-express the linear predictor in term of design matrix or original data
-                if(structure.class == "CUSTOM"){
+                if(structure.CUSTOM){
                     out[[iMoment]]$lp2data <- out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE]
                     rownames(out[[iMoment]]$lp2data) <- iLp[iIndex.Ulp]
                 }else{
                     out[[iMoment]]$lp2X <- out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE]
                     rownames(out[[iMoment]]$lp2X) <- iLp[iIndex.Ulp]
-                    out[[iMoment]]$lp2data <- iData[iIndex.Ulp,attr(out[[iMoment]]$X,"variable"),drop=FALSE]
+                    out[[iMoment]]$lp2data <- out[[iMoment]]$data[iIndex.Ulp,attr(out[[iMoment]]$X,"variable"),drop=FALSE]
                     rownames(out[[iMoment]]$lp2data) <- iLp[iIndex.Ulp]
                 }
             }else{
@@ -473,6 +436,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 out[[iMoment]]$lp2X <- structure[[iMoment]]$lp2X
                 out[[iMoment]]$lp2data <- structure[[iMoment]]$lp2data
             }
+
             ##------## pattern for each cluster
             out[[iMoment]]$pattern <- as.numeric(as.factor(sapply(index.cluster, function(iC){paste(out[[iMoment]]$lp[iC], collapse = ".")})))
             ## Note: tapply(out[[iMoment]]$lp, attr(index.cluster,"vectorwise"), paste, collapse = ".")
@@ -736,6 +700,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
     }else{
         if(drop.X==FALSE){
+            type <- switch(type, "var" = "variance", "cor" = "correlation", type)
             stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
         }
     }
@@ -756,6 +721,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     if(length(name.factor)>0){
         test.factor <- sapply(name.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
         if(any(test.factor==FALSE)){
+            type <- switch(type, "var" = "variance", "cor" = "correlation", type)
             message("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
                     "The empty level(s) will be remove internally for the ",type," structure.\n",
                     "Consider applying droplevels to avoid this warning. \n",
@@ -817,7 +783,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep,drop=FALSE]
-
+        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
         txt <- paste0("Constant values in the design matrix for the ",type," structure.\n")
         if(length(unique(rmX))==1){
             txt <- paste0(txt, "Coefficient \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interaction \"",paste(names(ls.rmX), collapse = "\" \""),"\" has been removed. \n")
@@ -878,6 +844,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         if(NCOL(X)==X.qr$rank){break}
     }
     if(length(rmX)>0){
+        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
         message("Design matrix for the ",type," structure is singular. \n",
                 "Coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
     } else if(!augmodel){

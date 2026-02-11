@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: okt 18 2024 (18:15) 
+## Last-Updated: feb  9 2026 (09:49) 
 ##           By: Brice Ozenne
-##     Update #: 2509
+##     Update #: 2519
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -79,11 +79,11 @@
     ## **  param
     structure <- .skeletonSigma(structure, U.strata = U.strata)
     structure <- .skeletonK(structure, U.strata = U.strata, sep = options$sep[c("k.cov","k.strata")])
-    structure <- .skeletonRho(structure, data = data, 
+    structure <- .skeletonRho(structure, data = NULL,
                               U.cluster = U.cluster, index.cluster = index.cluster,
                               U.time = U.time, index.clusterTime = index.clusterTime, 
                               U.strata = U.strata, index.clusterStrata = index.clusterStrata,
-                              sep = options$sep[c("rho.name","rho.strata")])
+                              sep = options$sep[c("lp","rho.name","rho.strata")])
 
     ## ** export
     structure$param <- structure$param[order(structure$param$index.strata),,drop=FALSE]

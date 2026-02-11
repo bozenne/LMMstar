@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 14 2021 (16:46) 
 ## Version: 
-## Last-Updated: okt 30 2025 (17:17) 
+## Last-Updated: nov 21 2025 (13:55) 
 ##           By: Brice Ozenne
-##     Update #: 228
+##     Update #: 230
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -111,7 +111,7 @@ test_that("Crossed random intercept model (2 terms)",{
     ## ** fit
     ## eCRI2.lmer <- lmer(diameter ~ (1|plate) + (1|sample), data = Penicillin)
     eCRI2.lmm0 <- lmm(diameter ~ 1, repetition = ~1|id,
-                      structure = CS(list(~1,~plate+sample), type = "cs"),
+                      structure = CS(~plate+sample, diagonal = TRUE),
                       data = Penicillin, df = FALSE)
     eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE)
     ## eCRI2.lmm <- lmm(diameter ~ (1|plate) + (1|sample), data = Penicillin, df = FALSE,

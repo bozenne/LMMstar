@@ -2,7 +2,7 @@
 % Please edit documentation in R/structure.R
 \name{ID}
 \alias{ID}
-\title{identity Structure}
+\title{Identity Structure}
 \usage{
 ID(formula, var.cluster, var.time, add.time)
 }

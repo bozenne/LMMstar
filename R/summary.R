@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:13) 
 ## Version: 
-## Last-Updated: okt 21 2025 (10:48) 
+## Last-Updated: nov 21 2025 (14:38) 
 ##           By: Brice Ozenne
-##     Update #: 1871
+##     Update #: 1872
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -327,14 +327,14 @@ summary.lmm <- function(object, level = 0.95, robust = FALSE, df = NULL,
         }else if(inherits(structure,"CS")){
             if(all(is.na(structure$name$cor))){
                 cat(txt.strata,"compound symmetry \n\n",sep="")
-            }else if(structure$type == "heterogeneous"){
-                cat(txt.strata,"block unstructured \n\n",sep="")
-            }else if(structure$type == "homogeneous"){
+            }else if(!structure$diagonal & structure$homogeneous){
                 cat(txt.strata,"block compound symmetry \n\n",sep="")
-            }else if(structure$type == "heterogeneous0"){
-                cat(txt.strata,"crossed unstructured \n\n",sep="")
-            }else if(structure$type == "homogeneous0"){
+            }else if(!structure$diagonal & !structure$homogeneous){
+                cat(txt.strata,"block unstructured \n\n",sep="")
+            }else if(structure$diagonal & structure$homogeneous){
                 cat(txt.strata,"crossed compound symmetry \n\n",sep="")
+            }else if(structure$diagonal & !structure$homogeneous){
+                cat(txt.strata,"crossed unstructured \n\n",sep="")
             }
         }else if(inherits(structure, "TOEPLITZ")){            
             if(all(is.na(structure$name$cor))){

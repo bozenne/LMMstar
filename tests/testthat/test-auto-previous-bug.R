@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 23 2020 (12:33) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:38) 
+## Last-Updated: nov 21 2025 (13:54) 
 ##           By: Brice Ozenne
-##     Update #: 182
+##     Update #: 183
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -616,19 +616,19 @@ test_that("sigma with block CS", {
     expect_equivalent(model.tables(e.lmmRe)$df, table.GS$df, tol = 1e-2)
     
 
-    e.lmmCS <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, homogeneous = TRUE), 
                    repetition = ~1|id, data = sleepL)
     expect_equal(logLik(e.lmmCS),-109.7932, tol = 1e-4)
     sigma(e.lmmCS) ## check there is no error
     expect_equivalent(model.tables(e.lmmCS), model.tables(e.lmmRe), tol = 1e-4)
 
-    e.lmmCS.rep <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS.rep <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, homogeneous = TRUE), 
                        repetition = ~rep|id, data = sleepL)
     expect_equal(logLik(e.lmmCS.rep),-109.7932, tol = 1e-4)
     sigma(e.lmmCS.rep) ## check there is no error
     expect_equivalent(model.tables(e.lmmCS.rep), model.tables(e.lmmRe), tol = 1e-4)
 
-    e.lmmCS.repDay <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, type = "homogeneous"), 
+    e.lmmCS.repDay <- lmm(signal.34 ~ deprivation + vigilance, structure = CS(~day, homogeneous = TRUE), 
                           repetition = ~repDay|id, data = sleepL)
     expect_equal(logLik(e.lmmCS.repDay),-109.7932, tol = 1e-4)
     sigma(e.lmmCS.repDay) ## check there is no error

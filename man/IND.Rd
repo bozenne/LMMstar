@@ -30,7 +30,7 @@ A typical formula would be \code{~time}. It will model: \itemize{
 }
 With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
 \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_2^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_3^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_4\sigma^2 \end{bmatrix}}
-It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~time}. This will lead to:
+It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
 \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
 \text{and}
 \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}

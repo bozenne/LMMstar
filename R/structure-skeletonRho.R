@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: okt 20 2024 (16:23) 
+## Last-Updated: feb 10 2026 (16:19) 
 ##           By: Brice Ozenne
-##     Update #: 1140
+##     Update #: 1444
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -63,26 +63,10 @@
                             U.strata, index.clusterStrata,
                             sep){
 
-    ## ** handle special case (no repetition)
-    if(all(lengths(index.cluster)==1)){return(structure)}
+    ## ** prepare
+    n.strata <- length(U.strata)
 
-    ## ** extract information
-    ## parameters
-    param.sigma <- structure$param[structure$param$type=="sigma","name"]
-    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
-
-    param.k <- structure$param[structure$param$type=="k","name"]
-
-    ## design matrix (reduce sample size to unique replicates)
-    XpairPattern <- .pairPatternX(structure$cor,
-                                  U.cluster = U.cluster, index.cluster = index.cluster,
-                                  U.strata = U.strata, index.clusterStrata = index.clusterStrata)
-
-    ## k parameters
-    param.k.augmented <- structure$param$name[match(rownames(structure$var$lp2X)[structure$var$lp],structure$param$code)]
-    param.k.augmented[param.k.augmented %in% param.sigma] <- NA
-
-    ## variables
+    ## use to name the correlation coefficient, e.g. rho(id)
     cluster.var <- stats::na.omit(c(attr(structure$name$cluster,"original"),structure$name$cluster))[1]
     if(cluster.var=="XXcluster.indexXX"){
         cluster.varNULL <- NULL
@@ -91,24 +75,27 @@
         cluster.varNULL <- cluster.var
         cluster.varPNULL <- paste0("(",cluster.var,")")
     }
-    strata.var <- structure$name$strata
-    reg.var <- stats::na.omit(structure$name$cor[[1]])
-    n.reg <- length(reg.var)
-    n.strata <- length(U.strata)
 
-    ## levels
-    M.level.cor <- structure$cor$lp2data
-    lp2X.cor <- structure$cor$lp2X
-    lp2data.cor <- structure$cor$lp2data
+    ## sigma parameter(s)
+    param.sigma <- structure$param[structure$param$type=="sigma","name"]
+    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
     
-    ## ** special case (no covariate, only strata)
-    if(length(reg.var)==0){
-        vec.strataRho <- which(lengths(XpairPattern$LpU.strata)>0)
-        if(n.strata==1){
+    ## ** handle special cases
+
+    ## ***  no repetition
+    if(all(lengths(index.cluster)==1)){return(structure)}
+
+    ## ***  default pattern (no covariate, only strata)
+    if(all(is.na(structure$name$cor[[1]]))){
+
+        ## identify strata with at least on pair of observations
+        vec.strataRho <- sort(unique(index.clusterStrata[lengths(index.cluster)>1]))
+        if(length(U.strata)==1){
             level.strataRho <- ""
         }else{
             level.strataRho <- paste0(sep[2],U.strata[vec.strataRho])
         }
+        ## table of correlation coefficients
         structure.rho <- data.frame(name = paste0("rho",cluster.varPNULL,level.strataRho),
                                     index.strata = vec.strataRho,
                                     type = "rho",
@@ -122,98 +109,80 @@
                                     k.y = NA,                                  
                                     stringsAsFactors = FALSE)        
         structure.rho$lp.x <- as.list(vec.strataRho)
-        structure.rho$lp.y <- as.list(vec.strataRho)
+        structure.rho$lp.y <- as.list(vec.strataRho)        
         structure$param <- rbind(structure$param, structure.rho)
         rownames(structure$param) <- NULL
         return(structure)
     }
 
-    ## ** identify and name parameters
+    ## ** identify unique pairs of linear predictors
+    XpairPattern <- .pairPatternX(structure$cor, blockwise = TRUE, 
+                                  U.cluster = U.cluster, index.cluster = index.cluster,
+                                  U.strata = U.strata, index.clusterStrata = index.clusterStrata)
 
-    ## *** combine linear predictor accross strata
-    diffLp <- do.call(rbind,XpairPattern$diffU.strata) ## difference in linear predictor index for pair of observation
-    if(n.strata==1){
-        diffLp.name <- colnames(diffLp)
-    }else{ ## remove mention of the level relative to the strata in the column name to have nicer naming, i.e. rho(school):DK instead of rho(id:countryDK):DK
-        diffLp.name <- gsub(paste(paste0(":",strata.var,U.strata,"$"),collapse="|"),"",colnames(diffLp))
+    ## ** find covariates that are not used to stratify on
+    name.cov <- na.omit(setdiff(unlist(structure$name$cor), structure$name$strata))
+    
+    ## ** within-block (pairs with the same linear predictor)
+    ## NOTE: XpairPattern$lpW should be constant row-wise: all(lengths(apply(XpairPattern$lpW,1,unique,simplify=FALSE))==1)    
+
+    if(structure$twin || length(name.cov)==0){ ## identical blocks on the diagonal or single block (no covariates)
+        if(n.strata==1){
+            ## internal indentifier for the parameter (single parameter)
+            code.rhoW <- list(paste("W",XpairPattern$lpW[,1],XpairPattern$lpW[,2],sep=sep[2]))
+            ## strata relative to the parameter
+            strata.rhoW <- XpairPattern$strataW[1]
+            ## provide a name for the parameter
+            level.rhoW <- paste0("(",cluster.varNULL,")")
+            ## constraint for the correlation parameter
+            constraint.rhoW <- NA
+        }else{
+            ## internal indentifier for the parameter (one parameter per strata)
+            code.rhoW <- tapply(1:NROW(XpairPattern$lpW), XpairPattern$strataW, FUN = function(iVec){
+                paste("W",XpairPattern$lpW[iVec,1,drop=FALSE],XpairPattern$lpW[iVec,2,drop=FALSE],sep=sep[2])
+            }, simplify = FALSE)
+            ## strata relative to the parameter
+            strata.rhoW <- tapply(XpairPattern$strataW, XpairPattern$strataW, FUN = unique)
+            ## provide a name for the parameter
+            level.rhoW <- paste(paste0("(",cluster.varNULL,")"),U.strata[strata.rhoW], sep = sep[3])
+            ## constraint for the correlation parameter
+            constraint.rhoW <- rep(NA, length(code.rhoW))
+        }
+    }else{ ## distinct blocks on the diagonal
+        ## internal indentifier for the parameter (one parameter per strata and covariate, i.e. per linear predictor)
+        code.rhoW <- as.list(paste("W",XpairPattern$lpW[,1],XpairPattern$lpW[,2],sep=sep[2]))
+        ## strata relative to the parameter
+        strata.rhoW <- XpairPattern$strataW
+        ## provide a name for the parameter
+        level.rhoW <- paste(paste0("(",nlme::collapse(structure$cor$lp2data[XpairPattern$lpW[,1],name.cov,drop=FALSE], sep = sep[1], as.factor = FALSE),")"),U.strata[strata.rhoW], sep = sep[3])
+        ## constraint for the correlation parameter
+        constraint.rhoW <- rep(NA, length(code.rhoW))
     }
-    indexLp <- do.call(rbind,XpairPattern$LpU.strata) ## linear predictor index for each observation of each pair
-    clusterLp <- do.call(rbind,lapply(XpairPattern$LpU.strata, attr, "cluster"))
-    lp.x <- lp2X.cor[indexLp[,1],,drop=FALSE] ## design matrix for one observation of each pair of observations
-    data.x <- lp2data.cor[indexLp[,1],,drop=FALSE] ## data for one observation of each pair of observations
-    data.y <- lp2data.cor[indexLp[,2],,drop=FALSE] ## data for the other observation of each pair of observations
-    strataLp <- index.clusterStrata[clusterLp[,1]] ## strata for pair of observation (would be the same with clusterLp[,2])
     
-    n.Lp <- NROW(lp.x)
-    
-    ## *** identify pairs with equal or non-equal linear predictors
-    index.equal <- which(rowSums(diffLp!=0)==0)
-    index.unequal <- setdiff(1:n.Lp, index.equal)
-    index.0 <- NULL ## cells in the design matrix constrained to be 0
-
-    ## *** generate code
-    code.rho <- rep(NA, length = n.Lp)
-    level.rho <- rep(NA, length = n.Lp)
-
-    ## pairs with distinct linear predictors
-    if(length(index.unequal)>0){
-        M.level.cor <- attr(structure$cor$X,"M.level")
-        test.active.covariate <- colSums(M.level.cor[colSums(diffLp!=0)>0,,drop=FALSE]!=FALSE)
-        reg.var.unequal <- intersect(reg.var,names(test.active.covariate)[test.active.covariate>0])
-        if(structure$type == "homogeneous"){
-            ## contrast at the design matrix level
-            test.n0 <- 1*(data.x[index.unequal,reg.var.unequal,drop=FALSE]!=data.y[index.unequal,reg.var.unequal,drop=FALSE])
-            code.rho[index.unequal] <- paste("D",strataLp[index.unequal],nlme::collapse(test.n0,sep=sep[1],as.factor=FALSE),sep=sep[2])
-            if(all(as.numeric(factor(code.rho[index.unequal], levels = unique(code.rho[index.unequal]))) == as.numeric(factor(strataLp[index.unequal], levels = unique(strataLp[index.unequal]))))){
-                ## name according to cluster variable when a single within subject covariate per strata
-                level.rho[index.unequal] <- cluster.varPNULL
+    ## ** between-block (pairs with distinct linear predictors)
+    if(NROW(XpairPattern$lpB)>0){
+        outCrossBlock <- switch(structure$cross,
+                                ID = .crossBlockID(structure, XpairPattern = XpairPattern, n.strata = n.strata, name.cov = name.cov, sep = sep),
+                                CS = .crossBlockCS(structure, XpairPattern = XpairPattern, n.strata = n.strata, name.cov = name.cov, sep = sep),
+                                TOEPLITZ = .crossBlockTOEPLITZ(structure, XpairPattern = XpairPattern, n.strata = n.strata, name.cov = name.cov, sep = sep),
+                                DUN = .crossBlockDUN(structure, XpairPattern = XpairPattern, n.strata = n.strata, name.cov = name.cov, sep = sep),
+                                UN = .crossBlockUN(structure, XpairPattern = XpairPattern, n.strata = n.strata, name.cov = name.cov, sep = sep)
+                                )
+        if(!is.null(outCrossBlock$nesting)){ ## same as structure$twin == TRUE
+            ## instead of rho(id) which should be for the cross block element, uses rho(id/...) for the diagonal block
+            if(n.strata==1){ 
+                level.rhoW <- paste0("(",paste(rev(outCrossBlock$nesting),collapse = "/"),")")
             }else{
-                ## name according to the constant variables when multiple within covariates per strata
-                index.example <- !duplicated(code.rho[index.unequal])
-                diffLp.example <- diffLp[index.unequal[index.example],colSums(diffLp!=0)>0,drop=FALSE] ## exclude columns corresponding to between subject covariates
-                strataLp.example <- strataLp[index.unequal[index.example]]
-                if(n.strata>1){
-                    for(iS in 1:n.strata){ ## iS <- 1
-                        diffLp.example[strataLp.example==iS,M.level.cor[strata.var]!=U.strata[iS]] <- NA
-                    }
-                }
-                ls.rhovar <- apply(diffLp.example, MARGIN = 1, function(iRow){                    
-                    return(paste(c(cluster.varNULL,diffLp.name[which(iRow==0)]),collapse="/"))
-                }, simplify = FALSE)
-                label.Urho.unequal <- stats::setNames(paste0("(",unlist(ls.rhovar),")"), code.rho[index.unequal][index.example])
-                level.rho[index.unequal] <- unname(label.Urho.unequal[code.rho[index.unequal]])
+                level.rhoW <- paste(paste0("(",paste(rev(outCrossBlock$nesting),collapse = "/"),")"),U.strata[strata.rhoW], sep = sep[3])            
             }
-            
-        }else if(structure$type == "heterogeneous"){
-            code.rho[index.unequal] <- paste("D",rownames(lp.x)[index.unequal],nlme::collapse(diffLp[index.unequal,,drop=FALSE], sep = sep[1], as.factor = FALSE),sep=sep[2])
-            level.rho[index.unequal] <- paste0("(",nlme::collapse(data.x[index.unequal,reg.var.unequal,drop=FALSE], sep = sep[1], as.factor = FALSE),
-                                               ",",nlme::collapse(data.y[index.unequal,reg.var.unequal,drop=FALSE], sep = sep[1], as.factor = FALSE),
-                                               ")")
         }
     }
-
-    ## pairs containing the same linear predictor
-    if(length(index.equal)>0){
-        ## if(length(reg.var)==0){ ## case with no covariate (only strata) already dealt before
-        if(structure$type == "heterogeneous" || length(index.unequal)==0){ ## homogeneous case with only across cluster covariates or heterogeneous case
-            code.rho[index.equal] <- paste("R",rownames(lp.x)[index.equal],sep=sep[2])
-            level.rho[index.equal] <- paste0("(",nlme::collapse(data.x[index.equal,,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
-        }else if(length(reg.var)==length(reg.var.unequal)){ ## homogeneous case where all covariates are within cluster
-            code.rho[index.equal] <- paste("R",strataLp[index.equal],sep=sep[2])
-            ## unique to handle the case with strata
-                level.rho[index.equal] <- paste0("(",paste(c(cluster.varNULL,unique(diffLp.name)),collapse="/"),")")
-        }else{ ## homogeneous case where some covariates are within cluster but some are across clusters
-            stop("Cannot define the correlation parameters. \n",
-                 "The right-hand side of the formula mixes within-cluster and between cluster covariates.\n ",
-                 "Consider putting the covariate \"",paste0(setdiff(reg.var,reg.var.unequal),collapse = "\", \""),"\" on the left hand side of the formula. \n")
-        }
-    }
-
-
+browser()
     ## *** unique correlation coefficients
-    test.rho <- !duplicated(code.rho)
-    code.Urho <- code.rho[test.rho]
-    strata.Urho <- strataLp[test.rho]
+    code.rho <- unname(c(code.rhoW, outCrossBlock$code))
+    level.rho <- unname(c(level.rhoW, outCrossBlock$level))
+    strata.rho <- unname(c(strata.rhoW, outCrossBlock$strata))
+    
     if(n.strata==1){
         level.Urho <-  level.rho[test.rho]
         nameX.intercept <- cluster.var
@@ -236,25 +205,19 @@
                                      tapply(names(unlist(attr(cstCol.Urho,"col2var"))),unlist(attr(cstCol.Urho,"col2var")), base::identity, simplify = FALSE)
                                      )
 
-    ## constrain independence in the case of different groups of correlation parameters
-    ## i.e. remove some of the correlation parameters
-    if(length(unique(structure$group.type))>1){
-
-        var2col <- attr(cstCol.Urho,"var2col")
-        ## parameters with non-identical variables accross different groups of correlation parameters should be removed
-        ls.index.0 <- tapply(names(structure$group.type),structure$group.type, function(iVar){ ## iVar <- names(structure$group.type)[1]
-            iCol.group <- unlist(var2col[names(var2col) %in% iVar])
-            iCol.othergroup <- unlist(var2col[names(var2col) %in% setdiff(names(structure$group.type),iVar)])
-            iRho.group <- intersect(which(rowSums(cstCol.Urho[,iCol.group,drop=FALSE]==TRUE)>0), ## at least one non-identical variable
-                                    which(rowSums(cstCol.Urho[,iCol.othergroup,drop=FALSE]==TRUE)>0)) ## some variables corresponding to other groups are not identical
-            return(iRho.group)
-        }, simplify = FALSE)
-
-        
-        index.0 <- sort(unique(c(unlist(ls.index.0), which(rowSums(cstCol.Urho[,-1,drop=FALSE]==TRUE)==0)))) ## add parameter corresponding to pairs that are all different
-    }
-
     ## ***  retrieve k
+    param.k <- structure$param[structure$param$type=="k","name"]
+    ## k parameters
+    param.k.augmented <- structure$param$name[match(rownames(structure$var$lp2X)[structure$var$lp],structure$param$code)]
+    param.k.augmented[param.k.augmented %in% param.sigma] <- NA
+
+    ## variables
+    strata.var <- structure$name$strata
+    reg.var <- stats::na.omit(structure$name$cor[[1]])
+    n.reg <- length(reg.var)
+    n.strata <- length(U.strata)
+    reg.var.unequal <- intersect(reg.var,names(test.active.covariate)[test.active.covariate>0])    
+
     if(length(param.k)>0){
         indexObs <- do.call(rbind,lapply(XpairPattern$LpU.strata,attr,"index"))
         
@@ -280,8 +243,25 @@
                                 stringsAsFactors = FALSE)
 
     ## save information about correlation parameters fixed to 0 (e.g. crossed random effects)
-    if(length(index.0)>0){
-        structure.rho$constraint[structure.rho$code %in% code.Urho[index.0]] <- 0
+    if(any(is.na(code.rho))){
+        if(n.strata==1){
+            structure.rho <- rbind(structure.rho,
+                                   data.frame(name = "rho(0)", index.strata = 1, type = "rho", constraint = 0,
+                                              level = "(0)", code = paste("N",1, sep = sep["rho.strata"]),
+                                              lp.x = NA, lp.y = NA, sigma = param.sigma, k.x = NA, k.y = NA)
+                                   )
+            code.rho[is.na(code.rho)] <- paste("N",1, sep = sep["rho.strata"])
+        }else{
+            structure.rho <- rbind(structure.rho,
+                                   data.frame(name = paste("rho(0)",U.strata[strataLp[is.na(code.rho)]], sep=sep["rho.strata"]),
+                                              index.strata = strataLp[is.na(code.rho)], type = "rho", constraint = 0,
+                                              level = paste("(0)",U.strata[strataLp[is.na(code.rho)]], sep=sep["rho.strata"]),
+                                              code = paste("N",strataLp[is.na(code.rho)], sep = sep["rho.strata"]),
+                                              lp.x = NA, lp.y = NA, sigma = param.sigma, k.x = NA, k.y = NA)
+                                   )
+            code.rho[is.na(code.rho)] <- paste("N",strataLp[is.na(code.rho)], sep = sep["rho.strata"])
+        }
+        
     }
 
     ## ensure proper ordering
@@ -339,27 +319,13 @@
                    dimnames = list(iH,U.strata))
         })
 
-        ## *** check crossed random effects structure
-        ## it is expected to have perfectly crossed factors, e.g. (a,1) (a,2) (a,3) ... (a,n) (b,1) (b,2) ... (b,n)
-        ##                                                 , e.g. (A,a,1) (A,b,2) (A,c,3) ... (B,a,2)
-        ## but not (a,1) (a,1) or (A,a,1) (A,a,2)
-        var2col <- attr(structure$rho$param2var, "var2col")
-        if(length(unique(structure$ranef$index.terms))>1){
-            param.constraint <- structure$param[!is.na(structure$param$constraint) & structure$param$type == "rho",c("name","index.strata","level","code"),]
-            param2var.contraint <- structure$rho$param2var[param.constraint$code,,drop=FALSE]
-
-            if(any(param2var.contraint[,-1])){ ## first column corresponds to cluster
-                warning("Crossed random effects have been specified but the associated factors are not perfectly crossed. \n",
-                        "Corresponding correlation parameter have been constrain to 0 but may lead to a rank-deficient variance-covariance matrix. \n")
-            }
-        }
         
-
         ## *** identify the variable constant outside the hierarchy and varying inside the hierarchy
         structure.activeRho <- structure$param[which(structure$param$type == "rho" & is.na(structure$param$constrain)),c("name","index.strata","code")]
         activeRho2var <- structure$rho$param2var[structure.activeRho$code,,drop=FALSE]
         code2name <- stats::setNames(structure.activeRho$name, structure.activeRho$code)
-
+        var2col <- attr(structure$rho$param2var, "var2col")
+        
         for(iStrata in 1:n.strata){ ## iStrata <- 1
             iActiveRho2var <- activeRho2var[structure.activeRho$index.strata==iStrata,,drop=FALSE]
 
@@ -698,64 +664,99 @@
 
 ## * helper
 ## ** .pairPatternX
-##' @description Generate unique combinations of pairwise differences from linear predictors
+##' @description Generate combinations of pairwise differences from linear predictors
+##' 
+##' @param object [list] output of model.matrix containing at least the design matrix in element \code{"X"}.
+##' @param U.cluster [character vector] cluster levels.
+##' @param index.cluster [list of integer vector] position of each cluster in the dataset.
+##' @param U.strata [character vector] strata levels.
+##' @param indexCluster.strata [character vector] strata associated to each cluster.
+##' @param blockwise [logical] should the output should separate within-block and across block pairs?
+##' @param sep [character] character used to collapse the covariate values into a linear predictor.
 ##' 
 ##' @noRd
-##' @return A list with the following elements \itemize{
-##' \item LpU.strata [list of matrices] linear predictor (and position of the observations in the attribute index) used for the pairwise differences.
-##' \item diffU.strata [list of matrices] pairwise difference between the linear predictor index
+##' @return When \code{blockwise} is TRUE, a list with the following elements \itemize{
+##' \item lpW [numeric matrix, n.lp x 2] index of the linear predictor (diagonal blocks).
+##' \item strataW [numeric vector, n.lp] index of the strata.
+##' \item indexW [numeric matrix, n.lp x 2] index of the observations forming the pair in the dataset.
+##' \item clusterW [numeric vector, n.lp] index of the cluster.
+##' \item lpB [numeric matrix, n.lp x 2] index of the linear predictor (off-diagonal blocks).
+##' \item diffXB [numeric matrix, n.lp n.X] difference in design matrix value in the  pair.
+##' \item strataB [numeric vector, n.lp] index of the strata.
+##' \item indexB [numeric matrix, n.lp x 2] index of the observations forming the pair in the dataset.
+##' \item clusterB [numeric vector, n.lp] index of the cluster.
+##' }
+##' where n.lp is the number of distinct value that the linear predictor can take
+##' and n.X the number of columns in the design matrix.
+##' Otherwise, a list with the following elements \itemize{
+##' \item lp [numeric matrix, n.lp x 2] index of the linear predictor (all blocks).
+##' \item diffX [numeric matrix, n.lp] difference in design matrix value in the  pair.
+##' \item strata [numeric vector, n.lp] index of the strata.
+##' \item index [numeric matrix, n.lp x 2] index of the observations forming the pair in the dataset.
+##' \item cluster [numeric vector, n.lp] index of the cluster.
 ##' }
 ##' @examples
 ##' data(gastricbypassL, package = "LMMstar")
 ##'
 ##' X.cor <- model.matrix(~1, data = gastricbypassL)
-##' .pairPatternX(X.cor,
+##' .pairPatternX(list(X=X.cor),
 ##'               U.cluster = unique(gastricbypassL$id),
 ##'               index.cluster = tapply(1:NROW(gastricbypassL), gastricbypassL$id, identity),
-##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))))
+##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))),
+##'               blockwise = TRUE)
 ##' 
 ##' X.cor <- model.matrix(~visit, data = gastricbypassL)
 ##' .pairPatternX(list(X=X.cor),
 ##'               U.cluster = unique(gastricbypassL$id),
 ##'               index.cluster = tapply(1:NROW(gastricbypassL), gastricbypassL$id, identity),
-##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))))
+##'               U.strata = "1", index.clusterStrata = rep(1, length(unique(gastricbypassL$id))),
+##'               blockwise = TRUE)
 .pairPatternX <- function(object, 
                           U.cluster, index.cluster,
                           U.strata, index.clusterStrata,
-                          sep = c("")){
+                          blockwise, sep = c("")){
 
     ## ** normalize user input
     object.X <- object$X
-    object.lp <- object$lp
-    object.pattern <- object$pattern
-    object.pattern2lp <- object$pattern2lp
     n.strata <- length(U.strata)
 
     ## code for linear predictor for each observation
-    if(is.null(object.lp)){
-        lp.obs <- nlme::collapse(object.X, sep = "", as.factor = TRUE)
+    if(is.null(object$lp)){
+        object.lp <- nlme::collapse(object.X, sep = sep, as.factor = TRUE)
     }else{
-        lp.obs <- object.lp
+        object.lp <- object$lp
     }
 
     ## same but grouped by cluster
-    if(is.null(object.pattern)){
-        pattern <- lapply(U.cluster, function(iC){ lp.obs[index.cluster[[iC]]] })
+    if(is.null(object$pattern)){
+        object.pattern <- lapply(U.cluster, function(iC){object.lp[index.cluster[[iC]]]})
     }else{
-        pattern <- object.pattern
+        object.pattern <- object$pattern
     }
 
-    ## ** extract pattern
-    ## list containing for each strata the unique pairs of linear predictors
-    ## (and the position in the dataset of these linear predictors as an attribute)
-    lpU.clusterStrata <- lapply(1:n.strata, function(iS){ ## iS <- 1
+    ## unique combinations
+    if(is.null(object$pattern2lp)){
+        object.pattern2lp <- lapply(index.cluster[which(!duplicated(object$pattern))], function(iIndex){object.lp[iIndex]})
+        object.pattern2lp <- object.pattern2lp[order(lengths(object.pattern2lp))]
+    }else{
+        object.pattern2lp <- object$pattern2lp
+    }
 
+    ## ** prepare output
+    lp.pair <- NULL
+    index <- NULL
+    cluster <- NULL
+    strata <- NULL
+
+    ## ** extract unique pairs of linear predictor 
+    for(iS in 1:n.strata){
+        
         ## index of the clusters in the strata
         iIndex.clusterStrata <- which(index.clusterStrata==iS)
         ## index of the clusters with unique linear predictor pattern
-        iIndex.clusterU <- iIndex.clusterStrata[.patternINtable12(pattern = pattern[iIndex.clusterStrata], pattern2lp = object.pattern2lp)]
+        iIndex.clusterU <- iIndex.clusterStrata[.patternINtable12(pattern = object.pattern[iIndex.clusterStrata], pattern2lp = object.pattern2lp)]
         ## linear predictor for each cluster
-        iLs.lp.clusterU <- object.pattern2lp[pattern[iIndex.clusterU]]
+        iLs.lp.clusterU <- object.pattern2lp[object.pattern[iIndex.clusterU]]
 
         ## remove triplicates
         iLs.lpU.clusterU <- lapply(1:length(iIndex.clusterU),function(iC){ ## iC <- 1
@@ -763,39 +764,54 @@
             iIndex2 <- iIndex[order(iLs.lp.clusterU[[iC]][iIndex])]
             iOut <- iLs.lp.clusterU[[iC]][iIndex2]
             attr(iOut,"index") <- index.cluster[[iIndex.clusterU[[iC]]]][iIndex2]
-            attr(iOut,"cluster") <- rep(iIndex.clusterU[[iC]],length(iIndex2))
             return(iOut)
         })
-        iVec.lpU.clusterU <- do.call(base::c,iLs.lpU.clusterU)
 
         ## form all pairs
-        iM <- base::t(do.call(cbind,lapply(iLs.lpU.clusterU, unorderedPairs, distinct = TRUE)))
-        iMatch.lpU.clusterU <- match(iM[],iVec.lpU.clusterU)
+        iLS.pairs <- lapply(iLs.lpU.clusterU, unorderedPairs, distinct = TRUE)
+        iNpair.lpU.clusterU <- sapply(iLS.pairs,NCOL)
+        iM.pairs <- base::t(do.call(cbind,iLS.pairs))
+        ## combine while remove pairs having the same linear predictors
+        iTest.duplicated <- !duplicated(iM.pairs)
+        ## retrieve cluster corresponding to the linear predictor
+        iCluster <- do.call(c,mapply(x = iIndex.clusterU, y = iNpair.lpU.clusterU, function(x,y){rep(x, times = y)}, SIMPLIFY = FALSE))
+        ## retrieve index of the observation corresponding to the linear predictor
+        iIndex <- do.call(cbind,lapply(1:length(iIndex.clusterU), function(iC){
+            iiIndex <- unorderedPairs(attr(iLs.lpU.clusterU[[iC]],"index"), distinct = TRUE)
+            iiTest <- iTest.duplicated[cumsum(c(1,iNpair.lpU.clusterU))[iC]:cumsum(iNpair.lpU.clusterU)[iC]]
+            return(iiIndex[,iiTest,drop=FALSE])
+        }))
 
-        attr(iM,"index") <- matrix(do.call(c,lapply(iLs.lpU.clusterU,attr,"index"))[iMatch.lpU.clusterU],
-                                   nrow = NROW(iM), ncol = NCOL(iM))
-        attr(iM,"cluster") <- matrix(do.call(c,lapply(iLs.lpU.clusterU,attr,"cluster"))[iMatch.lpU.clusterU],
-                                     nrow = NROW(iM), ncol = NCOL(iM))
-
-        ## remove duplicates
-        iIndex.Upairs <- which(!duplicated(iM))
-        iOut <- iM[iIndex.Upairs,,drop=FALSE]
-        attr(iOut,"index") <- attr(iM,"index")[iIndex.Upairs,,drop=FALSE]
-        attr(iOut,"cluster") <- attr(iM,"cluster")[iIndex.Upairs,,drop=FALSE]
-        return(iOut)
-    })
-
-    ## list containing for each strata the unique difference in design matrix between pairs
-    diffU.strata <- lapply(lpU.clusterStrata, function(iS){
-        iM <- object.X[attr(iS,"index")[,2],,drop=FALSE] - object.X[attr(iS,"index")[,1],,drop=FALSE]
-        rownames(iM) <- NULL
-        return(iM)
-    })
+        ## update
+        lp.pair <- rbind(lp.pair, iM.pairs[iTest.duplicated,,drop=FALSE])
+        index <- rbind(index, t(iIndex))
+        cluster <- c(cluster, iCluster[iTest.duplicated])
+        strata <- c(strata,rep(iS, sum(iTest.duplicated)))
+    }
+    ##  cbind(object$X[index[,1],], object$X[index[,2],]) - lp.pair
+    diffX.pair <- object.X[index[,2],,drop=FALSE] - object.X[index[,1],,drop=FALSE]
+    rownames(diffX.pair) <- NULL
 
     ## ** export    
-    out <- list(LpU.strata = stats::setNames(lpU.clusterStrata, U.strata),
-                diffU.strata = stats::setNames(diffU.strata, U.strata))
-    return(out)
+    if(blockwise){
+        index.within <- which(rowSums(diffX.pair!=0)==0)
+        return(list(lpW = lp.pair[index.within,,drop=FALSE],
+                    strataW = strata[index.within],
+                    indexW = index[index.within,,drop=FALSE],
+                    clusterW = cluster[index.within],
+                    lpB = lp.pair[-index.within,,drop=FALSE],
+                    diffXB = diffX.pair[-index.within,,drop=FALSE],
+                    strataB = strata[-index.within],
+                    indexB = index[-index.within,,drop=FALSE],
+                    clusterB = cluster[-index.within]
+                    ))
+    }else{
+        return(list(lp = lp.pair,
+                    diffX = diffX.pair,
+                    strata = strata,
+                    index = index,
+                    cluster = cluster))
+    }
 }
 
 ## ** .patternINtable12
@@ -874,6 +890,7 @@
     ## *** export
     return(index.unique[index.keep])
 }
+
 
 ##----------------------------------------------------------------------
 ### structure-skeletonRho.R ends here

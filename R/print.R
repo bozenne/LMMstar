@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 21 2025 (10:49) 
+## Last-Updated: nov 21 2025 (14:37) 
 ##           By: Brice Ozenne
-##     Update #: 319
+##     Update #: 321
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -90,7 +90,7 @@ print.lmm <- function(x, ...){
         }else if(structure.ranef$crossed==FALSE && structure.ranef$nested==TRUE){
             cat("\t\tLinear Mixed Model with nested random intercepts \n", sep = "")
         }else if(structure.ranef$crossed==TRUE && structure.ranef$nested==FALSE){
-            cat("\t\tLinear Mixed Model with cross random intercepts \n", sep = "")
+            cat("\t\tLinear Mixed Model with crossed random intercepts \n", sep = "")
         }else{
             cat("\t\tLinear Mixed Model with random effects \n", sep = "")
         }        
@@ -110,14 +110,14 @@ print.lmm <- function(x, ...){
             }
             if(all(is.na(structure$name$cor))){
                 cat("\t\tLinear Mixed Model with ",txt.strata," compound symmetry covariance matrix \n", sep = "")
-            }else if(structure$type == "heterogeneous"){
-                cat("\t\tLinear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
-            }else if(structure$type == "homogeneous"){
+            }else if(!structure$diagonal & structure$homogeneous){
                 cat("\t\tLinear Mixed Model with ",txt.strata," block compound symmetry covariance matrix \n", sep = "")
-            }else if(structure$type == "heterogeneous0"){
-                cat("\t\tLinear Mixed Model with ",txt.strata," crossed unstructured covariance matrix \n", sep = "")
-            }else if(structure$type == "homogeneous0"){
+            }else if(!structure$diagonal & !structure$homogeneous){
+                cat("\t\tLinear Mixed Model with ",txt.strata," block unstructured covariance matrix \n", sep = "")
+            }else if(structure$diagonal & structure$homogeneous){
                 cat("\t\tLinear Mixed Model with ",txt.strata," crossed compound symmetry covariance matrix \n", sep = "")
+            }else if(structure$diagonal & !structure$homogeneous){
+                cat("\t\tLinear Mixed Model with ",txt.strata," crossed unstructured covariance matrix \n", sep = "")
             }
         }else if(inherits(structure,"TOEPLITZ")){            
             if(is.na(structure$name$strata)){

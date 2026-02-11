@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 29 2025 (13:46) 
+## Last-Updated: feb 10 2026 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 3269
+##     Update #: 3276
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -312,7 +312,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     if(trace>=1){cat("2. Design matrix and precomputations \n")}
 
     ## *** update transformation and precompute moments
-    if(structure$class=="CUSTOM"){
+    if(inherits(structure,"CUSTOM")){
         precompute.moments <- FALSE
         if((is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (outArgs$df || outArgs$method.fit=="REML" || outArgs$type.information=="observed")){
             ## need second derivative but transformation based on dJacobian not implemented!

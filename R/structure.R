@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: okt 30 2025 (17:21) 
+## Last-Updated: feb 11 2026 (13:16) 
 ##           By: Brice Ozenne
-##     Update #: 1270
+##     Update #: 1486
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,15 +15,13 @@
 ## 
 ### Code:
 
-## * ID (identity)
-##' @title identity Structure
+## * ID (identity, documentation)
+##' @title Identity Structure
 ##' @description Variance-covariance structure where the residuals are independent and identically distributed.
 ##' Can be stratified on a categorical variable.
 ##' 
-##' @param formula formula indicating on which variable to stratify the residual variance (left hand side).
-##' @param var.cluster [character] cluster variable.
-##' @param var.time [character] time variable.
-##' @param add.time not used.
+##' @param formula [formula] variables to stratify the residual variance (left hand side, like sex~1).
+##' @param var.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
@@ -65,27 +63,47 @@
 ##' sigma(eID.reg)
 ##' model.tables(eID.reg, effects = "variance")
 ##' }
-##' @export
-ID <- function(formula, var.cluster, var.time, add.time){
 
-    ## ** normalize input
-    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = TRUE, correlation = FALSE)
-    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake ID(~1,~1) instead of ID(list(~1,~1))
-        stop("Argument \'var.cluster\' should not be a formula. \n",
-             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+## * ID (identity, code)
+##' @export
+ID <- function(formula, var.time){
+
+    ## ** check input
+    ## *** formula
+    if(!inherits(formula,"formula")){
+        stop("Argument \'formula\' should be a formula. \n")
+    }
+
+    ## *** var.time
+    if(!missing(var.time)){
+        if(any(inherits(var.time,"formula"))){ ## possible user mistake ID(~1,~1) instead of ID(list(~1,~1))
+            stop("Argument \'var.time\' should not be a formula. \n",
+                 "Consider using a list to collect the formula for the variance and correlation structure. \n")
+        }else{
+            warning("Argument \'var.time\' ignored with ID structure. \n")
+        }
+    }
+
+    
+
+    ## ** identify strata variable and covariate variables
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = FALSE)
+    if(length(outCov$X.var)>0 || length(outCov$X.cor)>0){ 
+        stop("Argument \'formula\' should not contain variable(s) on the right-hand side of the formula. \n",
+             "Structure ID can only be stratified (left hand side of the formula). \n")
     }
 
     ## ** create structure
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                name = data.frame(cluster = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  var = NA,
-                                  cor = NA,
+                                  time = NA,
+                                  variance = NA,
+                                  correlation = NA,
                                   stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = NULL),
-                class = "ID")
+                formula = list(variance = outCov$formula.var,
+                               correlation = NULL),
+                class = c(variance = "ID", correlation = NA))
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -93,16 +111,14 @@ ID <- function(formula, var.cluster, var.time, add.time){
     return(out)
 }
 
-## * IND (independence)
+## * IND (independence, documentation)
 ##' @title Independence Structure
 ##' @description Variance-covariance structure where the residuals are independent but may have different variance.
 ##' Can be stratified on a categorical variable.
 ##'
-##' @param formula formula indicating variables influencing the residual variance,
+##' @param formula [formula] variables influencing the residual variance,
 ##' using either as a multiplicative factor (right hand side) or stratification (left hand side) to model their effect.
-##' @param var.cluster [character] cluster variable.
-##' @param var.time [character] time variable.
-##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
+##' @param var.time Missing or \code{NULL} to enable or disable repetition-specific variance parameters
 ##'
 ##' @details A typical formula would be \code{~time}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
@@ -110,7 +126,7 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' }
 ##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_2^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_3^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_4\sigma^2 \end{bmatrix}}
-##' It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~time}. This will lead to:
+##' It is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
 ##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{female}}^2\sigma_{\text{female}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{female}}^2\sigma_{\text{female}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{female}}\sigma_{\text{female}}^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & k_{2:\text{male}}^2\sigma_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & k_{3:\text{male}}^2\sigma_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & k^2_{4:\text{male}}\sigma_{\text{male}}^2 \end{bmatrix}
@@ -121,7 +137,7 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##' \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
 ##' }
 ##' which is just a re-parametrisation the stratified structure since, by default, the variance is taken dependent of a time effect.
-##' Removing the time effect by setting \code{add.time} to \code{FALSE}) leads to:
+##' Removing the time effect by setting \code{var.time} to \code{NULL}) leads to:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
@@ -159,48 +175,46 @@ ID <- function(formula, var.cluster, var.time, add.time){
 ##'
 ##' ## to not only use sex dependent variance
 ##' eIND.reg0 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
-##'                  structure = IND(~sex, add.time = FALSE), data = gastricbypassL)
+##'                  structure = IND(~sex, var.time = NULL), data = gastricbypassL)
 ##' sigma(eIND.reg0)
 ##' model.tables(eIND.reg0, effects = "variance") 
 ##' }
 ##' 
+
+## * IND (independence, code)
 ##' @export
-IND <- function(formula, var.cluster, var.time, add.time){
+IND <- function(formula, var.time){
 
-    ## ** normalize input
-    if(!missing(add.time)){
-        if(is.character(add.time)){
-            add.X <- list(variance = add.time,
-                          correlation = NULL)
-        }else if(add.time){
-            add.X <- list(variance = var.time,
-                          correlation = NULL)
-        }else if(!add.time){
-            add.X <- NULL
-        }else{
-            stop("Incorrect argument \'add.time\': should be logical or character. \n")
-        }
-    }else{
-        add.X <- NULL
+    ## ** check input
+    ## *** formula
+    if(inherits(formula,"formula")){
+        stop("Argument \'formula\' should be a formula. \n")
     }
 
-    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = FALSE)
-    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake IND(~1,~1) instead of IND(list(~1,~1))
-        stop("Argument \'var.cluster\' should not be a formula. \n",
-             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    ## *** var.time
+    if(!missing(var.time)){
+       if(any(inherits(var.time,"formula"))){ ## possible user mistake IND(~1,~1) instead of InD(list(~1,~1))
+           stop("Argument \'var.time\' should not be a formula. \n",
+                "Consider using a list to collect the formula for the variance and correlation structure. \n")
+       }else if(!is.null(var.time)){
+           stop("Argument \'var.time\' should either be missing or NULL to enable or disable automatically repetition-specific variance parameters. \n")
+       }
     }
+
+    ## ** identify strata variable and covariate variables
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = FALSE)
 
     ## ** create structure
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                name = data.frame(cluster = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  cor = NA,
+                                  time = NA,
+                                  variance = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+                                  correlation = NA,
                                   stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = NULL),
-                class = "IND")
+                formula = list(variance = outCov$formula.var,
+                               correlation = NULL),
+                class = c(var = "IND", cor = NA))
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -209,28 +223,22 @@ IND <- function(formula, var.cluster, var.time, add.time){
 }
 
 
-## * CS (compound symmetry)
+## * CS (compound symmetry, documentation)
 ##' @title Compound Symmetry Structure
 ##' @description Variance-covariance structure where the variance and correlation of the residuals is constant within covariate levels.
-##' Can be stratified on a categorical variable.
-##' The default has no covariate and therefore the variance and correlation are constant within cluster.
-##'
-##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-##' and variables influencing the residual variance and correlation (right hand side).
-##' @param var.cluster [character] cluster variable.
-##' @param var.time [character] time variable.
-##' @param type [character] \itemize{
-##' \item \code{"ho"}, \code{"homo"}, or \code{"homogeneous"}: constant variance and covariate-specific correlation.
-##' Analogous to nested random effects.
-##' \item \code{"he"}, \code{"hetero"}, or \code{"heterogeneous"}: variance and correlation specific to the level of covariates.
-##' Can be seen as more flexible nested random effects model.
-##' \item \code{"cs"}, \code{"cross"}: constant variance and covariate-specific correlation under 0 correlation of between pairs with different covariate levels.
-##' Analogous to crossed random effects.
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
 ##' }
-##' Can also be a vector of integers indicating the grouping of the regressor for the correlation structure:
-##' a constant value corresponds to nested random effects (default)
-##' and a regressor-specific value to crossed random effects. Mainly for internal use.
-##' @param add.time not used.
+##'
+##' @param formula [formula or list of 2 formula] variable to stratify the residual variance and correlation (left hand side)
+##' and variables influencing the residual variance and correlation (right hand side).
+##' @param var.time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
+##' \code{TRUE} is analogous to nested random effects.
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
+##' \code{"ID"} is analogous to cross random effects.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
@@ -238,33 +246,33 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' }
 ##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \sigma^2 \end{bmatrix}}
-##' With positive correlation, this is reparametrisation of a random intercept model. \cr
+##' With positive correlation, this is a reparametrisation of a random intercept model. \cr
 ##' 
 ##' \bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
 ##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 & \rho_{\text{male}} \sigma^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \rho_{\text{male}} \sigma^2_{\text{male}} & \sigma_{\text{male}}^2 \end{bmatrix}
 ##' } 
-##' By default, the argument \code{type} is set to \code{"homogeneous"} meaning that \code{~sex} will only make the correlation sex dependent:
+##' By default, the argument \code{twin=TRUE} meaning that \code{~sex} will only make the correlation sex dependent:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  & \rho_{\text{male}} \sigma^2  \\ \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \rho_{\text{male}} \sigma^2  & \sigma^2  \end{bmatrix}
 ##' }
-##' To obtain a sex-dependent variance one can either set the argument \code{type} to \code{"heterogeneous"} or specify a separate formula for the variance and correlation using a list: \code{list(~sex,~sex)}
+##' To obtain a sex-dependent variance one can either set the argument \code{twin=FALSE} or specify a separate formula for the variance and correlation using a list: \code{list(~sex,~sex)}
 ##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 & \rho_{\text{female}}\sigma^2 \\ \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \rho_{\text{female}}\sigma^2 & \sigma^2 \end{bmatrix}
 ##' \text{and}
 ##' \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k_{\text{male}}^2 & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} \\ \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \rho_{\text{male}} \sigma^2 k^2_{\text{male}} & \sigma^2 k^2_{\text{male}} \end{bmatrix}
 ##' }
 ##' This is a reparametrization of the stratified CS structure. \cr \cr
 ##'
-##' \bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters. But one can make the variance and correlation dependent on such variable. By default (\code{type="homogeneous"}) two correlation parameters are used: one when the variable values are same between the two repetitions (\eqn{\rho_W}) and another when the variable values differ between the two repetitions (\eqn{\rho_B}), e.g. if baseline refers to the firt two repetitions then using the formula \code{~baseline} will model:
+##' \bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters. But one can make the variance and correlation dependent on such variable. By default (\code{twin=TRUE}) two correlation parameters are used: one when the variable values are same between the two repetitions (\eqn{\rho_W}) and another when the variable values differ between the two repetitions (\eqn{\rho_B}), e.g. if baseline refers to the firt two repetitions then using the formula \code{~baseline} will model:
 ##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_W\sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_W\sigma^2 & \sigma^2 & \rho_B\sigma^2 & \rho_B\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \sigma^2 & \rho_W\sigma^2 \\ \rho_B\sigma^2 & \rho_B\sigma^2 & \rho_W\sigma^2 & \sigma^2 \end{bmatrix}}
 ##' With positive correlation, this is reparametrisation of a nested random effect model. \cr
 ##'
-##' Setting \code{type="heterogeneous"} enables to obtain a correlation parameter specific to each variable value and each difference in variable value:
-##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{baseline}}\sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} \\ \rho_{\text{baseline}}\sigma^2 & \sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} \end{bmatrix}} 
+##' Setting \code{twin=FALSE} enables to obtain a correlation parameter specific to each variable value and each difference in variable value:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_{\text{baseline}}\sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} \\ \rho_{\text{baseline}}\sigma^2 & \sigma^2 & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} \\ \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{baseline,follow-up}}\sigma^2 k_{\text{follow-up}} & \rho_{\text{follow-up}}\sigma^2 k^2_{\text{follow-up}} & \sigma^2 k^2_{\text{follow-up}} \end{bmatrix}} 
 ##'
-##' Setting \code{type="cross"} only considers correlation between observations with identical covariate values. Consider clusters of two subjects and modeling the within subject correlation, within timepoint correlation for subjects from the same cluster but assuming independence between observations measured at different timepoints on different subjects:
+##' Setting \code{cross="ID"} only considers correlation between observations with identical covariate values. Consider clusters of two subjects and modeling: within-subject correlation and within-time correlation for subjects from the same cluster but assuming independence between observations measured at different timepoints on different subjects:
 ##' \deqn{ \begin{bmatrix}
 ##' \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{time}}\sigma^2  & 0 & 0 & 0 \\
 ##' \rho_{\text{subject}}\sigma^2 & \sigma^2 & \rho_{\text{subject}}\sigma^2 & \rho_{\text{subject}}\sigma^2 & 0 & \rho_{\text{time}}\sigma^2 & 0 & 0 \\
@@ -310,7 +318,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' 
 ##' ## covariate: sex-dependent variance and correlation
 ##' eCS.sex <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
-##'                structure = CS(~sex, type = "he"), data = gastricbypassL)
+##'                structure = CS(~sex, twin = TRUE), data = gastricbypassL)
 ##' sigma(eCS.sex)
 ##' 
 ##' eCS.sex2 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
@@ -319,7 +327,7 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##'
 ##' #### Covariate varying within-cluster ####
 ##'
-##' ## homogeneous: within (rho id/basline) and between (rho id) correlation
+##' ## twin: within (rho id/basline) and between (rho id) correlation
 ##' eBCS.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
 ##'                  structure = CS(~baseline), data = gastricbypassL)
 ##' sigma(eBCS.default)
@@ -327,116 +335,137 @@ IND <- function(formula, var.cluster, var.time, add.time){
 ##' 
 ##' ## heterogeneous: within (rho id/basline) and between (rho id) correlation
 ##' eBCS.hetero <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
-##'                     structure = CS(~baseline, type = "he"), data = gastricbypassL)
+##'                     structure = CS(~baseline, twin = FALSE), data = gastricbypassL)
 ##' sigma(eBCS.hetero)
 ##' model.tables(eBCS.hetero, effects = "all")
 ##' 
 ##' #### Cross compound symmetry ####
+##' eCS.cross <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                  structure = CS(~baseline, cross = "ID"),
+##'                  data = gastricbypassL)
+##' sigma(eCS.cross)
+##' model.tables(eCS.cross, effects = "all")
+##' 
 ##' ## artificially create a two level structure family-id
-##' ## assumed observations correlated within id
-##' ##                                 within family at the same time
 ##' ## index family member: first, second
-##' gastricbypassL$member.index <- ave(gastricbypassL$id,gastricbypassL$family,
-##'                                    FUN=function(x){as.numeric(factor(x))})
-##' ## index observations within family
-##' gastricbypassL$member.visit <- with(gastricbypassL,
-##'   paste0(member.index,"(t=",visit,")")
-##' )
+##' gastricbypassL <- gastricbypassL[order(gastricbypassL$id),]
+##' gastricbypassL$member <- repetition(~id|family, data = gastricbypassL,
+##'                                     type = "consecutive", label.rep = c("I","II"))
+##' gastricbypassL$visit.member <- interaction(gastricbypassL[,c("visit","member")])
 ##'
 ##' ## constant correlation within subject, constant correlation within time,
 ##' ## no correlation within family for different subjects at different times
-##' eCS.family <- lmm(glucagonAUC ~ visit, repetition = ~member.visit|family,
-##'                   structure = CS(~id+visit, type = "cross"),
+##' eCS.family <- lmm(glucagonAUC ~ visit, repetition = ~visit.member|family,
+##'                   structure = CS(~id+visit, cross = "ID"),
 ##'                   data = gastricbypassL)
 ##' sigma(eCS.family)
 ##' model.tables(eCS.family, effects = "all")
+##' 
+##' eHCS.family <- lmm(glucagonAUC ~ visit, repetition = ~visit.member|family,
+##'                   structure = CS(~member+visit, twin = TRUE, cross = "ID"),
+##'                   data = gastricbypassL) ## lack of convergence
+##' sigma(eHCS.family)
+##' model.tables(eHCS.family, effects = "all")
 ##' }
 ##' 
+
+## * CS (compound symmetry, code)
 ##' @export
-CS <- function(formula, var.cluster, var.time, type = NULL, add.time){
-
+CS <- function(formula, var.time, twin = TRUE, cross = "CS"){
+browser()
     ## ** normalize input
-    type.ho <- c("ho","homo","homogeneous")
-    type.he <- c("he","hetero","heterogeneous")
-    type.cs <- c("cs","cross")
-    if(!is.null(type)){
-        type <- match.arg(type, c(type.ho,type.he,type.cs))
-        if(type %in% type.ho){
-            type <- type.ho[3]
-        }else if(type %in% type.he){
-            type <- type.he[3]
-        }else if(type %in% type.cs){
-            type <- type.cs[2]
-        }
-    }else if(inherits(formula,"formula") || (is.list(formula) && length(formula)==1)){
-        type <- type.ho[3]
-    }else if((is.list(formula) && length(formula)==2)){
-        type <- type.he[3]
+    ## *** formula
+    if(inherits(formula,"formula") && !(is.list(formula) && length(formula)= 2 && all(sapply(formula,inherits,"formula")))){
+        stop("Argument \'formula\' should be a formula or a list of 2 formula. \n")
     }
-
-    if(!missing(formula) && inherits(formula,"formula")){
-        if(type %in% c("homogeneous","cross")){
-            if(attr(stats::terms(formula),"response")==0){
-                formula <- list(variance = ~1,
-                                correlation = formula)
-            }else{
-                formula <- list(variance = stats::update(formula,".~0"),
-                                correlation = formula)
-            }        
-        }else if(type == "heterogeneous" && !missing(var.time)){
-            var.f <- all.vars(formula)
-            if(length(var.f)>0 && any(var.f %in% c(var.time,attr(var.time,"original")))){
-                formula <- list(variance = formula,
-                                correlation = formula)
-            }else{
-                add.var <- c(attr(var.time,"original"),var.time)[1]
-                if(attr(stats::terms(formula),"response")==0){
-                    formula <- list(variance = stats::update(formula,paste0("~.+",add.var)),
-                                    correlation = formula)
-                }else{
-                    formula <- list(variance = stats::update(formula,paste0(".~.+",add.var)),
-                                    correlation = formula)
-                }
-            }
+    if(is.list(formula) && length(formula)==2){
+        if(!is.null(names(formula))){
+            names(formula) <- c("variance","correlation")
+        }else if(any(duplicated(names(formula)))){
+            stop("Elements in the list specified by argument \'formula\' should not have duplicated names. \n",
+                 "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
+        }else if(any(names(formula) %in% c("variance","correlation") == FALSE)){
+            stop("Elements in the list specified by argument \'formula\' should be named \"variance\" or \"correlation\". \n",
+                 "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
         }
     }
 
-    if(!missing(formula)){
-        outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
-        if(length(outCov$X.cor)==0){
-            type <- "homogeneous"
-        }
-    }else{
-        outCov <- NULL
+    ## *** var.time
+    if(!missing(var.time) && inherits(var.time,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
+        stop("Argument \'var.time\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
     }
 
-    if(type %in% c("heterogeneous","homogeneous")){
-        if(length(outCov$X.cor)==0){
-            group.type <- NULL
+    ## *** twin
+    if(is.null(twin)){ ## default value for twin depending on how much information is provided by the user (one or two formula)
+        twin <- inherits(formula,"formula") ## only automatically TRUE when variance model not specified 
+    }
+
+    ## *** cross
+    cross <- match.arg(cross, choices = c("ID","CS","TOEPLTIZ","DUN","UN"))
+    browser()
+    if(all.vars(formula))
+    if(!missing(var.time)){
+        if(cross %in% c("ID","CS")){
+            warning("Argument \'var.time\' ignored with CS structure unless it has argument \'cross\' being \"TOEPLTIZ\", \"DUN\", \"UN\". \n")
+        }else if(cross %in% c("TOEPLTIZ","DUN","UN") && is.null(var.time)){
+            stop("Argument \'var.time\' cannot be NULL with argument \'cross\' being \"TOEPLTIZ\", \"DUN\", \"UN\". \n",
+                 "Should be missing or a character indicating the time variable. \n")
+        }
+    }
+    
+    ## ** normalize input
+    ## *** enforce twin
+    if(inherits(formula,"formula")){
+        if(twin){
+            formula <- list(variance = stats::update(formula,".~1"), ## remove covariate in variance model
+                            correlation = formula)
         }else{
-            group.type <- stats::setNames(rep(1,length(outCov$X.cor)), outCov$X.cor)
+            formula <- list(variance = formula,
+                            correlation = formula)
         }
-    }else if(type == "cross"){
-        group.type <- stats::setNames(1:length(outCov$X.cor), outCov$X.cor)
     }
+
+    ## *** add time
+    if(!missing(var.time) & cross %in% c("TOEPLTIZ","DUN","UN")){
+        if(length(var.time)>1)
+
+            if(var.time %in% all.vars(formula$correlation)){
+                stop("The formula relative to the correlation model in argument \'formula\' already contains the time variable \"",var.time,"\" specified in argument \'var.time\'. \n")
+            }else if(attr(var.time,"original") %in% all.vars(formula[[2]])){
+                stop("The formula relative to the correlation model in argument \'formula\' already contains the time variable \"",attr(var.time,"original"),"\" specified in argument \'var.time\'. \n")
+            }
+
+        if(!is.null(attr(var.time,"original"))){
+            formula$correlation <- stats::update(formula$correlation, paste0("~.+",attr(var.time,"original")))
+        }else{
+            formula$correlation <- stats::update(formula$correlation, paste0("~.+",var.time))
+        }
+    }
+    
+    ## ** from formula to covariate names
+    outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+    if(length(outCov$X.cor)==0){
+        twin <- TRUE
+    }
+
     if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
         stop("Argument \'var.cluster\' should not be a formula. \n",
              "Consider using a list to collect the formula for the variance and correlation structure. \n")
     }
-
     ## ** create structure
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                name = data.frame(cluster = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
+                                  time = NA,
                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                type = ifelse(type=="heterogeneous","heterogeneous","homogeneous"),
-                group.type = group.type,
-                class = "CS")
+                twin = twin,
+                cross = cross,
+                class = c(var = "IND", cor = "CS"))
 
     ## export
     class(out) <- append("structure",class(out))
@@ -444,17 +473,15 @@ CS <- function(formula, var.cluster, var.time, type = NULL, add.time){
     return(out)
 }
 
-## * RE (random effect)
+## * RE (random effect, documentation)
 ##' @title Random Effect Structure
 ##' @description Variance-covariance structure parametrized via random effects.
 ##' Can be stratified on a categorical variable.
 ##'
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 ##' and variables influencing the residual variance and correlation (right hand side).##' 
-##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
 ##' @param ranef [list] characteristics of the random effects
-##' @param add.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
 ##'
@@ -469,6 +496,7 @@ CS <- function(formula, var.cluster, var.time, type = NULL, add.time){
 ##'                              labels = c("female", "male"))
 ##' gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
 ##'                              labels = c("baseline", "follow-up"))
+##' gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) %/% 2)
 ##'
 ##' #### Random intercept ####
 ##' eRI <- lmm(glucagonAUC ~ visit + (1|id), data = gastricbypassL)
@@ -481,21 +509,33 @@ CS <- function(formula, var.cluster, var.time, type = NULL, add.time){
 ##' sigma(eNRI)
 ##' ## nlme::ranef(eNRI, effects = "variance")
 ##' model.tables(eNRI, effects = "all")
+##'
+##' ## more than two blocks
+##' data("sleepL", package = "LMMstar")
+##' eNRI3 <- lmm(signal.34 ~ day + (1|id/day), data = sleepL)
+##' sigma(eNRI3)
 ##' 
 ##' #### Cross random effects ####
-##' eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit), data = gastricbypassL)
-##' summary(eCRI)
+##' gastricbypassL <- gastricbypassL[order(gastricbypassL$id),]
+##' gastricbypassL$member <- repetition(~id|family, data = gastricbypassL,
+##'                                     type = "consecutive", label.rep = c("I","II"))
+##' gastricbypassL$visit.member <- interaction(gastricbypassL[,c("visit","member")])
+##' 
+##' eCRI <- lmm(glucagonAUC ~ visit + (1|id) + (1|visit),
+##'             repetition = ~visit.member|family, data = gastricbypassL)
 ##' ## nlme::ranef(eCRI, effects = "variance")
-##' model.tables(eCRI, effects = "all") ## to few observations
+##' sigma(eCRI)
+##' model.tables(eCRI, effects = "all")
 ##'
 ##' data(Penicillin, package = "lme4")
 ##' eCRI.2 <- lmm(diameter ~ 1 + (1|plate) + (1|sample), data = Penicillin)
 ##' nlme::ranef(eCRI.2, effects = "variance")
 ##' model.tables(eCRI.2, effects = "all")
-##'
 ##' }
+
+## * RE (random effect, code)
 ##' @export
-RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
+RE <- function(formula, var.time, ranef = NULL){
 
     ## ** normalize input
     ## ranef
@@ -575,17 +615,11 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
         stop("Random effect structre with both nested and cross random effect not (yet!) possible. \n")
     }
 
-    ## groups of random effects
-    n.group <- length(ranef$hierarchy)
-    group <- unlist(lapply(1:n.group, function(iG){
-        stats::setNames(rep(iG, length(ranef$hierarchy[[iG]])), ranef$hierarchy[[iG]])
-    }))
-
     ## ** create structure
     out <- CS(list(variance = ff.var, correlation = ff.cor),
               var.cluster = var.cluster, var.time = var.time,
-              type = "homogeneous") 
-    out$group.type <- group ## remove cluster variable for cross-random effects (otherwise error as it does not match the design matrix)
+              twin = TRUE,
+              cross = ranef$cross)
     out$ranef <- ranef
 
     ## ** export
@@ -596,7 +630,7 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 }
 
 
-## * TOEPLITZ (Toeplitz)
+## * TOEPLITZ (Toeplitz, documentation)
 ##' @title Toeplitz Structure
 ##' @description Variance-covariance structure where the correlation depends on time elapsed between two repetitions.
 ##' Can be stratified on a categorical variable.
@@ -604,43 +638,146 @@ RE <- function(formula, var.cluster, var.time, ranef = NULL, add.time){
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 ##' and variables influencing the residual variance and correlation (right hand side). 
 ##' @param var.cluster [character] cluster variable.
+##' @param type [character] degree of flexibility of the covariance structure within covariate.
+##' For a binary covariate the correlation structure can be decomposed into 4 blocks: within level 0 of the covariate (\eqn{A}),
+##' C within level 1 (\eqn{A}), and B between level 0 and 1 (\eqn{A}). The following parametrisations are available:
+##' \itemize{ 
+##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
+##' \item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
+##' \item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
+##' }
 ##' @param var.time [character] time variable.
-##' @param type [character] degree of flexibility of the correlation structure within covariate (\code{"UN","LAG","CS"}).
-##' Will also affect the variance structure when not explicit.
 ##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
 ##' @details \bold{formula}: there can only be at most one covariate for the correlation structure.
 ##' A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##'
-##' \bold{type}: for a binary covariate the correlation matrix can be decomposed into four blocs: A, B, B, C.
-##' A correspond the correlation within level 0 of the covariate, C within level 1, and B between level 0 and 1.
-##' Different correlation structures can be specified:\itemize{ 
-##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
-##' \item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
-##' \item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
-##'}
+##' 
 ##' @return An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
 ##' @keywords multivariate
 ##' 
+##' @details A typical formula would be \code{~1}. It will model: \itemize{
+##' \item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
+##' \item \eqn{\rho_{j,j'}=\rho_{|j-j'|}}: a correlation specific to the difference in index between repetitions.
+##' }
+##' With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_1\sigma^2 k_2 & \rho_2\sigma^2 k_3 & \rho_3\sigma^2 k_4 \\
+##'                        \rho_1\sigma^2 k_2 & \sigma^2 k_2^2 & \rho_1\sigma^2 k_2 k_3 & \rho_2\sigma^2 k_2 k_4 \\
+##'                        \rho_2\sigma^2 k_3 & \rho_1\sigma^2 k_2 k_3 & \sigma^2 k_3^2 & \rho_1\sigma^2 k_3 k_4 \\
+##'                        \rho_3\sigma^2 k_4 & \rho_2\sigma^2 k_2 k_4 & \rho_1 \sigma^2 k_3 k_4 & \sigma^2 k_4^2
+##' \end{bmatrix}}
+##' WARNING: the variance-covariance pattern is not invariant under reparametrisation of the repetition variable. For instance with \eqn{(j,j') \in \{0,1,2,5\}^2}:
+##' \deqn{ \begin{bmatrix} \sigma^2 & \rho_1\sigma^2 k_1 & \rho_2\sigma^2 k_2 & \rho_5\sigma^2 k_5 \\
+##'                        \rho_1\sigma^2 k_1 & \sigma^2 k_1^2 & \rho_1\sigma^2 k_1 k_2 & \rho_4\sigma^2 k_1 k_5 \\
+##'                        \rho_2\sigma^2 k_2 & \rho_1\sigma^2 k_1 k_2 & \sigma^2 k_2^2 & \rho_3\sigma^2 k_2 k_5 \\
+##'                        \rho_5\sigma^2 k_5 & \rho_4\sigma^2 k_1 k_5 & \rho_3 \sigma^2 k_2 k_5 & \sigma^2 k_5^2
+##' \end{bmatrix}}
+##' 
+##' \bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) specifying it in the left hand side of the formula, e.g. \code{sex~1}.
+##' \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{1\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} & \rho_{3,\text{female}}\sigma_{\text{female}}^2 k_{4,\text{female}} \\
+##'                        \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} & \sigma_{\text{female}}^2 k_{2,\text{female}}^2 & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{3,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{4,\text{female}} \\
+##'                        \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{3,\text{female}} & \sigma_{\text{female}}^2 k_{3,\text{female}}^2 & \rho_{1,\text{female}}\sigma_{\text{female}}^2 k_{3,\text{female}} k_{4,\text{female}} \\
+##'                        \rho_{3,\text{female}}\sigma_{\text{female}}^2 k_{4,\text{female}} & \rho_{2,\text{female}}\sigma_{\text{female}}^2 k_{2,\text{female}} k_{4,\text{female}} & \rho_{1,\text{female}} \sigma_{\text{female}}^2 k_{3,\text{female}} k_{4,\text{female}} & \sigma_{\text{female}}^2 k_{4,\text{female}}^2
+##' \end{bmatrix}
+##' \text{ and }
+##' \begin{bmatrix} \sigma_{\text{male}}^2 & \rho_{1\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} & \rho_{3,\text{male}}\sigma_{\text{male}}^2 k_{4,\text{male}} \\
+##'                        \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} & \sigma_{\text{male}}^2 k_{2,\text{male}}^2 & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{3,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{4,\text{male}} \\
+##'                        \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{3,\text{male}} & \sigma_{\text{male}}^2 k_{3,\text{male}}^2 & \rho_{1,\text{male}}\sigma_{\text{male}}^2 k_{3,\text{male}} k_{4,\text{male}} \\
+##'                        \rho_{3,\text{male}}\sigma_{\text{male}}^2 k_{4,\text{male}} & \rho_{2,\text{male}}\sigma_{\text{male}}^2 k_{2,\text{male}} k_{4,\text{male}} & \rho_{1,\text{male}} \sigma_{\text{male}}^2 k_{3,\text{male}} k_{4,\text{male}} & \sigma_{\text{male}}^2 k_{4,\text{male}}^2
+##' \end{bmatrix}
+##' }
+##' 
+##' \bold{Covariate varying within-cluster}: it is not possible to stratify on covariates whose value is not constant across repetition within clusters.
+##' Such variables should be cateorical covariate and specified on the right-hand side of the formula, e.g. \code{~baseline} to divide the variance-covariance matrix by block.
+##' Each block can be a compound symmetry matrix (\code{type=="LAG"}), e.g. consider 3 baseline and 3 follow-up observations per subject:
+##' \deqn{ \begin{bmatrix} \sigma^2           & \rho_X \sigma^2   & \rho_X \sigma^2       & \rho \sigma^2 k_Y \\
+##'                        \rho_X\sigma^2     & \sigma^2          & \rho \sigma^2 k_Y     & \rho \sigma^2 k_Y \\
+##'                        \rho \sigma^2 k_Y  & \rho \sigma^2 k_Y & \sigma^2 k_Y^2        & \rho_Y \sigma^2 k_Y^2 \\
+##'                        \rho \sigma^2 k_Y  & \rho \sigma^2 k_Y & \rho_Y \sigma^2 k_Y^2 & \sigma^2 k_Y^2
+##' \end{bmatrix}}
+##' or compound symmetry matrix (\code{type=="CS"}), e.g.:
+##' 
+##' or unstructure (\code{type=="UN"}), e.g.:
+##' 
 ##' @examples
-##' ## no covariate
-##' TOEPLITZ(~time, var.cluster = "id", var.time = "time")
-##' TOEPLITZ(sex~time, var.cluster = "id", var.time = "time")
-##' TOEPLITZ(list(~time,~time), var.cluster = "id", var.time = "time")
-##' TOEPLITZ(list(sex~time,sex~time), var.cluster = "id", var.time = "time")
+##' \dontrun{
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$sex <- factor(as.numeric(gastricbypassL$id) %% 2,
+##'                              labels = c("female", "male"))
+##' gastricbypassL$baseline <- factor(gastricbypassL$time < 0,
+##'                              labels = c("baseline", "follow-up"))
+##' 
+##' data("sleepL", package = "LMMstar")
+##' sleepL$sex <- factor(as.numeric(sleepL$id) %% 2,
+##'                      labels = c("female", "male"))
+##' sleepL$baseline <- factor(sleepL$day==1, c(TRUE,FALSE))
+##' sleepL$visit <- repetition(~1|id, data = sleepL, format = "numeric")
+##' sleepL <- sleepL[sleepL$visit<=6,]
+##' 
+##' #### default ####
+##' ## time as integer: 1, 2, 3 (traditional TOEPLITZ structure)
+##' eTOEint.default <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                        structure = "TOEPLITZ", data = gastricbypassL)
+##' sigma(eTOEint.default)
+##' cov2cor(sigma(eTOEint.default))
+##' model.tables(eTOEint.default, effects = "all")
+##' 
+##' ## time as numeric: here -13 vs -1 and -1 vs 1 are one index appart
+##' ##                  but lead to different correlation coefficients
+##' ##                  rho(12) and rho(2)
+##' eTOEnum.default <- lmm(glucagonAUC ~ visit, repetition = ~time|id,
+##'                     structure = "TOEPLITZ", data = gastricbypassL)
+##' sigma(eTOEnum.default)
+##' cov2cor(sigma(eTOEnum.default))
+##' model.tables(eTOEnum.default, effects = "all")
+##' 
+##' ## another example with more timepoints
+##' eTOEint6.default <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+##'                         structure = "TOEPLITZ", data = sleepL)
+##' sigma(eTOEint6.default)
+##' cov2cor(sigma(eTOEint6.default))
+##' model.tables(eTOEint6.default, effects = "all")
+##' 
+##' #### Covariate constant within-cluster ####
+##' eTOE.strata <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                     structure = TOEPLITZ(sex~1), data = gastricbypassL)
+##' sigma(eTOE.strata)
+##' model.tables(eTOE.strata, effects = "all")
 ##'
-##' ## with covariates
-##' TOEPLITZ(~side, var.cluster = "id", type = "UN",
-##'          var.time = "time", add.time = TRUE)
-##' TOEPLITZ(~side, var.cluster = "id", type = "LAG",
-##'          var.time = "time", add.time = TRUE)
-##' TOEPLITZ(~side, var.cluster = "id", type = "CS",
-##'          var.time = "time", add.time = TRUE)
-##' TOEPLITZ(sex~side, var.cluster = "id", type = "CS",
-##'          var.time = "time", add.time = TRUE)
+##' #### Covariate varying within-cluster ####
+##' 
+##' ## block compound symmetry structure
+##' eTOE.CS <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+##'                structure = TOEPLITZ(~baseline, type = "CS"), data = sleepL)
+##' sigma(eTOE.CS)
+##' cov2cor(sigma(eTOE.CS))
+##' paramTOE.CS <- model.tables(eTOE.CS, effects = "all")
+##' paramTOE.CS
+##' paramTOE.CS["rho1","estimate"]*paramTOE.CS["sigma","estimate"]^2
+##' paramTOE.CS["rho2","estimate"]*prod(paramTOE.CS[c("sigma","k.FALSE"),"estimate"]^2)
+##' prod(paramTOE.CS[c("rho(1,2,dt=1)","k.FALSE"),"estimate"])*paramTOE.CS[c("sigma"),"estimate"]^2
+##'
+##' ## block toeplitz structure
+##' eTOE.LAG <- lmm(signal.98 ~ baseline, repetition = ~visit|id,
+##'                structure = TOEPLITZ(~baseline, type = "LAG"), data = sleepL)
+##' sigma(eTOE.LAG, cluster = 1)
+##' cov2cor(sigma(eTOE.LAG, cluster = 1))
+##' model.tables(eTOE.LAG, effects = "all")
+##'
+##' ## block unstructured structure
+##' eTOE.UN <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
+##'                structure = TOEPLITZ(~baseline, type = "UN"), data = gastricbypassL)
+##' sigma(eTOE.UN)
+##' cov2cor(sigma(eTOE.UN))
+##' model.tables(eTOE.UN, effects = "all")
+##'
+##' 
+##' }
+
+## * TOEPLITZ (Toeplitz, code)
 ##' @export
-TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
+TOEPLITZ <- function(formula, var.cluster, type = "LAG", var.time, add.time){
 
     ## ** normalize input
     if(is.null(type)){
@@ -651,8 +788,8 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         toeplitz.block <- NULL
     }
     if(!missing(add.time)){
-        
-        if(is.character(add.time)){
+
+        if(is.character(add.time)){            
             if(type == "UN" || type == "LAG"){
                 add.X <- list(variance = add.time,
                               correlation = add.time)
@@ -687,6 +824,16 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
         add.X <- NULL
     }
 
+    if(!missing(formula) && inherits(formula,"formula")){
+        ## if(!is.null(add.X$variance)){
+        ##     formula <- list(variance = ~1,
+        ##                     correlation = formula)
+        ## }else{        
+        formula <- list(variance = formula,
+                        correlation = formula)
+        ## }
+    }
+    
     if(!missing(formula)){
         outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
 
@@ -717,7 +864,7 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
                                cor = outCov$formula.cor),
                 type = type,
                 block = toeplitz.block,
-                class = "TOEPLITZ")
+                class = c(var = "IND", cor = "TOEPLITZ"))
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -725,15 +872,13 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
     return(out)
 }
 
-## * UN (unstructured)
+## * UN (unstructured, documentation)
 ##' @title Unstructured Structure 
 ##' @description Variance-covariance structure where the residuals have time-specific variance and correlation.
 ##' Can be stratified on a categorical variable.
 ##'
 ##' @param formula formula indicating on which variable to stratify the covariance structure.
-##' @param var.cluster [character] cluster variable.
 ##' @param var.time [character] time variable.
-##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
 ##'
@@ -748,8 +893,10 @@ TOEPLITZ <- function(formula, var.cluster, var.time, type = "LAG", add.time){
 ##' UN(list(~sex,~1), var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' UN(list(sex~age,sex~1), var.cluster = "id", var.time = "time", add.time = TRUE)
 ##' 
+
+## * UN (unstructured, code)
 ##' @export
-UN <- function(formula, var.cluster, var.time, add.time){
+UN <- function(formula, var.time){
 
     ## ** normalize input
     if(!missing(add.time)){
@@ -785,7 +932,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                class = "UN")
+                c(var = "IND", cor = "UN"))
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -793,7 +940,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
     return(out)
 }
 
-## * LV (latent variable)
+## * LV (latent variable, documentation)
 
 ## ## * EXP (exponential)
 ## ##' @title Exponential Structure
@@ -865,7 +1012,7 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ## }
 
 
-## * CUSTOM (user-specified)
+## * CUSTOM (user-specified, documentation)
 ##' @title Custom Structure
 ##' @description Variance-covariance structure specified by the user.
 ##' 
@@ -944,8 +1091,10 @@ UN <- function(formula, var.cluster, var.time, add.time){
 ##'        d2FCT.rho = d2rho.2block,
 ##'        init.rho = c("rho1"=0.25,"rho2"=0.25,"rho3"=0.25,"rho4"=0.25))
 ##' 
+
+## * CUSTOM (user-specified, code)
 ##' @export
-CUSTOM <- function(formula, var.cluster, var.time,
+CUSTOM <- function(formula, var.time,
                    FCT.sigma, dFCT.sigma = NULL, d2FCT.sigma = NULL, init.sigma,
                    FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho, add.time){
 
@@ -956,15 +1105,16 @@ CUSTOM <- function(formula, var.cluster, var.time,
     }
 
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                name = data.frame(cluster = NA,
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
+                                  time = NA,
                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
                                   stringsAsFactors = FALSE),
                 formula = list(var = outCov$formula.var,
                                cor = outCov$formula.cor),
-                class = "CUSTOM")
+                format.cortime = NA,
+                class = c(var = "CUSTOM", cor = "CUSTOM"))
 
     ## param
     ## if(!is.na(out$name$strata)){

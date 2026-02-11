@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: aug  7 2024 (10:55) 
 ## Version: 
-## Last-Updated: sep 30 2024 (14:56) 
+## Last-Updated: nov 21 2025 (15:01) 
 ##           By: Brice Ozenne
-##     Update #: 35
+##     Update #: 93
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,29 +20,43 @@
 ##' @description Create a vector containing, for each line of the dataset, the number of occurences of the corresponding cluster up to the current line.
 ##' Can stratify the number of occurences on one or several variables.
 ##'
-##' @param formula [formula] Specify the structure of the data: the time/repetition variable and the grouping variable,
-##' e.g. ~1|id, ~ time|id, or ~time+region|id.
+##' @param formula [formula] Specify the structure of the data: the id/grouping variable and an optional time/ordering variable
+##' e.g. ~1|id, ~ time|id.
 ##' @param data [data.frame] dataset containing the observations.
+##' @param type [character] by default output the number of repetitions (\code{"cumulate"}).
+##' In presence of a time/ordering variable, can instead be used to relabel the variable with consecutive value within cluster (\code{"consecutive"}),
+##' e.g. move from id within family to family member 1, family member 2.
 ##' @param format [character] the type of the output: a numeric vector (\code{"numeric"}), a character vector (\code{"character"}), or a factor vector (\code{"factor"}).
 ##' @param keep.time [logical] should the value of the time variable at the repetition be kept in the output (e.g. baseline.1, baseline.2, followUp.1 instead of 1,2,3).
 ##' Only relevant when argument \code{formula} contain a time/repetition variable and \code{format="character"} or \code{format="factor"}.
 ##' @param sep [character vector of length 2] character strings used to combine time variables (first element) and the name of the time variable with its values (second element).
+##' @param label.rep [vector] symbols used to label the repetitions. By default integers but can also be \code{letters}, \code{LETTERS}.
 ##'
 ##' @return A numeric/character/factor vector, depending on argument \code{format}.
 ##'
 ##' @examples
 ##' data(sleepL, package = "LMMstar")
-##' sleepL$dday <- paste0("d",sleepL$day)
+##' ## number of already observed observations with the same id
 ##' sleepL$rep <- repetition(~1|id, data = sleepL)
-##' sleepL$repDay <- repetition(~dday|id, data = sleepL)
-##' sleepL$repDay.num <- repetition(~dday|id, data = sleepL, format = "numeric")
+##' ## number of already observed observations with the same id and time
+##' sleepL$repDay <- repetition(~day|id, data = sleepL)
+##' sleepL$repDay.letter <- repetition(~day|id, data = sleepL, label.rep = letters)
+##' sleepL$repDay.num <- repetition(~day|id, data = sleepL, format = "numeric")
 ##' head(sleepL,15)
-
+##'
+##' data(gastricbypassL, package = "LMMstar")
+##' gastricbypassL$family <- paste0("F",(as.numeric(gastricbypassL$id)-1) %/% 2)
+##' gastricbypassL$member <- repetition(~id|family, type = "consecutive",
+##'                                     data = gastricbypassL)
+##' gastricbypassL$MEMBER <- repetition(~id|family, type = "consecutive",
+##'                                      data = gastricbypassL, label.rep = "LETTERS")
+##' gastricbypassL[order(gastricbypassL$family,gastricbypassL$id),]
 
 ## * repetition (code)
 ##' @export
-repetition <- function(formula, data,
-                       format = "factor", keep.time = TRUE, sep = c(":",".")){
+repetition <- function(formula, data, type = "cumulate",
+                       format = "factor", keep.time = TRUE, sep = c(":","."),
+                       label.rep = "integer"){
 
     ## ** check and normalize user input
     
@@ -78,15 +92,37 @@ repetition <- function(formula, data,
              "It separates the repetition and cluster variables, e.g.: ~time|cluster. \n")
     }
 
+    ## *** type
+    type <- match.arg(type, c("cumulate","consecutive"))
+
     ## *** format
     format <- match.arg(format, c("character","factor","numeric"))
 
-    ## *** format
+    ## *** sep
     if(length(sep)!=2){
         stop("Argument \'sep\' should have length 2. \n")
     }
     if(!is.character(sep) || !is.vector(sep)){
         stop("Argument \'sep\' should be a character vector. \n")
+    }
+
+    ## *** label.rep
+    if(is.function(label.rep)){
+        FCTlabel <- base::identity
+    }else if(is.character(label.rep) & length(label.rep)==1){
+        if(label.rep=="integer"){
+            FCTlabel <- base::identity
+        }else if(label.rep %in% c("letter", "letters")){
+            FCTlabel <- many.letters
+        }else if(label.rep %in% c("LETTER", "LETTERS")){
+            FCTlabel <- many.LETTERS
+        }else{
+            stop("Unknown character string for argument \'label.rep\': should be \'integer\', \'letter\', \'letters\', \'LETTER\', or \'LETTERS\'. \n")
+        }
+    }else if(is.vector(label.rep)){
+        FCTlabel <- function(n){
+            many.letters(n, basis = label.rep)
+        }
     }
 
     ## ** identify time and id
@@ -144,23 +180,38 @@ repetition <- function(formula, data,
         vec.time <- nlme::collapse(data[var.time], sep = sep[1])
         table.idXtime <- table(data[[var.id]],vec.time)
         max.time <- apply(table.idXtime,2,max)
-        
-        out[unlist(ls.index.id)] <- do.call(base::c,lapply(ls.index.id, function(iVec){
-            iRep <- do.call("+",lapply(unique(vec.time[iVec]), function(iTime){
-                iCum <- cumsum(iTime == vec.time[iVec])
-                iCum[diff(c(0,iCum))==0] <- 0
-                iCum
-            }))
-            return(paste(vec.time[iVec],iRep,sep=sep[2]))
-        }))
 
-        if((format == "numeric" || format == "factor") || (keep.time == FALSE)){
-            order <- unlist(mapply(iRep = max.time, iName = names(max.time), FUN = function(iRep,iName){paste(iName, 1:iRep, sep = sep[2])}))
-            out <- factor(out, levels = order)
-            if((format == "numeric") || (keep.time == FALSE)){
-                out <- as.numeric(out)
+        if(type=="cumulate"){            
+            out[unlist(ls.index.id)] <- do.call(base::c,lapply(ls.index.id, function(iVec){ ## iVec <- ls.index.id[[1]]
+                iRep <- do.call("+",lapply(unique(vec.time[iVec]), function(iTime){                    
+                    iCum <- cumsum(iTime == vec.time[iVec]) ## count the number of time the specific time is observed in the subject
+                    iCum[diff(c(0,iCum))==0] <- 0 ## set to 0 when it actually was another timepoint
+                    return(iCum)                
+                }))
+                iOut <- paste(vec.time[iVec],FCTlabel(iRep),sep=sep[2])
+                return(iOut)
+            }))
+            if((format == "numeric" || format == "factor") || (keep.time == FALSE)){
+                order <- unlist(mapply(iRep = max.time, iName = names(max.time), FUN = function(iRep,iName){
+                    paste(iName, FCTlabel(1:iRep), sep = sep[2])
+                }))
+                out <- factor(out, levels = order)
+                if((format == "numeric") || (keep.time == FALSE)){
+                    out <- as.numeric(out)
+                }
             }
+        }else{
+            out[unlist(ls.index.id)] <- do.call(base::c,lapply(ls.index.id, function(iVec){ ## iVec <- 1
+                if(type=="consecutive"){
+                    if(is.factor(vec.time)){
+                        iOut <- FCTlabel(as.numeric(droplevels(vec.time[iVec])))
+                    }else{
+                        iOut <- FCTlabel(as.numeric(as.factor(vec.time[iVec])))
+                    }
+                }
+            }))
         }
+        
         if(keep.time == FALSE){
             if(format == "character"){
                 out <- as.character(out)
