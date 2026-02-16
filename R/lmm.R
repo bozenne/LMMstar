@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: feb 10 2026 (15:48) 
+## Last-Updated: Feb 13 2026 (15:44) 
 ##           By: Brice Ozenne
-##     Update #: 3276
+##     Update #: 3289
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1142,25 +1142,21 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
         }
     }            
 
-    ## ** check that time and cluster are appropriately defined with respect to structure
+    ## ** convert character or function to a structure object
     if(is.character(structure)){
-        if(all(is.na(var.cluster.original)) && structure %in% c("CS","TOEPLITZ","UN")){
+        structure <- do.call(structure, list(formula = ~1))
+    }else if(is.function(structure)){
+        structure <- do.call(structure, list(formula = ~1))
+    }
+
+    ## ** check that time and cluster are appropriately defined with respect to structure
+    if(all(is.na(var.cluster.original)) && structure %in% c("CS","TOEPLITZ","UN")){
             stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
                  "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-        }
-        if(all(is.na(var.time.original)) && structure %in% c("IND","TOEPLITZ","UN")){
-            stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
-                 "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-        }
-    }else if(inherits(structure,"structure")){
-        if(all(is.na(var.cluster.original)) && structure$class %in% c("CS","TOEPLITZ","UN")){
-            stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
-                 "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-        }
-        if(all(is.na(var.time.original)) && structure$class %in% c("IND","TOEPLITZ","UN") && all(is.na(structure$name$var[[1]]))){
-            stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
-                 "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-        }
+    }
+    if(all(is.na(var.time.original)) && structure %in% c("IND","TOEPLITZ","UN")){
+        stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
+             "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
 
     ## ** update structure with cluster/time/strata variables
@@ -1171,85 +1167,39 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     attr(var.timeS,"original") <- var.time.original
 
     ## random effect not defined in formula or structure but can be guessed from repetition
-    if((inherits(structure,"RE") && is.null(structure$ranef) || identical(structure,"RE")) && is.null(ranef) && !is.null(var.cluster.original)){
+    if(inherits(structure,"RE") && is.null(structure$ranef) && is.null(ranef) && !is.null(var.cluster.original)){
         ranef <- formula2var(stats::as.formula(paste0("~(1|",var.cluster.original,")")))$ranef
     }
-    ## special case where no formula in structure and only type as an argument of structure
-    if(inherits(structure,"structure")){
-        if(is.null(structure$formula$var) && is.null(structure$formula$cor) && identical("type", setdiff(names(structure$call),""))){
-            type <- structure$type
-            structure <- structure$class
-        }else{
-            type <- NULL
+    
+    
+    ## exclude useless strata variables
+    if(any(!is.na(var.strata.original))){
+        test.uniqueStrata <- sapply(var.strata.original,function(iName){length(unique(data[[iName]]))})
+        var.strata.original <- var.strata.original[test.uniqueStrata>1]
+        if(all(test.uniqueStrata==1)){
+            message("Single strata: move from stratified to non-stratified ",structure$class," structure. \n")
+        }else if(any(test.uniqueStrata==1)){
+            message("Remove strata variable \"",paste(var.strata.original[test.uniqueStrata==1], collapse = "\", \""),"\" as it takes a single distinct value. \n")
         }
+    }
+    
+    if(n.time==1 && (structure$class %in% structure1time2ID || (structure$class == "IND" && (all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original))))){
+        message("Single timepoint: move from ",structure$class," to ID structure. \n")
+        structure$call[[1]] <- parse(text="ID")
+        structure$name$correlation <- NA
+        structure$formula$correlation <- NULL
+        structure$class$correlation <- NA
+    }
+browser()
+    if(inherits(structure,"RE")){ ## special case with random effects        
+        structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
     }else{
-        type <- NULL
+        structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, n.time = n.time)
     }
 
-    if(inherits(structure,"structure")){
-
-        ## exclude useless strata variables
-        if(any(!is.na(var.strata.original))){
-            test.uniqueStrata <- sapply(var.strata.original,function(iName){length(unique(data[[iName]]))})
-            var.strata.original <- var.strata.original[test.uniqueStrata>1]
-            if(all(test.uniqueStrata==1)){
-                message("Single strata: move from stratified to non-stratified ",structure$class," structure. \n")
-            }else if(any(test.uniqueStrata==1)){
-                message("Remove strata variable \"",paste(var.strata.original[test.uniqueStrata==1], collapse = "\", \""),"\" as it takes a single distinct value. \n")
-            }
-        }
-        if(n.time==1 && (structure$class %in% structure1time2ID || (structure$class == "IND" && (all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original))))){
-            message("Single timepoint: move from ",structure$class," to ID structure. \n")
-            structure$call[[1]] <- parse(text="ID")
-        }
-
-        if(inherits(structure,"RE")){
-            ## special case with random effects
-            structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
-        }else{
-            structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, n.time = n.time)
-        }
-
-    }else if(is.character(structure)){
-        args.structure <- list(var.cluster = var.clusterS,
-                               var.time = var.timeS)
-
-        if(!is.null(type)){
-            args.structure$type <- type
-        }
-
-        if(is.na(var.strata.original)){
-            args.structure$formula <- ~1
-        }else{ ## exclude useless strata variables
-            test.uniqueStrata <- sapply(var.strata.original,function(iName){length(unique(data[[iName]]))})
-            if(all(test.uniqueStrata==1)){
-                message("Single strata: move from stratified to non-stratified ",structure," structure. \n")
-                args.structure$formula <- ~1
-            }else if(any(test.uniqueStrata==1)){
-                message("Remove strata variable \"",paste(var.strata.original[test.uniqueStrata==1], collapse = "\", \""),"\" as it takes a single distinct value. \n")
-                args.structure$formula <- stats::as.formula(paste(var.strata.original[test.uniqueStrata!=1],"~1"))
-            }else{
-                args.structure$formula <- stats::as.formula(paste(var.strata.original,"~1"))
-            }
-        }
-        if(n.time==1 && (structure %in% structure1time2ID || (structure == "IND" && all(all.vars(args.structure$formula) %in% var.time.original)))){
-            message("Single timepoint: move from ",structure," to ID structure. \n")
-            structure <- "ID"
-        }else if(structure == "UN" && all(table(data[[var.cluster]])<2)){
-            message("Single repetition per cluster: move from ",structure," to IND structure. \n")
-            structure <- "IND"
-        }
-
-        if(structure %in% c("UN","EXP","TOEPLITZ") || (n.time>1 && structure == "IND")){
-            args.structure$add.time <- var.time.original
-        }else if(structure %in% "RE"){
-            args.structure$ranef <- ranef
-        }
-        structure <- do.call(structure, args = args.structure)    
-    }
-
+    
     ## ** Sanity checks
-
+browser()
     ## *** Variability within cluster (for clusters with more than a single value)
     if(!is.null(structure$formula$cor)){
         if(all(table(data$XXcluster.indexXX)<2)){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: feb 11 2026 (13:16) 
+## Last-Updated: Feb 13 2026 (15:21) 
 ##           By: Brice Ozenne
-##     Update #: 39
+##     Update #: 45
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,38 +26,30 @@ update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
     }
 
     ## ** what to update
+    ## *** strata
     if(length(var.strata)==0){
         update.strata <- FALSE
     }else if(identical(object$name$strata,NA)){
-        update.strata <- TRUE        
+        update.strata <- TRUE
     }else{
         stop("Argument \'repetition\' should not contain a left hand side to indicate the strata as a strata variable has already been defined in the \'structure\' argument. \n")
     }
     
+    ## *** time
+    ## nothing
 
     ## ** update
     ## *** strata
     if(update.strata){
 
-        object$formula$var <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
-                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
-        call.structure <- object$call
-        ls.call.structure <- as.list(call.structure)
-        fct.structure <- eval(ls.call.structure[[1]])
-        args.structure <- lapply(ls.call.structure[-1], eval)
+        object$formula <- .formulaStructure(list(variance = stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~.")),
+                                                 correlation = NULL),
+                                            correlation = FALSE)
 
-        
-        if(update.strata){
-            if(is.list(args.structure$formula)){
-                
-            }else if(inherits(args.structure$formula,"formula")){
-                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
-            }
-        }
-
-        object <- do.call(fct.structure, args = args.structure)
-        object$call <- call.structure
     }
+
+    ## *** time
+    ## nothing
 
     ## *** cluster
     if(is.na(object$name$cluster) && !is.na(var.cluster)){
@@ -65,9 +57,8 @@ update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
     }
 
     ## *** time
-    browser()
-    if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
-        object$name$time <- var.time
+    if(length(object$name$time)==1 && is.na(object$name$time) && any(!is.na(var.time))){
+        object$name$time <- na.omit(var.time)
     }
     
     ## ** export
@@ -86,11 +77,49 @@ update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
     }
 
     ## ** what to update
-    if(n.time>1 && length(object$name$time)==1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && all(!is.na(attr(var.time,"original")))){
-        add.time <- TRUE
+    ## *** strata
+    if(length(var.strata)==0){
+        update.strata <- FALSE
+    }else if(identical(object$name$strata,NA)){
+        update.strata <- TRUE
+    }else{
+        stop("Argument \'repetition\' should not contain a left hand side to indicate the strata as a strata variable has already been defined in the \'structure\' argument. \n")
+    }
+    browser()
+    ## *** time
+    if(xx){
+        add.time <- n.time>1 && length(object$name$time)==1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && all(!is.na(attr(var.time,"original")))
     }else{
         add.time <- FALSE
     }
+
+    ## ** update
+    ## *** strata
+    if(update.strata){
+
+        object$formula <- .formulaStructure(list(variance = stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~.")),
+                                                 correlation = NULL),
+                                            correlation = FALSE)
+
+    }
+
+    ## *** cluster
+    if(is.na(object$name$cluster) && !is.na(var.cluster)){
+        object$name$cluster <- var.cluster
+    }
+
+    ## *** time
+    if(length(object$name$time)==1 && is.na(object$name$time) && any(!is.na(var.time))){
+        object$name$time <- na.omit(var.time)
+    }
+    
+    ## ** export
+    return(object)
+}
+
+update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
+
+
 
     if(!identical(sort(object$name$strata),sort(var.strata))){
         update.strata <- TRUE
@@ -142,7 +171,7 @@ update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
 ## * update.CS
 ##' @noRd
 update.CS <- function(object, var.cluster, var.time, var.strata, n.time, ...){
-
+browser()
     if(object$cross %in% c("TOEPLITZ","DUN","UN")){
         ## add var.time as covariate
         out <- update.IND(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, n.time = n.time, ...)

@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (1:1.4+202410161351+e7c3feb100)"
+   sodipodi:docname="structure-implementation.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0191358"
+     inkscape:cx="-74.082374"
+     inkscape:cy="571.07208"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="822.26529"
+       height="52.986069"
+       id="rect9" />
+    <marker
+       style="overflow:visible"
+       id="RoundedArrow"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Rounded arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="m -0.21114562,-4.1055728 6.42229122,3.21114561 a 1,1 90 0 1 0,1.78885438 L -0.21114562,4.1055728 A 1.236068,1.236068 31.717474 0 1 -2,3 v -6 a 1.236068,1.236068 148.28253 0 1 1.78885438,-1.1055728 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path8" />
+    </marker>
+    <rect
+       x="-68.689149"
+       y="29.140851"
+       width="509.27107"
+       height="568.24659"
+       id="rect1" />
+    <rect
+       x="-68.689149"
+       y="29.140851"
+       width="509.27107"
+       height="568.24659"
+       id="rect2" />
+    <rect
+       x="-68.689149"
+       y="29.140851"
+       width="509.27107"
+       height="568.24659"
+       id="rect5" />
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="822.26529"
+       height="52.986069"
+       id="rect13" />
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="822.26529"
+       height="52.986069"
+       id="rect14" />
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="970.43004"
+       height="169.75167"
+       id="rect15" />
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="822.26529"
+       height="52.986069"
+       id="rect16" />
+    <rect
+       x="-240.39976"
+       y="-7.849788"
+       width="822.26529"
+       height="52.986069"
+       id="rect17" />
+    <rect
+       x="-68.689149"
+       y="29.140851"
+       width="509.27107"
+       height="568.24659"
+       id="rect18" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#00ff00;fill-opacity:0.28821;stroke:#006300;stroke-width:2;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4"
+       width="99.444038"
+       height="75.266068"
+       x="-119.46239"
+       y="-96.056931" />
+    <rect
+       style="fill:#00ff00;fill-opacity:0.28821;stroke:#006300;stroke-width:2;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       id="rect3"
+       width="92.953651"
+       height="136.58038"
+       x="-116.51752"
+       y="51.164539" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-119.82505,44.188654)"
+       id="text1"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect1);display:inline"><tspan
+         x="24.946686"
+         y="65.910172"
+         id="tspan3">structure argument
+</tspan><tspan
+         x="166.30632"
+         y="115.91017"
+         id="tspan5">ID
+</tspan><tspan
+         x="152.22635"
+         y="165.91017"
+         id="tspan6">IND
+</tspan><tspan
+         x="161.94631"
+         y="215.91017"
+         id="tspan7">CS
+</tspan><tspan
+         x="154.46634"
+         y="265.91017"
+         id="tspan8">AR1
+</tspan><tspan
+         x="151.44636"
+         y="315.91017"
+         id="tspan10">EXP
+</tspan><tspan
+         x="101.12642"
+         y="365.91017"
+         id="tspan11">TOEPLITZ
+</tspan><tspan
+         x="165.08634"
+         y="415.91017"
+         id="tspan12">LV
+</tspan><tspan
+         x="142.84635"
+         y="465.91017"
+         id="tspan19">DUN
+</tspan><tspan
+         x="157.38634"
+         y="515.91017"
+         id="tspan20">UN
+</tspan><tspan
+         x="185.94629"
+         y="565.91017"
+         id="tspan21">
+</tspan><tspan
+         x="-68.689453"
+         y="615.91017"
+         id="tspan22">
+</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-117.12136,-100.09559)"
+       id="text2"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect2);display:inline"><tspan
+         x="17.646652"
+         y="65.910172"
+         id="tspan23">repetition argument</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-132.54173,-81.370855)"
+       id="text4"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect5);display:inline"><tspan
+         x="147.18633"
+         y="65.910172"
+         id="tspan24">time
+</tspan><tspan
+         x="130.06647"
+         y="115.91017"
+         id="tspan25">cluster
+</tspan><tspan
+         x="129.12641"
+         y="165.91017"
+         id="tspan26">(strata)</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M -123.36294,15.053215 H 333.74081"
+       id="path5" />
+    <circle
+       id="path6"
+       style="fill:#000000;stroke:none;stroke-width:0.264583"
+       cx="333.74081"
+       cy="9.5459414"
+       r="0.39687499" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="M -70.096154,24.663462 V 50.365385"
+       id="path7" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="M -70.096154,5.0689569 V -20.632966"
+       id="path9" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-51.403846,1.2980769)"
+       id="text9"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect9);display:inline"><tspan
+         x="-36.966972"
+         y="28.919938"
+         id="tspan27">.lmmNormalizeStructure</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="m 14.538462,-30.374999 10.125,27.7788455"
+       id="path10"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="m 24.403847,-31.673075 0.259615,30.115383"
+       id="path11"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="M 33.750001,-31.673075 24.663462,-1.557692"
+       id="path12"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="M 43.096155,-28.817306 24.663462,-1.557692"
+       id="path13"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-3.3749999,-49.586538)"
+       id="text13"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect13);display:inline"><tspan
+         x="-33.606949"
+         y="28.919938"
+         id="tspan28">update.ID, update.IND,...</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,107.74038,1.2980769)"
+       id="text14"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect14);display:inline"><tspan
+         x="26.772881"
+         y="28.919938"
+         id="tspan29">.vcov.matrix.lmm</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow)"
+       d="M 150.83654,40.636265 V 14.934342"
+       id="path14" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,104.36538,55.038462)"
+       id="text15"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect15);display:inline"><tspan
+         x="-155.78363"
+         y="28.919938"
+         id="tspan30">design matrix with time possibly in numeric and </tspan><tspan
+         x="92.395767"
+         y="78.919938"
+         id="tspan31">categorical format</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,246.63461,1.2980769)"
+       id="text16"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect16);display:inline"><tspan
+         x="69.552612"
+         y="28.919938"
+         id="tspan32">initialization</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,365.79807,1.2980769)"
+       id="text17"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect17);display:inline"><tspan
+         x="101.55262"
+         y="28.919938"
+         id="tspan33">gradient</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-88.407115,153.58107)"
+       id="text18"
+       style="font-size:40px;line-height:1.25;font-family:Cabin;-inkscape-font-specification:Cabin;text-align:center;letter-spacing:0px;word-spacing:0px;text-orientation:sideways;white-space:pre;shape-inside:url(#rect18);display:inline"><tspan
+         x="137.7664"
+         y="65.910172"
+         id="tspan34">(time)
+</tspan><tspan
+         x="129.12641"
+         y="115.91017"
+         id="tspan35">(strata)</tspan></text>
+  </g>
+</svg>

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: okt 24 2025 (16:39) 
+## Last-Updated: Feb 13 2026 (15:19) 
 ##           By: Brice Ozenne
-##     Update #: 325
+##     Update #: 326
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,7 +72,12 @@ formula2var <- function(formula, data = NULL, specials = NULL, name.argument  = 
                         suggestion = ""){
 
     ## ** normalize user input
-    if(!inherits(formula,"formula")){
+    if(is.null(formula)){
+        return(list(formula = NULL,
+                    vars = NULL,
+                    terms = NULL,
+                    index.terms = NULL))
+    }else if(!inherits(formula,"formula")){
         stop("Incorrect type for argument \'",name.argument,"\': it must inherit from \"formula\". \n",
              suggestion)
     }
