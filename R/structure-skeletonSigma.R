@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: okt 16 2024 (15:04) 
+## Last-Updated: feb 25 2026 (13:12) 
 ##           By: Brice Ozenne
-##     Update #: 73
+##     Update #: 76
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -104,14 +104,12 @@
     param.sigma <- data.frame(name = param.sigma,
                               index.strata = strata.sigma,
                               type = rep("sigma",length=n.sigma),
-                              constraint = as.numeric(NA),
+                              constraint = NA_real_,
                               level = level.sigma,
                               code = code.sigma,
-                              lp.x = as.numeric(NA),
-                              lp.y = as.numeric(NA),
-                              sigma = as.character(NA),
-                              k.x = as.character(NA),
-                              k.y = as.character(NA),                                  
+                              sigma = NA_character_,
+                              k.x = NA_character_,
+                              k.y = NA_character_,                                  
                               stringsAsFactors = FALSE)
     if(!is.null(structure$param)){
         warning("Erase existing parameter structure")
@@ -136,9 +134,6 @@
 .skeletonSigma.TOEPLITZ <- .skeletonSigma.ID
 
 ## * skeletonSigma.UN
-.skeletonSigma.UN <- .skeletonSigma.ID
-
-## * skeletonSigma.EXP
 .skeletonSigma.UN <- .skeletonSigma.ID
 
 ##----------------------------------------------------------------------

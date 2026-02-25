@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: Feb 13 2026 (14:49) 
+## Last-Updated: feb 25 2026 (18:25) 
 ##           By: Brice Ozenne
-##     Update #: 3399
+##     Update #: 3539
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -46,7 +46,7 @@
 ##' \item \code{variance}: design matrix for the variance model
 ##' \item \code{correlation}: design matrix for the correlation model
 ##' }
-##' or a single design matrixx.
+##' or a single design matrix.
 ##' 
 ##' @keywords methods
 
@@ -327,139 +327,149 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     var.time <- structure$name$time
     var.strata <- structure$name$strata
     U.cluster <- sort(unique(data[[var.cluster]]))
-    U.time <- sort(unique(data[[var.time]]))
-    n.time <- length(U.time)
-
+    
     structure.CUSTOM <- inherits(structure,"CUSTOM")
     structure.timeFormat <- attr(time(structure),"format")
     
-    out <- list(var = list(formula = structure$formula$var),
-                cor = list(formula = structure$formula$cor),
-                xfactor = list(var = NULL, cor = NULL))
+    grid.timeFormat <- do.call(rbind,lapply(names(structure.timeFormat), function(iName){data.frame(moment = iName, format = structure.timeFormat[[iName]])}))
+    rownames(grid.timeFormat) <- grid.timeFormat$moment
+    grid.timeFormat$moment <- factor(grid.timeFormat$moment, levels = c("variance","correlation","correlation.cross"), labels = c("variance","correlation","correlation"))
+    out <- list(variance = list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL),
+                correlation = list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL))    
+    if(NROW(grid.timeFormat)==2){ 
+        ## do nothing 
+    }else if(NROW(grid.timeFormat)==3){
+        if(grid.timeFormat["correlation","format"]==grid.timeFormat["correlation.cross","format"] & isTRUE(all.equal(structure$formula[["correlation"]],structure$formula[["correlation.cross"]]))){
+            grid.timeFormat <- grid.timeFormat[c("variance","correlation"),] ## no need for specific design matrix for the cross blocks
+        }else{
+            out$correlation$X.cross <- NULL
+            out$correlation$lp.cross <- NULL
+            out$correlation$lp2data.cross <- NULL
+            out$correlation$lp2X.cross <- NULL
+            out$correlation$xfactor.cross <- NULL
+            out$correlation$xnumeric.cross <- NULL
+        }
+    }else{
+        stop("Something went wrong with the identification of the format of the time variable in the covariance structure. \n")
+    }
     test.newdata <- !is.null(structure$param) ## if TRUE then model.matrix call on newdata otherwise call from lmm->.model.matrix on original data
 
     ## ** variance and correlation design lists
-    for(iMoment in c("var","cor")){ ## iMoment <- "var"
+    for(iGrid in 1:NROW(grid.timeFormat)){ ## iGrid <- 1
+        iMoment <- grid.timeFormat[iGrid,"moment"]
+        iFormat <- grid.timeFormat[iGrid,"format"]
+        iSuffix <- ifelse(iGrid==3,".cross","")
+        iFormula <- structure$formula[[paste0(iMoment,iSuffix)]]
+        iVars <- all.vars(iFormula)
 
         ## *** normalize dataset (e.g. set right levels to factor variables)
         if("xfactor" %in% names(structure[[iMoment]])){ ## from model.matrix.lmm
-            out[[iMoment]]$data <- .updateFactor(data, xfactor = structure[[iMoment]]$xfactor)
-        }else{ ## from .model.matrix
-            out[[iMoment]]$data <- data
-            
-            if("factor" %in% structure.timeFormat[[iMoment]][1]){
-                iCol2factor <- all.vars(structure$formula[[iMoment]])
-            }else{
-                iCol2factor <- stats::na.omit(structure$name$strata)
-            }
-            for(iVar in iCol2factor){
-                out[[iMoment]]$data[[iVar]] <- as.factor(data[[iVar]])
-            }
+            iXfactor <- structure[[iMoment]][[paste0("xfactor",iSuffix)]]
+            iXnumeric <- structure[[iMoment]][[paste0("xnumeric",iSuffix)]]
+        }else if(iFormat == "factor"){
+            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
+            iXnumeric <- NULL
+        }else if(iFormat == "numeric"){
+            iXnumeric <- var.time
+            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
+            iXfactor[var.time] <- NULL            
+        }else if(iFormat == "original"){
+            iXfactor <- NULL
+            iXnumeric <- NULL
         }
 
-        if("numeric" %in% structure.timeFormat[[iMoment]][1]){ 
-            iCol2num <- setdiff(all.vars(structure$formula[[iMoment]]), iCol2factor)
-            
-            for(iVar in iCol2num){
-                if(is.logical(data[[iVar]])){ 
-                    out[[iMoment]]$data[[iVar]] <- as.numeric(data[[iVar]]) + 1
-                }else if(!is.numeric(data[[iVar]])){ 
-                    out[[iMoment]]$data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
-                }else if(is.numeric(data[[iVar]])){ 
-                    out[[iMoment]]$data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
-                }
-            }        
-        }        
-        iU.strata <- levels(out[[iMoment]]$data[[var.strata]])
-        iFormula <- out[[iMoment]]$formula
+        iData <- .updateFactor(data, xfactor = iXfactor, xnumeric = iXnumeric)
 
         ## *** design matrix
         if(structure.CUSTOM){
-            out[[iMoment]]$X <- out[[iMoment]]$data[,all.vars(iFormula),drop=FALSE]                    
+            iX <- iData[,iVars,drop=FALSE]                    
         }else if(!is.null(iFormula)){
             if(test.newdata == FALSE){ ## model fit (structure)
-                out[[iMoment]]$X <- .model.matrix_regularize(iFormula, data = out[[iMoment]]$data, augmodel = TRUE, type = iMoment, drop.X = drop.X)
-                attr(out[[iMoment]]$X, "original.colnames") <- colnames(out[[iMoment]]$X)
-                out$xfactor[[iMoment]] <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,out[[iMoment]]$data))
+                browser()
+                iX <- .model.matrix_regularize(iFormula, data = iData, augmodel = TRUE, type = iMoment, drop.X = drop.X)                
+                attr(iX, "original.colnames") <- colnames(iX)                
             }else{ ## newdata
                 iAttr.X <- structure[[iMoment]]$X.attr
                 iKeep.attr <- setdiff(names(iAttr.X), c("dim","dimnames"))
-                out[[iMoment]]$X <- stats::model.matrix(iFormula, data = out[[iMoment]]$data)[,iAttr.X$original.colnames,drop=FALSE]
-                colnames(out[[iMoment]]$X) <- iAttr.X$dimnames[[2]]
+                iX <- stats::model.matrix(iFormula, data = iData)[,iAttr.X$original.colnames,drop=FALSE]
+                colnames(iX) <- iAttr.X$dimnames[[2]]
                 for(iAssign in iKeep.attr){
-                    attr(out[[iMoment]]$X,iAssign) <- iAttr.X[[iAssign]]
+                    attr(iX,iAssign) <- iAttr.X[[iAssign]]
                 }
             }
         }
 
-        ## *** linear predictors & patterns
-        if(!is.null(iFormula)){
-
-            ##------## linear predictor for each observation
-            iLp <- nlme::collapse(out[[iMoment]]$X, sep = sep, as.factor = !test.newdata)
-            
-            if(!test.newdata){
-                ##--## position of the observations with distinct linear predictors
-                iIndex.Ulp <- which(!duplicated(iLp))
-                ##--## convert linear predictor to numeric, possible updating the order of the level to match "natural ordering"
-                if(NCOL(out[[iMoment]]$X)>1){
-                    if(is.na(var.strata)){
-                        iNewlevel <- orderLtoR(out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE], strata = NULL)
-                    }else if(structure.CUSTOM){
-                        iNewOrder <- c(setdiff(colnames(out[[iMoment]]$X),var.strata),var.strata)
-                        iNewlevel <- orderLtoR(out[[iMoment]]$X[iIndex.Ulp,iNewOrder,drop=FALSE], strata = NULL)
-                    }else{                        
-                        iNewlevel <- orderLtoR(out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE], strata = factor(attr(out[[iMoment]]$X,"M.level")[[var.strata]], iU.strata))
-                        ##  out[[iMoment]]$X[iIndex.Ulp[order(iNewlevel)],,drop=FALSE]
-                    }
-                    out[[iMoment]]$lp <- as.numeric(factor(iLp, levels = iLp[iIndex.Ulp][order(iNewlevel)]))
+        ## *** linear predictors
+        ## linear predictor for each observation
+        iLp <- nlme::collapse(iX, sep = sep, as.factor = !test.newdata)
+        
+        if(!test.newdata){
+            ## position of the observations with distinct linear predictors
+            iIndex.Ulp <- which(!duplicated(iLp))
+            ## convert linear predictor to numeric, possible updating the order of the level to match "natural ordering"
+            if(NCOL(iX)>1){
+                if(is.na(var.strata)){
+                    iNewlevel <- orderLtoR(iX[iIndex.Ulp,,drop=FALSE], strata = NULL)
+                }else if(structure.CUSTOM){
+                    iNewOrder <- c(setdiff(colnames(iX),var.strata),var.strata)
+                    iNewlevel <- orderLtoR(iX[iIndex.Ulp,iNewOrder,drop=FALSE], strata = NULL)
                 }else{
-                    iNewlevel <- levels(iLp)
-                    out[[iMoment]]$lp <- as.numeric(iLp)
+                    iU.strata <- levels(iData[[var.strata]])
+                    iNewlevel <- orderLtoR(iX[iIndex.Ulp,,drop=FALSE], strata = factor(attr(iX,"M.level")[[var.strata]], iU.strata))
+                    ##  iX[iIndex.Ulp[order(iNewlevel)],,drop=FALSE]
                 }
-                ##--## re-order position of the observations with distinct linear predictors to match increasing linear predictors
-                if(length(iIndex.Ulp)>1){
-                    iIndex.Ulp <- iIndex.Ulp[order(out[[iMoment]]$lp[iIndex.Ulp], decreasing = FALSE)]
-                }
-                ##--## re-express the linear predictor in term of design matrix or original data
-                if(structure.CUSTOM){
-                    out[[iMoment]]$lp2data <- out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE]
-                    rownames(out[[iMoment]]$lp2data) <- iLp[iIndex.Ulp]
-                }else{
-                    out[[iMoment]]$lp2X <- out[[iMoment]]$X[iIndex.Ulp,,drop=FALSE]
-                    rownames(out[[iMoment]]$lp2X) <- iLp[iIndex.Ulp]
-                    out[[iMoment]]$lp2data <- out[[iMoment]]$data[iIndex.Ulp,attr(out[[iMoment]]$X,"variable"),drop=FALSE]
-                    rownames(out[[iMoment]]$lp2data) <- iLp[iIndex.Ulp]
-                }
+                iLp.num <- as.numeric(factor(iLp, levels = iLp[iIndex.Ulp][order(iNewlevel)]))
             }else{
-                out[[iMoment]]$lp <- as.numeric(factor(iLp, levels = rownames(structure[[iMoment]]$lp2X)))
-                out[[iMoment]]$lp2X <- structure[[iMoment]]$lp2X
-                out[[iMoment]]$lp2data <- structure[[iMoment]]$lp2data
+                iNewlevel <- levels(iLp)
+                iLp.num <- as.numeric(iLp)
             }
-
-            ##------## pattern for each cluster
-            out[[iMoment]]$pattern <- as.numeric(as.factor(sapply(index.cluster, function(iC){paste(out[[iMoment]]$lp[iC], collapse = ".")})))
-            ## Note: tapply(out[[iMoment]]$lp, attr(index.cluster,"vectorwise"), paste, collapse = ".")
-            ## does not work when the time are not ordered in the initial dataset
-            if(is.null(structure[[iMoment]]$pattern2lp)){
-                ## position of the cluster with distinct patterns
-                iIndex.pattern <- which(!duplicated(out[[iMoment]]$pattern))
-                iIndex.pattern <- iIndex.pattern[order(out[[iMoment]]$pattern[iIndex.pattern], decreasing = FALSE)] ## re-order
-                ## re-express the pattern in term of linear predictors
-                out[[iMoment]]$pattern2lp <- unname(lapply(index.cluster[iIndex.pattern], function(iIndex){out[[iMoment]]$lp[iIndex]}))
+            ## re-order position of the observations with distinct linear predictors to match increasing linear predictors
+            if(length(iIndex.Ulp)>1){
+                iIndex.Ulp <- iIndex.Ulp[order(iLp.num[iIndex.Ulp], decreasing = FALSE)]
+            }
+            ## re-express the linear predictor in term of design matrix or original data
+            if(structure.CUSTOM){
+                iLp2X <- NULL
+                iLp2data <- iX[iIndex.Ulp,,drop=FALSE]
+                rownames(iLp2data) <- iLp[iIndex.Ulp]
             }else{
-                out[[iMoment]]$pattern2lp <- structure[[iMoment]]$pattern2lp
+                iLp2X <- iX[iIndex.Ulp,,drop=FALSE]
+                rownames(iLp2X) <- iLp[iIndex.Ulp]
+                iLp2data <- iData[iIndex.Ulp,attr(iX,"variable"),drop=FALSE]
+                rownames(iLp2data) <- iLp[iIndex.Ulp]
             }
+        }else{
+            iLp.num <- as.numeric(factor(iLp, levels = rownames(structure[[iMoment]][[paste0("lp2X",iSuffix)]])))
+            iLp2X <- structure[[iMoment]][[paste0("lp2X",iSuffix)]]
+            iLp2data <- structure[[iMoment]][[paste0("lp2data",iSuffix)]]
         }
+
+        ## *** pattern for each cluster
+        iPattern <- as.numeric(as.factor(sapply(index.cluster, function(iC){paste(iLp.num[iC], collapse = ".")})))
+        ## Note: tapply(out[[iMoment]]$lp, attr(index.cluster,"vectorwise"), paste, collapse = ".")
+        ## does not work when the time are not ordered in the initial dataset
+        if(!test.newdata){
+            ## position of the cluster with distinct patterns
+            iIndex.pattern <- which(!duplicated(iPattern))
+            iIndex.pattern <- iIndex.pattern[order(iPattern[iIndex.pattern], decreasing = FALSE)] ## re-order
+            ## re-express the pattern in term of linear predictors
+            iPattern2lp <- unname(lapply(index.cluster[iIndex.pattern], function(iIndex){iLp.num[iIndex]}))
+        }else{
+            iPattern2lp <- structure[[iMoment]][[paste0("pattern2lp",iSuffix)]]
+        }
+
+        ## *** update
+        out[[iMoment]][[paste0("xfactor",iSuffix)]] <- iXfactor
+        out[[iMoment]][[paste0("xnumeric",iSuffix)]] <- iXnumeric
+        out[[iMoment]][[paste0("X",iSuffix)]] <- iX 
+        out[[iMoment]][[paste0("lp",iSuffix)]] <- iLp.num
+        out[[iMoment]][[paste0("lp2X",iSuffix)]] <- iLp2X
+        out[[iMoment]][[paste0("lp2data",iSuffix)]] <- iLp2data
+        out[[iMoment]][[paste0("pattern",iSuffix)]] <- iPattern
+        out[[iMoment]][[paste0("pattern2lp",iSuffix)]] <- iPattern2lp        
     }
 
     ## ** export
-    out$var$formula <- NULL
-    out$var$data <- NULL
-    out$cor$formula <- NULL
-    out$cor$data <- NULL
-    ## out$var
-    ## out$cor
     return(out)
 }
 
@@ -471,7 +481,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                               options){
 
     ## ** indexes
-    outInit <- .extractIndexData(data = data, structure = structure)
+    outInit <- .extractIndexData(data = data, var.cluster = structure$name$cluster, var.time = structure$name$ordering, var.strata = structure$name$strata)
     U.cluster <- outInit$U.cluster
     U.time <- outInit$U.time
     U.strata <- outInit$U.strata
@@ -990,11 +1000,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 }
 
 ## ** .extractIndexData
-.extractIndexData <- function(data, structure){
-
-    var.time <- structure$name$time
-    var.cluster <- structure$name$cluster
-    var.strata <- structure$name$strata
+.extractIndexData <- function(data, var.cluster, var.time, var.strata){
 
     ## *** find unique levels
     U.cluster <- sort(unique(data[[var.cluster]]))
@@ -1039,14 +1045,26 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 }
 
 ## ** .updatefactor
-##' @description Update factor variables with previously defined levels
+##' @description Update factor variables with previously defined levels and convert other variables to numeric
+##' @param data [data.frame]
+##' @param xfactor [list] each element of the list contain the levels of the variable to be converted to factor.
+##' @param xnumeric [character vector] name of the variable(s) to be converted to numeric format.
 ##' @noRd
-.updateFactor <- function(data, xfactor){
+##'
+##' @example
+##' df <- data.frame(age = 1:10, ageGroup = 1:10, sexInd = as.factor(c("F","M")))
+##' str(.updateFactor(df, xfactor = list(ageGroup=1:10), xnumeric = "sexInd"))
+.updateFactor <- function(data, xfactor = NULL, xnumeric = NULL){
 
-    if(length(xfactor)==0){return(data)}
+    ## *** special case where nothing needs to be done
+    xfactor <- na.omit(xfactor)
+    xnumeric <- na.omit(xnumeric)
+    if(length(xfactor)==0 && length(xnumeric)==0){
+        return(data)
+    }
 
-    ## convert to factor with the right levels
-    ff.factor <- names(xfactor)
+    ## *** convert to factor
+    ff.factor <- names(xfactor)    
     if(length(ff.factor)>0){
         for(iVar in ff.factor){ ## iVar <- ff.factor[1]
             iLevel <- xfactor[[iVar]]
@@ -1058,7 +1076,20 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             data[[iVar]] <- factor(data[[iVar]], levels = iLevel)
         }
     }
+    ## *** convert to numeric
+    if(length(xnumeric)>0){
+        for(iVar in xnumeric){ ## iVar <- ff.factor[1]
+            if(is.logical(data[[iVar]])){ 
+                data[[iVar]] <- as.numeric(data[[iVar]]) + 1
+            }else if(!is.numeric(data[[iVar]])){ 
+                data[[iVar]] <- as.numeric(as.factor(data[[iVar]]))
+            }##else if(is.numeric(data[[iVar]])){ 
+            ##    data[[iVar]] <- data[[iVar]] - min(data[[iVar]]) + 1
+            ##}
+        }
+    }
 
+    ## *** export
     return(data)
 }
 

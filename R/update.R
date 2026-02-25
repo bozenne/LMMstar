@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: Feb 13 2026 (15:21) 
+## Last-Updated: feb 18 2026 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 45
+##     Update #: 206
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -18,47 +18,30 @@
 ## * update.ID
 ##' @description update structure according to information from the repetition argument
 ##' @noRd
-update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
-
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## ** what to update
-    ## *** strata
-    if(length(var.strata)==0){
-        update.strata <- FALSE
-    }else if(identical(object$name$strata,NA)){
-        update.strata <- TRUE
-    }else{
-        stop("Argument \'repetition\' should not contain a left hand side to indicate the strata as a strata variable has already been defined in the \'structure\' argument. \n")
-    }
-    
-    ## *** time
-    ## nothing
+update.ID <- function(object, var.cluster, var.time, var.strata, ...){
 
     ## ** update
-    ## *** strata
+
+    ## *** cluster 
+    object$name$cluster <- var.cluster
+
+    ## *** ordering
+    object$name$ordering <- var.time
+    
+    ## *** prepare strata
+    update.strata <- sum(!is.na(setdiff(var.strata,object$name$strata)))>0
+
+    ## *** formula/name and strata
     if(update.strata){
-
-        object$formula <- .formulaStructure(list(variance = stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~.")),
-                                                 correlation = NULL),
-                                            correlation = FALSE)
-
-    }
-
-    ## *** time
-    ## nothing
-
-    ## *** cluster
-    if(is.na(object$name$cluster) && !is.na(var.cluster)){
-        object$name$cluster <- var.cluster
-    }
-
-    ## *** time
-    if(length(object$name$time)==1 && is.na(object$name$time) && any(!is.na(var.time))){
-        object$name$time <- na.omit(var.time)
+        ## if both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
+        ## so no need to add to the existing strata
+        object$name$strata <- var.strata
+        ## use .formulaStructure to obtain ~0+strata instead of 'just' adding strata to the formula
+        outCov <- .formulaStructure(list(variance = formula.variance, correlation = NULL, correlation.cross = NULL),
+                                    var.time = list(variance = var.time, correlation = NULL, correlation.cross = NULL),
+                                    correlation = FALSE)
+        object$formula$variance <- outCov$formula$variance
+        object$name$variance <- list(outCov$name$variance)
     }
     
     ## ** export
@@ -69,120 +52,139 @@ update.ID <- function(object, var.cluster, var.time, var.strata, n.time, ...){
 ##' @description update structure according to information from the repetition argument
 ##' @details May add argument \code{var.time} as covariate.
 ##' @noRd
-update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
-
-    dots <- list(...)
-    if(length(dots)>0){
-        stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
-    }
-
-    ## ** what to update
-    ## *** strata
-    if(length(var.strata)==0){
-        update.strata <- FALSE
-    }else if(identical(object$name$strata,NA)){
-        update.strata <- TRUE
-    }else{
-        stop("Argument \'repetition\' should not contain a left hand side to indicate the strata as a strata variable has already been defined in the \'structure\' argument. \n")
-    }
-    browser()
-    ## *** time
-    if(xx){
-        add.time <- n.time>1 && length(object$name$time)==1 && is.na(object$name$time) && !is.null(attr(var.time,"original")) && all(!is.na(attr(var.time,"original")))
-    }else{
-        add.time <- FALSE
-    }
+update.IND <- function(object, var.cluster, var.time, var.strata, ...){
 
     ## ** update
-    ## *** strata
-    if(update.strata){
 
-        object$formula <- .formulaStructure(list(variance = stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~.")),
-                                                 correlation = NULL),
-                                            correlation = FALSE)
+    ## *** cluster 
+    object$name$cluster <- var.cluster
 
-    }
-
-    ## *** cluster
-    if(is.na(object$name$cluster) && !is.na(var.cluster)){
-        object$name$cluster <- var.cluster
-    }
-
-    ## *** time
-    if(length(object$name$time)==1 && is.na(object$name$time) && any(!is.na(var.time))){
-        object$name$time <- na.omit(var.time)
-    }
+    ## *** ordering
+    object$name$ordering <- var.time
     
-    ## ** export
-    return(object)
-}
+    ## *** prepare strata
+    update.strata <- sum(!is.na(setdiff(var.strata,object$name$strata)))>0
 
-update.IND <- function(object, var.cluster, var.time, var.strata, n.time, ...){
-
-
-
-    if(!identical(sort(object$name$strata),sort(var.strata))){
-        update.strata <- TRUE
-        rm.strata <- unique(stats::na.omit(c(object$name$strata,var.strata)))
+    ## *** prepare formula
+    update.time <- attr(object$formula,"update.time")    
+    if(update.time["variance"]){
+        if(!is.null(attr(var.time,"original")) && any(!is.na(attr(var.time,"original")))){
+            var.time <- stats::na.omit(attr(var.time,"original"))            
+        }else if(any(!is.na(var.time))){
+            var.time <- stats::na.omit(var.time)
+        }        
+        
     }else{
-        update.strata <- FALSE
+        var.time <- NULL
     }
 
-    ## ** update
-    if(add.time || update.strata){
-        call.structure <- object$call
-        ls.call.structure <- as.list(call.structure)
-        fct.structure <- eval(ls.call.structure[[1]])
-        args.structure <- lapply(ls.call.structure[-1], eval)
-
-        if("var.cluster" %in% names(args.structure) == FALSE){
-            args.structure$var.cluster <- var.cluster
-        }
-        if("var.time" %in% names(args.structure) == FALSE){
-            args.structure$var.time <- var.time
-        }
-        if("add.time" %in% names(args.structure) == FALSE && !is.list(args.structure$formula)){
-            args.structure$add.time <- attr(var.time,"original")
-        }
-
+    ## *** formula/name and strata
+    if(update.strata || update.time["variance"]){
+        ## if both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
+        ## so no need to add to the existing strata
         if(update.strata){
-            if(is.list(args.structure$formula)){
-                args.structure$formula <- list(updateFormula(args.structure$formula[[1]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata),
-                                               updateFormula(args.structure$formula[[2]], drop.y = TRUE, drop.x = rm.strata, add.y = var.strata))
-            }else if(inherits(args.structure$formula,"formula")){
-                args.structure$formula <- updateFormula(args.structure$formula, drop.y = TRUE, drop.x = rm.strata, add.y = var.strata)
-            }
+            object$name$strata <- var.strata
+            formula.variance <- stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~."))
+        }else{
+            formula.variance <- object$formula$variance
         }
-        object <- do.call(fct.structure, args = args.structure)
-        object$call <- call.structure
-    }else{
-        if(is.na(object$name$cluster) && !is.na(var.cluster)){
-            object$name$cluster <- var.cluster
-        }
-        if(length(object$name$time)==1 && is.na(object$name$time) && all(!is.na(var.time))){
-            object$name$time <- var.time
-        }
+        ## use .formulaStructure to obtain ~0+strata instead of 'just' adding strata to the formula
+        ## If both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
+        outCov <- .formulaStructure(list(variance = formula.variance, correlation = NULL, correlation.cross = NULL),
+                                    var.time = list(variance = var.time, correlation = NULL, correlation.cross = NULL),
+                                    correlation = FALSE)
+        object$formula$variance <- outCov$formula$variance
+        object$name$variance <- list(outCov$name$variance)
     }
 
     ## ** export
+    attr(object$formula,"update.time") <- NULL
     return(object)
 }
+
 
 ## * update.CS
+##' @description update structure according to information from the repetition argument
 ##' @noRd
-update.CS <- function(object, var.cluster, var.time, var.strata, n.time, ...){
-browser()
-    if(object$cross %in% c("TOEPLITZ","DUN","UN")){
-        ## add var.time as covariate
-        out <- update.IND(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, n.time = n.time, ...)
-    }else{
-        ## does not add var.time as covariate
-        out <- update.ID(object = object, var.cluster = var.cluster, var.time = var.time, var.strata = var.strata, n.time = n.time, ...)
+update.CS <- function(object, var.cluster, var.time, var.strata, ...){
+
+    ## ** update
+
+    ## *** cluster 
+    object$name$cluster <- var.cluster
+
+    ## *** ordering
+    object$name$ordering <- var.time
+
+    ## *** prepare strata
+    update.strata <- sum(!is.na(setdiff(var.strata,object$name$strata)))>0
+
+    ## *** time
+    update.time <- attr(object$formula,"update.time")    
+    if(update.time["correlation"] || update.time["correlation.cross"]){
+        if(!is.null(attr(var.time,"original")) && any(!is.na(attr(var.time,"original")))){
+            object$name$time <- stats::na.omit(attr(var.time,"original"))
+        }else if(any(!is.na(var.time))){
+            object$name$time <- stats::na.omit(var.time)
+        }        
+    }
+
+    ls.time <- stats::setNames(vector(mode = "list",length = 3), c("variance","correlation","correlation.cross"))
+    if(!is.null(attr(var.time,"original")) && any(!is.na(attr(var.time,"original")))){
+        var.time <- stats::na.omit(attr(var.time,"original"))
+    }
+    for(iMoment in c("variance","correlation","correlation.cross")){
+        if(update.time[iMoment]){
+            if(any(var.time %in% object$name[[iMoment]][[1]])){
+                stop("Time variable \"",paste(intersect(var.time,object$name[[iMoment]][[1]]),collapse="\", \""),"\" already present in the ",iMoment," structure. \n",
+                     ifelse(iMoment=="variance","Consider setting the argument \'heterogeneous\' to FALSE when creating the covariance structure. \n",""))
+            }
+            ls.time[[iMoment]] <- var.time
+        }
+    }
+ 
+    ## *** strata and formula
+    if(update.strata || any(update.time)){
+        ## if both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
+        ## so no need to add to the existing strata
+        if(update.strata){
+            object$name$strata <- var.strata
+            formula.variance <- stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~."))
+            formula.correlation <- stats::update(object$formula$correlation, paste0(paste(var.strata,collapse="+"),"~."))
+            if(!is.null(object$formula$correlation.cross)){
+                formula.correlation.cross <- stats::update(object$formula$correlation.cross, paste0(paste(var.strata,collapse="+"),"~."))
+            }else{
+                formula.correlation.cross <- NULL
+            }
+        }else{
+            formula.variance <- object$formula$variance
+            formula.correlation <- object$formula$correlation
+            formula.correlation.cross <- object$formula$correlation.cross
+        }
+        ## use .formulaStructure to obtain ~0+strata instead of 'just' adding strata to the formula
+        ## If both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
+        outCov <- .formulaStructure(list(variance = formula.variance, correlation = formula.correlation, correlation.cross = formula.correlation.cross),
+                                    ls.time = ls.time, correlation = TRUE)
+        
+        if(update.time["variance"] || update.strata){
+            object$formula$variance <- outCov$formula$variance
+            object$name$variance <- list(outCov$name$variance)
+        }
+        if(update.time["correlation"] || update.strata){
+            object$formula$correlation <- outCov$formula$correlation
+        }
+        if(update.time["correlation.cross"] || update.strata){
+            object$formula$correlation.cross <- outCov$formula$correlation.cross
+            
+        }
+        if(update.time["correlation"] || update.time["correlation.cross"] || update.strata){
+            object$name$correlation <- list(outCov$name$correlation)
+        }
     }
 
     ## ** export
-    return(out)
-
+    attr(object$formula,"update.time") <- NULL
+    return(object)
 }
 
 ## * update.RE
@@ -258,16 +260,19 @@ update.RE <- function(object, var.cluster, var.time, var.strata, ranef, ...){
 }
 
 ## * update.TOEPLITZ
+##' @description update structure according to information from the repetition argument
+##' @details May add argument \code{var.time} as covariate.
 ##' @noRd
-update.TOEPLITZ <- update.IND
+update.TOEPLITZ <- update.CS
 
 ## * update.UN
 ##' @noRd
-update.UN <- update.IND
+update.UN <- update.CS
+
 
 ## * update.CUSTOM
 ##' @noRd
-update.CUSTOM <- update.ID
+update.CUSTOM <- update.CS
 
 ## * update.lmm
 ##' @export

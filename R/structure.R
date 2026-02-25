@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: Feb 13 2026 (15:45) 
+## Last-Updated: feb 18 2026 (17:23) 
 ##           By: Brice Ozenne
-##     Update #: 1561
+##     Update #: 1897
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,6 @@
 ##' Can be stratified on a categorical variable.
 ##' 
 ##' @param formula [formula] variables to stratify the residual variance (left hand side, like sex~1).
-##' @param var.time not used.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
@@ -66,31 +65,17 @@
 
 ## * ID (identity, code)
 ##' @export
-ID <- function(formula = ~1, var.time){
+ID <- function(formula = ~1){
 
     ## ** check input
     ## *** formula
     if(!inherits(formula,"formula")){
         stop("Argument \'formula\' should be a formula. \n")
     }
-
-    ## *** var.time
-    if(!missing(var.time)){
-        if(any(inherits(var.time,"formula"))){ ## possible user mistake ID(~1,~1) instead of ID(list(~1,~1))
-            stop("Argument \'var.time\' should not be a formula. \n",
-                 "Consider using a list to collect the formula for the variance and correlation structure. \n")
-        }else{
-            warning("Argument \'var.time\' ignored with ID structure. \n")
-        }
-    }
-
     
-
     ## ** identify strata variable and covariate variables
-    outCov <- .formulaStructure(list(variance = formula,
-                                     correlation = NULL),
-                                correlation = FALSE)
-    if(length(outCov$X.var)>0 || length(outCov$X.cor)>0){ 
+    outCov <- .formulaStructure(list(variance = formula, correlation = NULL, correlation.cross = NULL), correlation = FALSE)
+    if(length(outCov$name$variance)>0 || length(outCov$name$correlation)>0){ 
         stop("Argument \'formula\' should not contain variable(s) on the right-hand side of the formula. \n",
              "Structure ID can only be stratified (left hand side of the formula). \n")
     }
@@ -98,14 +83,16 @@ ID <- function(formula = ~1, var.time){
     ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = NA,
+                                  ordering = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = NA,
-                                  variance = NA,
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
                                   correlation = NA,
                                   stringsAsFactors = FALSE),
-                formula = list(variance = outCov$formula.var,
-                               correlation = NULL),
-                class = c(variance = "ID", correlation = NA))
+                formula = list(variance = outCov$formula$variance,
+                               correlation = NULL,
+                               correlation.cross = NULL),
+                class = c(variance = "ID", correlation = NA, correlation.cross = NA))
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -120,8 +107,7 @@ ID <- function(formula = ~1, var.time){
 ##'
 ##' @param formula [formula] variables influencing the residual variance,
 ##' using either as a multiplicative factor (right hand side) or stratification (left hand side) to model their effect.
-##' @param var.time Missing or \code{NULL} to enable or disable repetition-specific variance parameters
-##' @param ... not used.
+##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
 ##'
 ##' @details A typical formula would be \code{~time}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.
@@ -186,7 +172,7 @@ ID <- function(formula = ~1, var.time){
 
 ## * IND (independence, code)
 ##' @export
-IND <- function(formula = ~1, var.time){
+IND <- function(formula = ~1, heterogeneous =  TRUE){
 
     ## ** check input
     ## *** formula
@@ -195,31 +181,33 @@ IND <- function(formula = ~1, var.time){
     }
 
     ## *** var.time
-    if(!missing(var.time)){
-       if(any(inherits(var.time,"formula"))){ ## possible user mistake IND(~1,~1) instead of InD(list(~1,~1))
-           stop("Argument \'var.time\' should not be a formula. \n",
-                "Consider using a list to collect the formula for the variance and correlation structure. \n")
-       }else if(!is.null(var.time)){
-           stop("Argument \'var.time\' should either be missing or NULL to enable or disable automatically repetition-specific variance parameters. \n")
-       }
+    if(any(inherits(heterogeneous,"formula"))){ ## possible user mistake IND(~1,~1) instead of InD(list(~1,~1))
+        stop("Argument \'heterogeneous\' should not be a formula. \n",
+             "Consider using a list to collect the formula for the variance and correlation structure. \n")
+    }else if(length(heterogeneous) == 1 && heterogeneous %in% 0:1){
+        update.time <- c(variance = heterogeneous, correlation = FALSE, correlation.cross = FALSE) 
+    }else{
+        stop("Argument \'heterogeneous\' should have length 1 and be TRUE or FALSE. \n")
     }
 
     ## ** identify strata variable and covariate variables
-    outCov <- .formulaStructure(list(variance = formula,
-                                     correlation = NULL),
-                                correlation = FALSE)
+    outCov <- .formulaStructure(list(variance = formula, correlation = NULL, correlation.cross = NULL), correlation = FALSE)
+    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
 
     ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = NA,
+                                  ordering = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = NA,
-                                  variance = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  correlation = NA,
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
+                                  correlation = NA,                                  
                                   stringsAsFactors = FALSE),
-                formula = list(variance = outCov$formula.var,
-                               correlation = NULL),
-                class = c(variance = "IND", correlation = NA))
+                formula = list(variance = outCov$formula$variance,
+                               correlation = NULL,
+                               correlation.cross = NULL),
+                class = c(variance = "IND", correlation = NA, correlation.cross = NA))
+    attr(out$formula,"update.time") <- update.time
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -237,13 +225,12 @@ IND <- function(formula = ~1, var.time){
 ##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
 ##' }
 ##'
-##' @param formula [formula or list of 2 formula] variable to stratify the residual variance and correlation (left hand side)
-##' and variables influencing the residual variance and correlation (right hand side).
-##' @param var.time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
-##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
-##' \code{TRUE} is analogous to nested random effects.
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
 ##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
-##' \code{"ID"} is analogous to cross random effects.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
@@ -376,82 +363,90 @@ IND <- function(formula = ~1, var.time){
 
 ## * CS (compound symmetry, code)
 ##' @export
-CS <- function(formula = ~1, var.time, twin = TRUE, cross = "CS"){
+CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, time){
 
     ## ** normalize input    
     ## *** formula
-    if(!inherits(formula,"formula") && !(is.list(formula) && length(formula)= 2 && all(sapply(formula,inherits,"formula")))){
-        stop("Argument \'formula\' should be a formula or a list of 2 formula. \n")
-    }
-    if(is.list(formula) && length(formula)==2){
-        if(!is.null(names(formula))){
-            names(formula) <- c("variance","correlation")
-        }else if(any(duplicated(names(formula)))){
-            stop("Elements in the list specified by argument \'formula\' should not have duplicated names. \n",
-                 "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
-        }else if(any(names(formula) %in% c("variance","correlation") == FALSE)){
-            stop("Elements in the list specified by argument \'formula\' should be named \"variance\" or \"correlation\". \n",
-                 "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
-        }
+    if(inherits(formula,"formula")){
+        formula <- list(variance = update(formula,~1), ## by default CS structure ignores covariate for the variance model
+                        correlation = formula,
+                        correlation.cross = formula)
+    }else{
+        formula <- .initFormulaStructure(formula)    
     }
 
-    ## *** var.time
-    if(!missing(var.time) && inherits(var.time,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
-        stop("Argument \'var.time\' should not be a formula. \n",
+    ## *** heterogeneous
+    if(!missing(heterogeneous) && inherits(heterogeneous,"formula")){ ## possible user mistake CS(~1,~1) instead of CS(list(~1,~1))
+        stop("Argument \'heterogeneous\' should not be a formula. \n",
              "Consider using a list to collect the formula for the variance and correlation structure. \n")
     }
 
+    ## *** cross
+    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN","UN"))
+    
+
     ## *** twin
-    if(is.null(twin)){ ## default value for twin depending on how much information is provided by the user (one or two formula)
-        twin <- inherits(formula,"formula") ## only automatically TRUE when variance model not specified 
+    if(length(twin)!=1){
+        stop("Argument \'twin\' should have length 1. \n")
+    }
+    if(!is.logical(twin) && twin!=0 && twin!=1){
+        stop("Argument \'twin\' be binary: TRUE or FALSE. \n")
     }
 
-    ## *** cross
-    cross <- match.arg(cross, choices = c("ID","CS","TOEPLTIZ","DUN","UN"))
-    
-    ## ** normalize input
-            
-    ## *** enforce twin
-    if(inherits(formula,"formula")){
-        if(twin){
-            formula <- list(variance = stats::update(formula,"~1"), ## remove covariate in variance model
-                            correlation = formula)
-            
-        }else{
-            formula <- list(variance = formula,
-                            correlation = formula)
+    ## *** time
+    if(!missing(time)){
+        if(!is.character(time) || length(time)!=1){
+            stop("Argument \'time\' should be a character of length 1 when not missing. \n")
         }
     }
 
-    ## *** add time
-    if(!missing(var.time) & cross %in% c("TOEPLTIZ","DUN","UN")){
-        var.time <- list(variance = NULL,
-                         correlation = var.time)
-    }else{
-        var.time <- NULL
-    }
+    ## ** normalize input
     
-    ## ** from formula to covariate names
-    outCov <- .formulaStructure(formula, var.time = var.time, correlation = TRUE)
-    if(length(outCov$X.cor)==0){
-        twin <- TRUE
+    ## *** add time
+    if(!missing(time)){
+        update.time <- c(variance = FALSE, correlation = FALSE, correlation.cross = FALSE)
+        ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)
+        if(heterogeneous){ls.time$variance <- time}
+        if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
+    }else{
+        time <- NA
+        update.time <- c(variance = heterogeneous,
+                         correlation = FALSE,
+                         correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
+        ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
     }
+
+    ## ** from formula to covariate names
+    outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
+    if(length(setdiff(outCov$name$correlation, c(outCov$strata,time)))==0){ ## no block if no covariates
+        cross <- NA
+        outCov$name$correlation <- all.vars(outCov$formula$correlation)
+        outCov$formula$correlation.cross <- NULL
+    }else if(length(setdiff(outCov$name$correlation, time))>1){
+        warning("CS covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
+    }
+
+    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
+    if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
 
     ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = NA,
+                                  ordering = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
-                                  time = NA,
-                                  variance = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  correlation = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
+                                  time = time,
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
+                                  correlation = if(length(outCov$name$correlation)>0){I(list(outCov$name$correlation))}else{NA},                                  
                                   stringsAsFactors = FALSE),
-                formula = list(variance = outCov$formula.var,
-                               correlation = outCov$formula.cor),
+                formula = list(variance = outCov$formula$variance,
+                               correlation = outCov$formula$correlation,
+                               correlation.cross = outCov$formula$correlation.cross),
                 twin = twin,
-                cross = cross,
-                class = c(variance = "IND", correlation = "CS"))
+                class = c(variance = "IND", correlation = "CS", correlation.cross = cross))
+    attr(out$formula,"update.time") <- update.time
 
-    ## export
+    ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("CS",class(out))
     return(out)
@@ -464,7 +459,7 @@ CS <- function(formula = ~1, var.time, twin = TRUE, cross = "CS"){
 ##'
 ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 ##' and variables influencing the residual variance and correlation (right hand side).##' 
-##' @param var.time [character] time variable.
+##' @param time [character] time variable.
 ##' @param ranef [list] characteristics of the random effects
 ##'
 ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and the same correlation between all pairs of times.
@@ -519,7 +514,7 @@ CS <- function(formula = ~1, var.time, twin = TRUE, cross = "CS"){
 
 ## * RE (random effect, code)
 ##' @export
-RE <- function(formula, var.time, ranef = NULL){
+RE <- function(formula, time, ranef = NULL){
 
     ## ** normalize input
     ## ranef
@@ -601,7 +596,7 @@ RE <- function(formula, var.time, ranef = NULL){
 
     ## ** create structure
     out <- CS(list(variance = ff.var, correlation = ff.cor),
-              var.cluster = var.cluster, var.time = var.time,
+              var.cluster = var.cluster, time = time,
               twin = TRUE,
               cross = ranef$cross)
     out$ranef <- ranef
@@ -617,25 +612,20 @@ RE <- function(formula, var.time, ranef = NULL){
 ## * TOEPLITZ (Toeplitz, documentation)
 ##' @title Toeplitz Structure
 ##' @description Variance-covariance structure where the correlation depends on time elapsed between two repetitions.
-##' Can be stratified on a categorical variable.
-##'
-##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-##' and variables influencing the residual variance and correlation (right hand side). 
-##' @param var.cluster [character] cluster variable.
-##' @param type [character] degree of flexibility of the covariance structure within covariate.
-##' For a binary covariate the correlation structure can be decomposed into 4 blocks: within level 0 of the covariate (\eqn{A}),
-##' C within level 1 (\eqn{A}), and B between level 0 and 1 (\eqn{A}). The following parametrisations are available:
-##' \itemize{ 
-##' \item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
-##' \item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
-##' \item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
 ##' }
-##' @param var.time [character] time variable.
-##' @param add.time Should the default formula (i.e. when \code{NULL}) contain a time effect.
 ##'
-##' @details \bold{formula}: there can only be at most one covariate for the correlation structure.
-##' A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
-##'
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
+##' 
+##' @details \bold{formula}: a typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##' 
 ##' @return An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
@@ -761,95 +751,82 @@ RE <- function(formula, var.time, ranef = NULL){
 
 ## * TOEPLITZ (Toeplitz, code)
 ##' @export
-TOEPLITZ <- function(formula, var.cluster, type = "LAG", var.time, add.time){
+TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twin = TRUE, time){
 
-    ## ** normalize input
-    if(is.null(type)){
-        type <- "LAG"
-        toeplitz.block <- FALSE
-    }else{
-        type <- match.arg(type, c("UN","LAG","CS"))
-        toeplitz.block <- NULL
-    }
-    if(!missing(add.time)){
+    ## ** normalize input    
+    ## *** formula
+    formula <- .initFormulaStructure(formula)    
 
-        if(is.character(add.time)){            
-            if(type == "UN" || type == "LAG"){
-                add.X <- list(variance = add.time,
-                              correlation = add.time)
-            }else if(type == "CS"){
-                if(length(add.time)>1){
-                    add.X <- list(variance = utils::head(add.time,1),
-                                  correlation = add.time)
-                }else{
-                    add.X <- list(variance = NULL,
-                                  correlation = add.time)
-                }
-            }
-        }else if(add.time){
-            if(type == "UN" || type == "LAG"){
-                add.X <- list(variance = var.time,
-                              correlation = var.time)
-            }else if(type == "CS"){
-                if(length(var.time)>1){
-                    add.X <- list(variance = utils::head(var.time,1),
-                                  correlation = var.time)
-                }else{
-                    add.X <- list(variance = NULL,
-                                  correlation = var.time)
-                }
-            }
-        }else if(!add.time){
-            add.X <- NULL
-        }else{
-            stop("Incorrect argument \'add.time\': should be logical or character. \n")
-        }
-    }else{
-        add.X <- NULL
-    }
-
-    if(!missing(formula) && inherits(formula,"formula")){
-        ## if(!is.null(add.X$variance)){
-        ##     formula <- list(variance = ~1,
-        ##                     correlation = formula)
-        ## }else{        
-        formula <- list(variance = formula,
-                        correlation = formula)
-        ## }
-    }
-    
-    if(!missing(formula)){
-        outCov <- .formulaStructure(formula, add.X = add.X, strata.X = FALSE, correlation = TRUE)
-
-        ## NOTE: if length(outCov$X.cor)==0 i.e. not time has (yet) be defined, no error is output since time will be automatically added later on
-        if(length(outCov$X.cor)>2){
-            stop("TOEPLITZ covariance structure does not support more than 2 covariates for the correlation structure. \n")
-        }else if(is.null(toeplitz.block)){
-            toeplitz.block <- length(outCov$X.cor) > 1
-        }
-    }else{
-        outCov <- NULL
-    }
-
-    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake TOEPLITZ(~1,~1) instead of TOEPLITZ(list(~1,~1))
-        stop("Argument \'var.cluster\' should not be a formula. \n",
+    ## *** heterogeneous
+    if(!missing(heterogeneous) && inherits(heterogeneous,"formula")){ ## possible user mistake TOEPLITZ(~1,~1) instead of TOEPLITZ(list(~1,~1))
+        stop("Argument \'heterogeneous\' should not be a formula. \n",
              "Consider using a list to collect the formula for the variance and correlation structure. \n")
     }
 
+    ## *** cross
+    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN","UN"))
+    
+    ## *** twin
+    if(length(twin)!=1){
+        stop("Argument \'twin\' should have length 1. \n")
+    }
+    if(!is.logical(twin) && twin!=0 && twin!=1){
+        stop("Argument \'twin\' be binary: TRUE or FALSE. \n")
+    }
+
+    ## *** time
+    if(!missing(time)){
+        if(!is.character(time) || length(time)!=1){
+            stop("Argument \'time\' should be a character of length 1 when not missing. \n")
+        }
+    }
+
+    ## ** normalize input
+
+    ## *** add time
+    if(!missing(time)){
+        update.time <- c(variance = FALSE, correlation = FALSE, correlation.cross = FALSE)
+        ls.time <- list(variance = NULL, correlation = time, correlation.cross = NULL)
+        if(heterogeneous){ls.time$variance <- time}
+        if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
+    }else{
+        time <- NA
+        update.time <- c(variance = heterogeneous,
+                         correlation = TRUE,
+                         correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
+        ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
+    }
+    
+    ## ** from formula to covariate names
+    outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
+    if(length(setdiff(outCov$name$correlation, time))==0){ ## no block if no covariates
+        cross <- NA
+        outCov$name$correlation <- all.vars(outCov$formula$correlation)
+        outCov$formula$correlation.cross <- NULL
+    }else if(length(setdiff(outCov$name$correlation, time))>1){
+        warning("TOEPLITZ covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
+    }
+
+    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
+    if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
+
     ## ** create structure
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-                                  strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  variance = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  correlation = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
+                name = data.frame(cluster = NA,
+                                  ordering = NA,
+                                  strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
+                                  time = time,
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
+                                  correlation = if(length(outCov$name$correlation)>0){I(list(outCov$name$correlation))}else{NA},
                                   stringsAsFactors = FALSE),
-                formula = list(variance = outCov$formula.var,
-                               correlation = outCov$formula.cor),
-                type = type,
-                block = toeplitz.block,
-                class = c(var = "IND", cor = "TOEPLITZ"))
-
+                formula = list(variance = outCov$formula$variance,
+                               correlation = outCov$formula$correlation,
+                               correlation.cross = outCov$formula$correlation.cross),
+                twin = twin,
+                class = c(variance = "IND", correlation = "TOEPLITZ", correlation.cross = cross))
+    attr(out$formula,"update.time") <- update.time
+    
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("TOEPLITZ",class(out))
@@ -859,12 +836,18 @@ TOEPLITZ <- function(formula, var.cluster, type = "LAG", var.time, add.time){
 ## * UN (unstructured, documentation)
 ##' @title Unstructured Structure 
 ##' @description Variance-covariance structure where the residuals have time-specific variance and correlation.
-##' Can be stratified on a categorical variable.
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+##' }
 ##'
-##' @param formula formula indicating on which variable to stratify the covariance structure.
-##' @param var.time [character] time variable.
-##'
-##' @details A typical formula would be \code{~1}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}.
 ##'
 ##' @return An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##' 
@@ -880,53 +863,81 @@ TOEPLITZ <- function(formula, var.cluster, type = "LAG", var.time, add.time){
 
 ## * UN (unstructured, code)
 ##' @export
-UN <- function(formula, var.time){
+UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, time){
 
-    ## ** normalize input
-    if(!missing(add.time)){
-        if(is.character(add.time)){
-            add.X <- list(variance = add.time,
-                          correlation = add.time)
-        }else if(add.time){
-            add.X <- list(variance = var.time,
-                          correlation = var.time)
-        }else if(!add.time){
-            add.X <- NULL
-        }else{
-            stop("Incorrect argument \'add.time\': should be logical or character. \n")
-        }
-    }else{
-        add.X <- NULL
-    }
+    ## ** normalize input    
+    ## *** formula
+    formula <- .initFormulaStructure(formula)    
 
-    outCov <- .formulaStructure(formula, add.X = add.X, strata.X = inherits(formula,"formula"), correlation = 2) ## 2 for fully stratified structure
-
-    if(!missing(var.cluster) && inherits(var.cluster,"formula")){ ## possible user mistake UN(~1,~1) instead of UN(list(~1,~1))
-        stop("Argument \'var.cluster\' should not be a formula. \n",
+    ## *** heterogeneous
+    if(!missing(heterogeneous) && inherits(heterogeneous,"formula")){ ## possible user mistake TOEPLITZ(~1,~1) instead of TOEPLITZ(list(~1,~1))
+        stop("Argument \'heterogeneous\' should not be a formula. \n",
              "Consider using a list to collect the formula for the variance and correlation structure. \n")
     }
 
+    ## *** cross
+    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN"))
+
+    ## *** twin
+    if(length(twin)!=1){
+        stop("Argument \'twin\' should have length 1. \n")
+    }
+    if(!is.logical(twin) && twin!=0 && twin!=1){
+        stop("Argument \'twin\' be binary: TRUE or FALSE. \n")
+    }
+
+    
+    ## ** normalize input
+
+    ## *** add time
+    if(!missing(time)){
+        update.time <- c(variance = FALSE, correlation = FALSE, correlation.cross = FALSE)
+        ls.time <- list(variance = NULL, correlation = time, correlation.cross = NULL)
+        if(heterogeneous){ls.time$variance <- time}
+        if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
+    }else{
+        time <- NA
+        update.time <- c(variance = heterogeneous,
+                         correlation = TRUE,
+                         correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
+        ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
+    }
+    
+    ## ** from formula to covariate names
+    outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
+    if(length(setdiff(outCov$name$correlation, time))==0){ ## no block if no covariates
+        cross <- NA
+        outCov$name$correlation <- all.vars(outCov$formula$correlation)
+        outCov$formula$correlation.cross <- NULL
+    }else if(length(setdiff(outCov$name$correlation, time))>1){
+        warning("UN covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
+    }
+
+    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
+    if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
+
     ## ** create structure
     out <- list(call = match.call(),
-                name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
+                name = data.frame(cluster = NA,
+                                  ordering = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
-                                  time = if(!missing(var.time)){var.time}else{NA},
-                                  var = I(list(outCov$X.var)),
-                                  cor = I(list(outCov$X.cor)),
+                                  time = time,
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
+                                  correlation = if(length(outCov$name$correlation)>0){I(list(outCov$name$correlation))}else{NA},
                                   stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = outCov$formula.cor),
-                c(var = "IND", cor = "UN"))
-
+                formula = list(variance = outCov$formula$variance,
+                               correlation = outCov$formula$correlation,
+                               correlation.cross = outCov$formula$correlation.cross),
+                twin = twin,
+                class = c(variance = "IND", correlation = "UN", correlation.cross = cross))
+    attr(out$formula,"update.time") <- update.time
+        
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("UN",class(out))
     return(out)
 }
-
-## * LV (latent variable, documentation)
-## * AR1 (, documentation)
-## special but famous case of exponential?
 
 ## * EXP (exponential)
 ## ##' @title Exponential Structure
@@ -997,14 +1008,19 @@ UN <- function(formula, var.time){
 ##     return(out)
 ## }
 
+## * AR1 (documentation)
+## special but famous case of exponential?
+
+## * LV (latent variable, documentation)
+## * ANTE (ante-dependence, documentation)
+
 
 ## * CUSTOM (user-specified, documentation)
 ##' @title Custom Structure
 ##' @description Variance-covariance structure specified by the user.
 ##' 
-##' @param formula formula indicating variables influencing the residual variance and correlation (right hand side).
-##' @param var.cluster [character] cluster variable.
-##' @param var.time [character] time variable.
+##' @param formula [formula] variables to stratify the residual variance (left hand side, like sex~1).
+##' @param var.time not used.
 ##' @param FCT.sigma [function] take as argument the model parameters, time, and design matrix.
 ##' Output the vector of residuals standard deviations.
 ##' @param dFCT.sigma [list of vectors] list whose elements are the first derivative of argument \code{FCT.sigma}. 
@@ -1015,7 +1031,6 @@ UN <- function(formula, var.time){
 ##' @param dFCT.rho [list of matrices] list whose elements are the first derivative of argument \code{FCT.rho}. 
 ##' @param d2FCT.rho [list of matrices] list whose elements are the second derivative of argument \code{FCT.rho} (no cross-terms).
 ##' @param init.rho [numeric vector] initial value for the correlation parameters.
-##' @param add.time not used.
 ##'
 ##' @return An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.
 ##'
@@ -1080,32 +1095,49 @@ UN <- function(formula, var.time){
 
 ## * CUSTOM (user-specified, code)
 ##' @export
-CUSTOM <- function(formula, var.time,
+CUSTOM <- function(formula = ~1, var.time,
                    FCT.sigma, dFCT.sigma = NULL, d2FCT.sigma = NULL, init.sigma,
                    FCT.rho, dFCT.rho = NULL, d2FCT.rho = NULL, init.rho, add.time){
 
-    if(is.null(formula)){
-        outCov <- .formulaStructure(~1, add.X = NULL, strata.X = FALSE, correlation = TRUE)
-    }else{
-        outCov <- .formulaStructure(formula, add.X = NULL, strata.X = FALSE, correlation = TRUE)
+
+    ## ** check input
+    ## *** formula
+    if(!inherits(formula,"formula")){
+        stop("Argument \'formula\' should be a formula. \n")
     }
 
+    ## *** var.time
+    if(!missing(var.time)){
+        if(any(inherits(var.time,"formula"))){ ## possible user mistake ID(~1,~1) instead of ID(list(~1,~1))
+            stop("Argument \'var.time\' should not be a formula. \n",
+                 "Consider using a list to collect the formula for the variance and correlation structure. \n")
+        }else{
+            warning("Argument \'var.time\' ignored with CUSTOM structure. \n")
+        }
+    }
+
+    ## ** identify strata variable and covariate variables
+    if(is.null(formula)){
+        outCov <- .formulaStructure(list(variance = ~1, correlation = ~1), correlation = TRUE)
+    }else{
+        outCov <- .formulaStructure(list(variance = formula, correlation = formula), correlation = TRUE)
+    }
+
+    ## ** create structure
     out <- list(call = match.call(),
                 name = data.frame(cluster = NA,
+                                  ordering = NA,
                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
                                   time = NA,
-                                  var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-                                  cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
+                                  variance = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
+                                  correlation = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
                                   stringsAsFactors = FALSE),
-                formula = list(var = outCov$formula.var,
-                               cor = outCov$formula.cor),
-                format.cortime = NA,
+                formula = list(variance = outCov$formula.var,
+                               correlation = outCov$formula.cor),
                 class = c(var = "CUSTOM", cor = "CUSTOM"))
+    attr(out$formula,"update.time") <- FALSE
 
-    ## param
-    ## if(!is.na(out$name$strata)){
-    ##     stop("CUSTOM structure cannot (yet?) handle strata. \n")
-    ## }
+    ## ** add user-specified structure
     if(!missing(FCT.sigma)){
         if(any(names(formals(FCT.sigma)) %in% c("p","n.time","X","...") == FALSE)){
             stop("Incorrect argument in \'FCT.sigma\': can be \"p\", \"n.time\", or \"X\". \n")
@@ -1162,56 +1194,97 @@ CUSTOM <- function(formula, var.time,
 }
 
 ## * helper
+## ** .initFormulaStructure
+.initFormulaStructure <- function(formula){
+
+    if(inherits(formula,"formula")){
+
+        formula <- list(variance = formula,
+                        correlation = formula,
+                        correlation.cross = formula)
+        
+    }else if(is.list(formula)){
+
+        if(any(sapply(formula,inherits,"formula")==FALSE)){
+            stop("When a list, each element of argument \'formula\' should be a formula. \n")
+        }
+        
+        if(any(duplicated(names(formula)))){
+            stop("Elements in the list specified by argument \'formula\' should not have duplicated names. \n",
+                 "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
+        }
+        
+        if(length(formula)==2){
+            
+            if(is.null(names(formula))){
+                names(formula) <- c("variance","correlation")
+            }else if(any(names(formula) %in% c("variance","correlation") == FALSE)){
+                stop("When a list of length 2, elements in the argument \'formula\' should be named \"variance\" or \"correlation\". \n",
+                     "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
+            }
+            formula$correlation.cross <- formula$correlation
+            
+        }else if(length(formula==3)){
+            
+            if(is.null(names(formula))){
+                names(formula) <- c("variance","correlation","correlation.cross")
+            }else if(any(names(formula) %in% c("variance","correlation","correlation.cross") == FALSE)){
+                stop("When a list of length 3, elements in the argument \'formula\' should be named \"variance\", \"correlation\", or \"correlation.cross\". \n",
+                     "Current names: \"",paste(names(formula),collapse ="\", \""),"\".\n")
+            }
+            
+        }else{
+            
+            stop("When a list, argument \'formula\' should have length 2 (variance, correlation) or 3 (variance, correlation, correlation.cross). \n")
+            
+        }
+        
+    }else{
+        
+        stop("Argument \'formula\' should be a formula or a list of formula for the variance and correlation structure. \n")
+        
+    }
+
+    return(formula)
+}
+
 ## ** .formulaStructure
 ##' @title Extract Variable From Formula For VCOV Structure
 ##' @description Extract the variables from the variance and correlation formula to be used to initialize the variance-covariance structure.
 ##' @noRd
 ##'
 ##' @param formula [list] A list with two formulas: one element called variance and a second one called correlation.
-##' @param var.time [character vector] additional covariates to be added to the variance and correlation structure.
+##' @param ls.time [list of length 2] additional covariate to be added to the variance and correlation structure.
 ##' @param correlation [logical] should a correlation structure be output? Otherwise no correlation parameter is considered.
 ##' If greater than 1 then all interaction terms are considered when having multiple variables, e.g. time:sex instead of time + sex.
 ##' 
 ##' @keywords internal
-.formulaStructure <- function(formula, var.time, correlation){
+.formulaStructure <- function(formula, ls.time, correlation){
 
-     ## *** add time
-     if(!missing(var.time) && !is.null(var.time)){
+    ## *** add time
+    if(!missing(ls.time) && !is.null(ls.time) && any(lengths(ls.time)>0)){
 
-        if(length(var.time$variance)>1 || length(var.time$correlation)>1){
+        if(any(lengths(ls.time)>1)){
             stop("Structure cannot handle multiple time variables. \n")
         }
 
-        ## add time to the variance structure
-        if(length(var.time$variance)==1){
-            if(var.time %in% all.vars(formula$variance)){
-                stop("The formula relative to the variance model in argument \'formula\' already contains the time variable \"",var.time,"\" specified in argument \'var.time\'. \n")
-            }else if(attr(var.time,"original") %in% all.vars(formula$variance)){
-                stop("The formula relative to the variance model in argument \'formula\' already contains the time variable \"",attr(var.time,"original"),"\" specified in argument \'var.time\'. \n")
-            }
-        
-            if(!is.null(attr(var.time,"original"))){
-                formula$variance <- stats::update(formula$variance, paste0("~.+",attr(var.time,"original")))
-            }else{
-                formula$variance <- stats::update(formula$variance, paste0("~.+",var.time))
-            }
-        }
+        ## add time to the each structure
+        for(iMoment in names(formula)){
 
-        ## add time to the correlation structure
-        if(length(var.time$correlation)==1){
-            if(var.time %in% all.vars(formula$correlation)){
-                stop("The formula relative to the correlation model in argument \'formula\' already contains the time variable \"",var.time,"\" specified in argument \'var.time\'. \n")
-            }else if(attr(var.time,"original") %in% all.vars(formula$correlation)){
-                stop("The formula relative to the correlation model in argument \'formula\' already contains the time variable \"",attr(var.time,"original"),"\" specified in argument \'var.time\'. \n")
+            ## skip when no model for this moment
+            if(is.null(formula[[iMoment]]) || length(ls.time[[iMoment]])==0){ next }
+            ## use original time variable when possible
+            if(!is.null(attr(ls.time[[iMoment]],"original"))){
+                ls.time[[iMoment]] <- attr(ls.time[[iMoment]],"original")
             }
-        
-            if(!is.null(attr(var.time,"original"))){
-                formula$correlation <- stats::update(formula$correlation, paste0("~.+",attr(var.time,"original")))
-            }else{
-                formula$correlation <- stats::update(formula$correlation, paste0("~.+",var.time))
+            ## check that the time variable is not already in the formula
+            if(ls.time[[iMoment]] %in% all.vars(formula[[iMoment]])){
+                stop("The formula relative to the ",iMoment," model in argument \'formula\' already contains the time variable \"",ls.time,"\" specified in argument \'ls.time\'. \n",
+                     ifelse(iMoment=="variance","Consider setting the argument \'heterogeneous\' to FALSE when creating the covariance structure. \n",""))
             }
+            formula[[iMoment]] <- stats::update(formula[[iMoment]], paste0("~.+",ls.time[[iMoment]]))
         }
-     }
+    }
 
     ## *** move from formula format to characters
     detail.formula <- lapply(formula, formula2var)
@@ -1221,80 +1294,77 @@ CUSTOM <- function(formula, var.time,
         stop("Incorrect argument \'formula\': there should be no special character, e.g. no |. \n")
     }
 
-    ## ** left hand side
-    if(!is.null(formula$correlation)){
-        ls.var.strata <- lapply(detail.formula, function(iDetail){iDetail$vars$response})
-        if(!identical(ls.var.strata$variance,ls.var.strata$correlation)){
-            stop("Incorrect argument \'formula\': strata variable differ between the correlation and variance structure. \n")
-        }
+    ## ** check same strata across all formulas (left hand side)
+    test.strata <- lapply(detail.formula, function(iDetail){sort(iDetail$vars$response)})
+    if(sum((!duplicated(test.strata))>1)){
+        stop("Incorrect argument \'formula\': strata variable differ between the ",paste(names(detail.formula)[which(!duplicated(test.strata))], collapse=", ")," structures. \n")
     }
-    var.strata <- detail.formula$vars$response$variance
+    var.strata <- detail.formula$variance$vars$response
     if(length(var.strata)==0){
         var.strata <- NULL
     }else if(length(var.strata)>1){
         stop("There should be at most one strata variable. \n")
     }
 
-    ## ** right hand side    
-    if(any(attr(stats::delete.response(stats::terms(formula$variance)),"order")>1)){
-        stop("Does not handle interaction(s) in the variance formula. \n")
-    }else if(!is.null(formula$correlation) && any(attr(stats::delete.response(stats::terms(formula$correlation)),"order")>1)){
-        stop("Does not handle interaction(s) in the correlation formula. \n")
+    ## ** right hand side
+    test.interaction <- sapply(formula, function(iMoment){
+        if(!is.null(formula$correlation)){
+            return(any(attr(stats::terms(formula$variance),"order")>1))
+        }else{
+            return(FALSE)
+        }
+    })
+    if(any(test.interaction)){
+        stop("Cannot handle interaction(s) in the ",paste(names(detail.formula)[test.interaction>0], collapse=", ")," structure. \n")
     }
 
-    ls.var.X <- list(variance = detail.formula$variance$vars$regressor,
-                     correlation = detail.formula$correlation$vars$regressor)
-    
+    ls.regressor <- lapply(detail.formula, function(iO){iO$vars$regressor})
+
     ## ** combine strata variable (left hand side) with covariates (right hand side)
+    out <- list(strata = var.strata,
+                name = list(variance = NULL, correlation = NULL),
+                formula = list(variance = NULL, correlation = NULL, correlation.cross = NULL)
+                )
+    
     ## *** variance
-    if(length(ls.var.X$variance)==0){
-        X.var <- NULL
+    if(length(ls.regressor$variance)==0){
         if(length(var.strata)==0){            
             if(attr(stats::terms(formula$variance),"intercept")){
-                formula.var <- ~1
+                out$formula$variance <- ~1
             }else{
-                formula.var <- ~0
+                out$formula$variance <- ~0
             }
         }else{
-            formula.var <- stats::as.formula(paste("~0+",var.strata))
+            out$name$variance <- var.strata
+            out$formula$variance <- stats::as.formula(paste("~0+",var.strata))
         }
     }else{
-        X.var <- unname(ls.var.X$variance)
         if(length(var.strata)==0){
-            formula.var <- stats::as.formula(paste("~",paste(ls.var.X$variance,collapse=":")))
+            out$name$variance <- unname(ls.regressor$variance)
+            out$formula$variance <- stats::as.formula(paste("~",paste(ls.regressor$variance,collapse=":")))
         }else{
-            formula.var <- stats::as.formula(paste("~0+",var.strata,"+ ",paste(c(ls.var.X$variance, var.strata),collapse=":")))            
+            out$name$variance <- c(unname(ls.regressor$variance),var.strata)
+            out$formula$variance <- stats::as.formula(paste("~0+",var.strata,"+ ",paste(c(ls.regressor$variance, var.strata),collapse=":")))            
         }
     }
 
     ## *** correlation
-    if(length(ls.var.X$correlation)==0){
-        X.cor <- NULL
-        if(correlation==FALSE){
-            formula.cor <- NULL
-        }else if(length(var.strata)==0){
-            formula.cor <- ~1
-        }else{
-            formula.cor <- stats::as.formula(paste("~0+",var.strata))
-        }
-    }else{
-        X.cor <- unname(ls.var.X$correlation)
-        if(correlation==FALSE){
-            formula.cor <- NULL
-            if(!class.formula){
-                warning("Variable(s) \"",paste(ls.var.X$correlation, collapse = "\", \""),"\" in the correlation structure are ignored. \n")
-            }
-        }else if(length(var.strata)==0){
-            if(correlation>1){
-                formula.cor <- stats::as.formula(paste("~0+",paste(ls.var.X$correlation,collapse=":")))
+    for(iMoment in c("correlation","correlation.cross")){ ## iMoment <- "correlation.cross"
+            
+        if(correlation && !is.null(formula[[iMoment]]) && length(ls.regressor[[iMoment]])==0){
+            if(length(var.strata)==0){
+                out$formula[[iMoment]] <- ~1
             }else{
-                formula.cor <- stats::as.formula(paste("~0+",paste(ls.var.X$correlation,collapse="+")))
+                out$name$correlation <- union(out$name$correlation,var.strata)
+                out$formula[[iMoment]] <- stats::as.formula(paste("~0+",var.strata))
             }
-        }else{
-            if(correlation>1){
-                formula.cor <- stats::as.formula(paste("~0 + ",paste(c(ls.var.X$correlation, var.strata), collapse=":")))
+        }else if(correlation && !is.null(formula[[iMoment]])){
+            if(length(var.strata)==0){
+                out$name$correlation <- union(out$name$correlation,unname(ls.regressor[[iMoment]]))
+                out$formula[[iMoment]] <- stats::as.formula(paste("~0+",paste(ls.regressor[[iMoment]],collapse="+")))
             }else{
-                formula.cor <- stats::as.formula(paste("~0 + (",paste(ls.var.X$correlation, collapse="+"),"):",var.strata))
+                out$name$correlation <- union(out$name$correlation,c(unname(ls.regressor[[iMoment]]),var.strata))
+                out$formula[[iMoment]] <- stats::as.formula(paste("~0 + (",paste(ls.regressor[[iMoment]], collapse="+"),"):",var.strata))
                 ## NOTE: wrapping the non-strata variable in () ensures proper ordering of the column names (i.e. strata variable at the end)
                 ##' df <- data.frame(day = c(1, 1, 2, 2, 1, 1, 2, 2),
                 ##'                  sex = c("1", "1", "1", "1", "0", "0", "0", "0"),
@@ -1306,12 +1376,6 @@ CUSTOM <- function(formula, var.time,
     }
 
     ## ** export
-    out <- list(strata = var.strata,
-                X.var = X.var,
-                X.cor = X.cor,
-                formula.var = formula.var,
-                formula.cor = formula.cor
-                )
     return(out)
 }
 

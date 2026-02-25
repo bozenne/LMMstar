@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: nov 21 2025 (16:18) 
 ## Version: 
-## Last-Updated: feb 10 2026 (15:52) 
+## Last-Updated: feb 25 2026 (18:16) 
 ##           By: Brice Ozenne
-##     Update #: 26
+##     Update #: 44
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -19,7 +19,7 @@
 ##' @export
 time.ID <- function(x, ...){
     out <- x$name$time
-    attr(out,"format") <- list(var = "orignal", cor = "original") ## format for the time variables (numeric/factor/original format) 
+    attr(out,"format") <- list(variance = "original", correlation = "original") ## format for the time variables (numeric/factor/original format) 
     return(out)
 }
 
@@ -27,7 +27,7 @@ time.ID <- function(x, ...){
 ##' @export
 time.IND <- function(x, ...){
     out <- x$name$time
-    attr(out,"format") <- list(var = "factor", cor = "original") ## format for the time variables (numeric/factor/original format) 
+    attr(out,"format") <- list(variance = "factor", correlation = "original") ## format for the time variables (numeric/factor/original format) 
     return(out)
 }
 
@@ -35,10 +35,9 @@ time.IND <- function(x, ...){
 ##' @export
 time.CS <- function(x, ...){
     out <- x$name$time
-    attr(out,"format") <- list(var = "factor", cor = "factor") ## format for the time variables (numeric/factor/original format) 
-    if(any(!is.na(x$name$cor[[1]]))){ ## add format of the sub-blocks
-        format.cor <- attr(time(do.call(x$cross, args = list(formula=reformulate(termlabels="1")))), "format")
-        attr(out,"format") <- mapply(attr(out,"format"), format.cor, FUN = union, SIMPLIFY = FALSE)
+    attr(out,"format") <- list(variance = "factor", correlation = "factor") ## format for the time variables (numeric/factor/original format)    
+    if(!is.na(x$class["correlation.cross"])){ ## add format of the sub-blocks
+        attr(out,"format")$correlation.cross <- attr(time(do.call(x$class["correlation.cross"], args = list(formula=reformulate(termlabels="1")))), "format")$correlation
     }
     return(out)
 }
@@ -47,17 +46,16 @@ time.CS <- function(x, ...){
 ##' @export
 time.EXP <- function(x, ...){
     out <- x$name$time
-    attr(out,"format") <- list(var = "factor", cor = "numeric") ## format for the time variables (numeric/factor/original format)
-    if(any(!is.na(x$name$cor[[1]]))){ ## add format of the sub-blocks
-        format.cor <- attr(time(do.call(x$cross, args = list(formula=reformulate(termlabels="1")))), "format")
-        attr(out,"format") <- mapply(attr(out,"format"), format.cor, FUN = union, SIMPLIFY = FALSE)
+    attr(out,"format") <- list(variance = "factor", correlation = "numeric") ## format for the time variables (numeric/factor/original format)
+    if(!is.na(x$class["correlation.cross"])){ ## add format of the sub-blocks
+        attr(out,"format")$correlation.cross <- attr(time(do.call(x$class["correlation.cross"], args = list(formula=reformulate(termlabels="1")))), "format")$correlation
     }
     return(out)
 }
 
 ## * time.TOEPLITZ
 ##' @export
-time.TOEPLITZ <- time.CS
+time.TOEPLITZ <- time.EXP
 
 ## * time.UN
 ##' @export
@@ -67,7 +65,7 @@ time.UN <- time.CS
 ##' @export
 time.CUSTOM <- function(x, ...){
     out <- x$name$time
-    attr(out,"format") <- list(var = "orignal", cor = "original") ## format for the time variables (numeric/factor/original format) 
+    attr(out,"format") <- list(variance = "original", correlation = "original") ## format for the time variables (numeric/factor/original format) 
     return(out)
 }
 

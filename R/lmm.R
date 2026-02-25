@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: Feb 13 2026 (15:44) 
+## Last-Updated: feb 16 2026 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 3289
+##     Update #: 3317
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,7 +292,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     
     dfNNA.Utime <- data[!duplicated(data$XXtimeXX),c("XXtimeXX","XXtime.indexXX")]
     time.matchNNA <- match(U.time,dfNNA.Utime$XXtimeXX)
-    out$time <- list(n = length(U.time), levels = U.time, index = dfNNA.Utime$XXtime.indexXX[time.matchNNA], var = var.time)
+    out$ordering <- list(n = length(U.time), levels = U.time, index = dfNNA.Utime$XXtime.indexXX[time.matchNNA], var = var.time)
 
     dfNNA.Ustrata <- data[!duplicated(data$XXstrataXX),c("XXstrataXX","XXstrata.indexXX")]
     strata.matchNNA <- match(U.strata,dfNNA.Ustrata$XXstrataXX)
@@ -676,9 +676,9 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
                 }
             }
             if(!is.na(structure$name$strata)){
-                if(!is.na(var.strata) && !identical(as.character(structure$name$strata),as.character(detail.repetition$var$strata))){
+                if(!is.na(var.strata) && !identical(as.character(structure$name$strata),as.character(detail.repetition$vars$response))){
                     stop("Inconsistency between the strata defined via the \'structure\' and the \'repetition\' argument. \n",
-                         "\"",paste(structure$name$strata, collapse = "\" \""),"\" vs. \"",paste(detail.repetition$var$strata, collapse = "\" \""),"\" \n")
+                         "\"",paste(structure$name$strata, collapse = "\", \""),"\" vs. \"",paste(detail.repetition$vars$response, collapse = "\", \""),"\" \n")
                 }else if(is.na(var.strata)){
                     var.strata <- structure$name$strata
                 }
@@ -1151,8 +1151,8 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
 
     ## ** check that time and cluster are appropriately defined with respect to structure
     if(all(is.na(var.cluster.original)) && structure %in% c("CS","TOEPLITZ","UN")){
-            stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
-                 "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
+        stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
+             "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
     if(all(is.na(var.time.original)) && structure %in% c("IND","TOEPLITZ","UN")){
         stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
@@ -1190,32 +1190,25 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
         structure$formula$correlation <- NULL
         structure$class$correlation <- NA
     }
-browser()
-    if(inherits(structure,"RE")){ ## special case with random effects        
-        structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
-    }else{
-        structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, n.time = n.time)
-    }
+
+    structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
 
     
     ## ** Sanity checks
-browser()
+
     ## *** Variability within cluster (for clusters with more than a single value)
     if(!is.null(structure$formula$cor)){
-        if(all(table(data$XXcluster.indexXX)<2)){
+        ## exclude lines with missing outcome data
+        dataNNA <- data[!is.na(data[[var.outcome]]),c("XXcluster.indexXX",var.outcome)]
+        nObs.cluster <- table(dataNNA$XXcluster.indexXX)
+        if(all(nObs.cluster<2)){
             warning("Single observation per cluster: will not be able to estimate correlation parameters. \n")
         }else{
-            check <- FALSE
-            for(iC in 1:n.cluster){ ## iC <- 1
-                iData <- data[data$XXcluster.indexXX==iC,var.outcome]
-                if(length(iData)==1 || all(is.na(iData))){
-                    next
-                }else if(max(iData, na.rm = TRUE)-min(iData, na.rm = TRUE)>1e-12){
-                    check <- TRUE
-                    break
-                }
-            }
-            if(check == FALSE){
+            ## exclude clusters with single observation
+            dataNNA.red <- dataNNA[dataNNA$XXcluster.indexXX %in% which(nObs.cluster>1),,drop=FALSE]
+            Mrange <- do.call(rbind,tapply(dataNNA.red[[var.outcome]],dataNNA.red$XXcluster.indexXX, range,
+                                           simplify = FALSE))
+            if(all(Mrange[,2]-Mrange[,1]<1e-12)){
                 warning("Constant outcome values within cluster. \n")
             }
         }
