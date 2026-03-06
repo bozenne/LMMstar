@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: feb  9 2026 (09:49) 
+## Last-Updated: mar  6 2026 (15:48) 
 ##           By: Brice Ozenne
-##     Update #: 2519
+##     Update #: 2573
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,22 +53,10 @@
 ## * skeleton.ID
 .skeleton.ID <- function(structure, data, indexData = NULL, options = NULL){
 
-    ## ** prepare
-    if(is.null(options)){
-        options <- LMMstar.options()
-    }
+    ## ** initialize (not use by LMMstar, only if direct call from the user like in the examples of the documentation)
     if(is.null(indexData)){
         indexData <- .extractIndexData(data = data, structure = structure)
     }
-    U.cluster <- indexData$U.cluster
-    U.time <- indexData$U.time
-    U.strata <- indexData$U.strata
-    n.strata <- length(U.strata)
-    
-    index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
-    index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
-    index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
-
     if(is.null(structure$var) && is.null(structure$cor)){
         outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = options$drop.X, sep = options$sep["lp"])
         structure$xfactor <- outDesign$xfactor
@@ -76,14 +64,16 @@
         structure$cor <- outDesign$cor
     }
 
-    ## **  param
+    ## ** prepare
+    if(is.null(options)){
+        options <- LMMstar.options()
+    }
+    U.strata <- indexData$U.strata
+    
+    ## **  variance parameters
     structure <- .skeletonSigma(structure, U.strata = U.strata)
     structure <- .skeletonK(structure, U.strata = U.strata, sep = options$sep[c("k.cov","k.strata")])
-    structure <- .skeletonRho(structure, data = NULL,
-                              U.cluster = U.cluster, index.cluster = index.cluster,
-                              U.time = U.time, index.clusterTime = index.clusterTime, 
-                              U.strata = U.strata, index.clusterStrata = index.clusterStrata,
-                              sep = options$sep[c("lp","rho.name","rho.strata")])
+
 
     ## ** export
     structure$param <- structure$param[order(structure$param$index.strata),,drop=FALSE]
@@ -96,19 +86,142 @@
 .skeleton.IND <- .skeleton.ID
 
 ## * skeleton.CS
-.skeleton.CS <- .skeleton.ID
+.skeleton.CS <- function(structure, data, indexData = NULL, options = NULL){
+
+
+    ## ** initialize (not use by LMMstar, only if direct call from the user like in the examples of the documentation)
+    if(is.null(indexData)){
+        indexData <- .extractIndexData(data = data, structure = structure)
+    }
+    if(is.null(structure$var) && is.null(structure$cor)){
+        outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = options$drop.X, sep = options$sep["lp"])
+        structure$xfactor <- outDesign$xfactor
+        structure$var <- outDesign$var
+        structure$cor <- outDesign$cor
+    }
+
+
+    ## ** prepare
+    if(is.null(options)){
+        options <- LMMstar.options()
+    }
+    U.cluster <- indexData$U.cluster
+    U.time <- indexData$U.time
+    U.strata <- indexData$U.strata
+    n.strata <- length(U.strata)
+
+    index.clusterTime <- indexData$index.clusterTime ## list of index relative to the time at which the observations are made within cluster
+    index.clusterStrata <- indexData$index.clusterStrata ## vector of index relative to which strata each cluster belong to
+    index.cluster <- indexData$index.cluster ## list of positions of the observation belonging to each cluster in the dataset
+
+    ## **  variance parameters
+    structure <- .skeletonSigma(structure, U.strata = U.strata)
+    structure <- .skeletonK(structure, U.strata = U.strata, sep = options$sep[c("k.cov","k.strata")])
+
+    param.sigma <- structure$param[structure$param$type=="sigma","name"]
+    strataIndex.sigma <- structure$param[structure$param$type=="sigma","index.strata"]
+    param.k <- structure$param[structure$param$type=="k","name"]
+
+    ## **  correlation parameters
+    ## correlation covariates that are not time nor strata
+    name.cov <- na.omit(setdiff(structure$name$cor[[1]], c(structure$name$strata,structure$name$time)))
+
+    ## *** identify unique pairs of linear predictors
+    XpairPattern <- .pairPatternX(structure$cor,
+                                  name.cov = name.cov, name.time = structure$name$time,
+                                  U.cluster = U.cluster, index.cluster = index.cluster,
+                                  U.strata = U.strata, index.clusterStrata = index.clusterStrata)
+
+    ## *** between-block (pairs with distinct linear predictors)
+    if(NROW(XpairPattern$lpB) > 0){ 
+        outCrossBlock <- switch(structure$class["correlation.cross"],
+                                ID = .skeletonRho.ID(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                CS = .skeletonRho.CS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                TOEPLITZ = .skeletonRho.TOEPLITZ(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                DUN = .skeletonRho.DUN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                UN = .skeletonRho.UN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep)
+                                )
+        if(!is.null(outCrossBlock$nesting)){
+            structure$nesting <- outCrossBlock$nesting
+        }
+    }else{
+        outCrossBlock <- list(code = NULL,
+                              level = NULL,
+                              strata = NULL,
+                              nesting = NULL,
+                              constraint = NULL,
+                              indexObs = NULL)
+    }
+
+    ## *** within-block (pairs with same linear predictors)
+    if(NROW(XpairPattern$lpW) > 0){ 
+        outDiagBlock <- switch(structure$class["correlation"],
+                               ID = .skeletonRho.ID(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               CS = .skeletonRho.CS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               TOEPLITZ = .skeletonRho.TOEPLITZ(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               DUN = .skeletonRho.DUN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               UN = .skeletonRho.UN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep)
+                               )
+    }else{
+        outDiagBlock <- list(code = NULL,
+                             level = NULL,
+                             strata = NULL,
+                             nesting = NULL,
+                             constraint = NULL,
+                             indexObs = NULL)
+    }
+
+    ## ***  retrieve k
+    if(length(param.k)>0){
+        ## from linear predictor (variance) to k parameter
+        lp2param.k <- structure$param$name[match(rownames(structure$var$lp2X),structure$param$code)]
+        lp2param.k[lp2param.k %in% param.sigma] <- NA
+        
+        ## from observation used to create the correlation parameter to k parameter
+        k.xW <- lapply(outDiagBlock$indexObs, function(iM){lp2param.k[structure$var$lp[iM[,1]]]})
+        k.yW <- lapply(outDiagBlock$indexObs, function(iM){lp2param.k[structure$var$lp[iM[,2]]]})
+        
+        k.xB <- lapply(outCrossBlock$indexObs, function(iM){lp2param.k[structure$var$lp[iM[,1]]]})
+        k.yB <- lapply(outCrossBlock$indexObs, function(iM){lp2param.k[structure$var$lp[iM[,2]]]})
+    }
+    
+    ## ***  collect    
+    code.rho <- unname(c(outDiagBlock$code, outCrossBlock$code))
+    level.rho <- unname(c(outDiagBlock$level, outCrossBlock$level))
+    strata.rho <- unname(c(outDiagBlock$strata, outCrossBlock$strata))
+
+    structure.rho <- data.frame(name = paste0("rho",level.rho),
+                                index.strata = strata.rho,
+                                type = rep("rho",length=length(level.rho)),
+                                constraint = NA_real_,
+                                level = level.rho,
+                                code = NA,
+                                sigma = param.sigma[match(strata.rho,strataIndex.sigma)],
+                                k.x = NA,
+                                k.y = NA,                                  
+                                stringsAsFactors = FALSE)
+    structure.rho$code <- code.rho
+    if("k" %in% structure$param$type){
+        structure.rho$k.x <- c(k.xW, k.xB)
+        structure.rho$k.y <- c(k.yW, k.yB)
+    }
+    browser()
+    ## *** export
+    rownames(structure.rho) <- NULL
+    return(rbind(structure$param, structure.rho))
+}
 
 ## * skeleton.RE
-.skeleton.RE <- .skeleton.ID
+.skeleton.RE <- .skeleton.CS
 
 ## * skeleton.TOEPLITZ
-.skeleton.TOEPLITZ <- .skeleton.ID
+.skeleton.TOEPLITZ <- .skeleton.CS
 
 ## * skeleton.UN
-.skeleton.UN <- .skeleton.ID
+.skeleton.UN <- .skeleton.CS
 
 ## * skeleton.EXP
-.skeleton.EXP <- .skeleton.ID
+.skeleton.EXP <- .skeleton.CS
 
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL, options = NULL){

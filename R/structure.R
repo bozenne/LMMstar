@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: feb 18 2026 (17:23) 
+## Last-Updated: mar  6 2026 (11:17) 
 ##           By: Brice Ozenne
-##     Update #: 1897
+##     Update #: 1915
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -69,7 +69,8 @@ ID <- function(formula = ~1){
 
     ## ** check input
     ## *** formula
-    if(!inherits(formula,"formula")){
+    inherit.formula.arg <- inherits(formula,"formula")
+    if(!inherit.formula.arg){
         stop("Argument \'formula\' should be a formula. \n")
     }
     
@@ -93,7 +94,8 @@ ID <- function(formula = ~1){
                                correlation = NULL,
                                correlation.cross = NULL),
                 class = c(variance = "ID", correlation = NA, correlation.cross = NA))
-
+    attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
+    
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("ID",class(out))
@@ -176,7 +178,8 @@ IND <- function(formula = ~1, heterogeneous =  TRUE){
 
     ## ** check input
     ## *** formula
-    if(!inherits(formula,"formula")){
+    inherit.formula.arg <- inherits(formula,"formula")
+    if(!inherit.formula.arg){
         stop("Argument \'formula\' should be a formula. \n")
     }
 
@@ -208,7 +211,8 @@ IND <- function(formula = ~1, heterogeneous =  TRUE){
                                correlation.cross = NULL),
                 class = c(variance = "IND", correlation = NA, correlation.cross = NA))
     attr(out$formula,"update.time") <- update.time
-
+    attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
+    
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("IND",class(out))
@@ -367,7 +371,8 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
 
     ## ** normalize input    
     ## *** formula
-    if(inherits(formula,"formula")){
+    inherit.formula.arg <- inherits(formula,"formula")
+    if(inherit.formula.arg){
         formula <- list(variance = update(formula,~1), ## by default CS structure ignores covariate for the variance model
                         correlation = formula,
                         correlation.cross = formula)
@@ -410,7 +415,7 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
         if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
     }else{
         time <- NA
-        update.time <- c(variance = heterogeneous,
+        update.time <- c(variance = heterogeneous & inherit.formula.arg, ## only automatically add time if single formula and heterogeneous
                          correlation = FALSE,
                          correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
         ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
@@ -427,7 +432,6 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
     }
 
     if(update.time["variance"]){outCov$formula$variance <- formula$variance}
-    if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
     if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
 
     ## ** create structure
@@ -445,6 +449,7 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
                 twin = twin,
                 class = c(variance = "IND", correlation = "CS", correlation.cross = cross))
     attr(out$formula,"update.time") <- update.time
+    attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
 
     ## ** export
     class(out) <- append("structure",class(out))
@@ -755,6 +760,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
 
     ## ** normalize input    
     ## *** formula
+    inherit.formula.arg <- inherits(formula,"formula")
     formula <- .initFormulaStructure(formula)    
 
     ## *** heterogeneous
@@ -791,7 +797,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
         if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
     }else{
         time <- NA
-        update.time <- c(variance = heterogeneous,
+        update.time <- c(variance = heterogeneous & inherit.formula.arg, ## only automatically add time if single formula and heterogeneous
                          correlation = TRUE,
                          correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
         ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
@@ -826,6 +832,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
                 twin = twin,
                 class = c(variance = "IND", correlation = "TOEPLITZ", correlation.cross = cross))
     attr(out$formula,"update.time") <- update.time
+    attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
     
     ## ** export
     class(out) <- append("structure",class(out))
@@ -867,6 +874,7 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
 
     ## ** normalize input    
     ## *** formula
+    inherit.formula.arg <- inherits(formula,"formula")
     formula <- .initFormulaStructure(formula)    
 
     ## *** heterogeneous
@@ -897,7 +905,7 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
         if(cross %in% c("TOEPLITZ","DUN","UN")){ls.time$correlation.cross <- time}    
     }else{
         time <- NA
-        update.time <- c(variance = heterogeneous,
+        update.time <- c(variance = heterogeneous & inherit.formula.arg, ## only automatically add time if single formula and heterogeneous
                          correlation = TRUE,
                          correlation.cross = cross %in% c("TOEPLITZ", "DUN", "UN")) 
         ls.time <- list(variance = NULL, correlation = NULL, correlation.cross = NULL)        
@@ -932,7 +940,8 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
                 twin = twin,
                 class = c(variance = "IND", correlation = "UN", correlation.cross = cross))
     attr(out$formula,"update.time") <- update.time
-        
+    attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
+            
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("UN",class(out))
@@ -1010,7 +1019,6 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
 
 ## * AR1 (documentation)
 ## special but famous case of exponential?
-
 ## * LV (latent variable, documentation)
 ## * ANTE (ante-dependence, documentation)
 

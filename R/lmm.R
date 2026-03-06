@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: feb 16 2026 (16:54) 
+## Last-Updated: mar  6 2026 (13:46) 
 ##           By: Brice Ozenne
-##     Update #: 3317
+##     Update #: 3346
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1123,7 +1123,7 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     var.cluster.original <- attr(var.cluster,"original")
     var.time.original <- attr(var.time,"original")
     var.strata.original <- attr(var.strata,"original")
-    structure1time2ID <- c("CS","RE","TOEPLITZ","UN","EXP") ## simplify structures to ID when a single timepoint
+    structure1time2IND <- c("CS","RE","TOEPLITZ","UN","EXP") ## simplify structures to ID when a single timepoint
     
     ## ** initialize structure when not specified
     if(missing(structure) || is.null(structure)){
@@ -1182,15 +1182,48 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
             message("Remove strata variable \"",paste(var.strata.original[test.uniqueStrata==1], collapse = "\", \""),"\" as it takes a single distinct value. \n")
         }
     }
-    
-    if(n.time==1 && (structure$class %in% structure1time2ID || (structure$class == "IND" && (all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original))))){
-        message("Single timepoint: move from ",structure$class," to ID structure. \n")
-        structure$call[[1]] <- parse(text="ID")
-        structure$name$correlation <- NA
-        structure$formula$correlation <- NULL
-        structure$class$correlation <- NA
+
+    ## simplify structure when a single timepoint: remove correlation structure or variance structure (single timepoint --> no need the dependence in time)
+    if(n.time==1){
+        original.class <- NULL  ## handle the case where CS --> IND --> ID
+        if(structure$class["correlation"] %in% structure1time2IND){
+            original.class <- structure$class["correlation"]
+            structure$call[[1]] <- parse(text="IND")
+            structure$name$correlation <- NA
+            structure$formula$correlation <- NULL
+            structure$class$correlation <- NA
+            class(structure)[1] <- "IND"
+        }
+        if(is.na(structure$class["correlation"]) && structure$class["variance"]=="IND" && (all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original))){
+            if(!is.null(original.class)){original.class <- "IND"}
+            structure$call[[1]] <- parse(text="ID")
+            structure$name$variance <- NA
+            structure$formula$variance <- NULL
+            structure$class["variance"] <- "ID"
+            class(structure)[1] <- "ID"
+        }
+        if(!is.null(original.class)){
+            attr(structure$formula,"update.time")[] <- FALSE
+            message("Single timepoint: move from ",original.class," to ",structure$class["variance"]," structure. \n")
+        }
+        
     }
 
+    ## remove variables from the variance model if redondant with time
+    if(attr(structure$formula,"inherit.formula.arg") && attr(structure$formula,"update.time")["variance"] && sum(!is.na(structure$name$variance[[1]]))>0){
+        test.redondant <- sapply(structure$name$variance[[1]], function(iVar){
+                iMap <- unique(data[c(iVar,var.time)])
+                all(iMap[[iVar]][match(data[[var.time]], iMap[[var.time]])] == data[[iVar]])
+        })
+        if(any(test.redondant)){
+            structure$name$variance[[1]] <- setdiff(structure$name$variance[[1]], names(test.redondant)[test.redondant])
+            if(length(structure$name$variance[[1]])==0){structure$name$variance[[1]] <- NA}
+            structure$formula$variance <- stats::update(structure$formula$variance, stats::reformulate(paste0("-",paste(names(test.redondant)[test.redondant], collapse = "-"))))
+        }
+    }
+    attr(structure$formula,"inherit.formula.arg") <- NULL
+
+    ## update structure with cluster, ordering, and strata variables
     structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
 
     

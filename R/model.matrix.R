@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: feb 25 2026 (18:25) 
+## Last-Updated: mar  6 2026 (10:28) 
 ##           By: Brice Ozenne
-##     Update #: 3539
+##     Update #: 3550
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -330,7 +330,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     
     structure.CUSTOM <- inherits(structure,"CUSTOM")
     structure.timeFormat <- attr(time(structure),"format")
-    
+
     grid.timeFormat <- do.call(rbind,lapply(names(structure.timeFormat), function(iName){data.frame(moment = iName, format = structure.timeFormat[[iName]])}))
     rownames(grid.timeFormat) <- grid.timeFormat$moment
     grid.timeFormat$moment <- factor(grid.timeFormat$moment, levels = c("variance","correlation","correlation.cross"), labels = c("variance","correlation","correlation"))
@@ -385,7 +385,6 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             iX <- iData[,iVars,drop=FALSE]                    
         }else if(!is.null(iFormula)){
             if(test.newdata == FALSE){ ## model fit (structure)
-                browser()
                 iX <- .model.matrix_regularize(iFormula, data = iData, augmodel = TRUE, type = iMoment, drop.X = drop.X)                
                 attr(iX, "original.colnames") <- colnames(iX)                
             }else{ ## newdata
@@ -789,7 +788,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
     rmX <- unlist(ls.rmX)
 
-    if(length(rmX)>0){
+    if(length(rmX)>0){        
         X.old <- X
         test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
         X <- X.old[,test.keep,drop=FALSE]
