@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 30 2025 (14:34) 
+## Last-Updated: mar 13 2026 (16:31) 
 ##           By: Brice Ozenne
-##     Update #: 926
+##     Update #: 984
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -53,12 +53,13 @@
                            var = Upattern.var,
                            cor = NA,
                            index.strata = NA,
-                           n.time = unname(lengths(pattern2lp.var)),
-                           n.cluster = NA,
+                           n.time = NA,
+                           index.cluster = NA,
                            param  = NA)
 
     Upattern$index.strata <- unname(tapply(index.clusterStrata, pattern.var, unique)[Upattern$var])
-    Upattern$n.cluster <- unname(table(pattern.var)[Upattern$var])
+    Upattern$index.cluster <- unname(tapply(U.cluster, pattern.var, unique)[Upattern$var])
+    Upattern$n.time <- lengths(pattern2lp.var) ## some patterns may be the same but for different combinations of times (e.g. CS for 3 timepoints but could be 1:3 or 2:4)
 
     if(NCOL(X.var)>0){
         ## find param with non-0 value in the design matrix
@@ -69,34 +70,23 @@
         Upattern$param <- vector(mode = "list", length = n.pattern.var)
     }
 
-    ## ** characterize each pattern
-    if(NCOL(X.var)>0){
-        Xpattern.var <- lapply(Upattern$var,function(iP){ ## iP <- Upattern$name[1]
-            iC.all <- which(pattern.var==iP)
-            iC <- iC.all[1]
-            iX <- X.var[index.cluster[[iC]],,drop=FALSE]
-            iIndex.param <- which(colSums(abs(iX))!=0)
-            iParam.k <- intersect(names(iIndex.param),param.k)
-            iParam.sigma <- intersect(names(iIndex.param),param.sigma)
-        
-            attr(iX,"index.cluster") <- iC.all
-            attr(iX,"index.strata") <- unname(index.clusterStrata[iC])
-            attr(iX,"param") <- names(iIndex.param)
-            attr(iX,"Mindicator.param") <- stats::setNames(lapply(iIndex.param,function(iCol){tcrossprod(iX[,iCol],rep(1,NROW(iX))) + t(tcrossprod(iX[,iCol],rep(1,NROW(iX))))}),
-                                                           names(iIndex.param))
-            ## attr(iX,"indicator.param") <- lapply(attr(iX,"Mindicator.param"),function(iM){which(iM>0)})
-        
-            return(iX)
+    ## ** characterize each variance pattern
+    if(length(param.k)>0){
+        Xpattern.var <- lapply(1:NROW(Upattern),function(iP){ ## iP <- Upattern$name[1]
+            iC <- Upattern$index.cluster[[iP]][1]
+            iParam.k <- intersect(param.k,Upattern$param[[iP]])
+            iX <- X.var[index.cluster[[iC]],iParam.k,drop=FALSE]
+            iN.time <- Upattern$n.time[[iP]]
+            iTimeParam.k <- apply(iX, MARGIN = 1, function(iRow){c(names(iRow)[which(iRow==1)],NA)[1]})
+
+            iOut <- array(NA, dim = c(iN.time,iN.time,2))
+            iOut[,,1] <- tcrossprod(1:iN.time,rep(1,iN.time))
+            iOut[,,1][] <- iTimeParam.k[iOut[,,1][]]
+            iOut[,,2] <- t(iOut[,,1])
+            return(iOut)
         })
-        
     }else{
-        Xpattern.var <- lapply(Upattern$var, function(iP){
-            iC.all <- which(pattern.var==iP)
-            iC <- iC.all[1]
-            iM <- matrix(nrow = length(index.cluster[[iC]]), ncol = 0)
-            attr(iM,"index.cluster") <- iC.all
-            return(iM)
-        })
+        Xpattern.var <- NULL
     }
 
     ## ** export
@@ -111,8 +101,8 @@
 .findUpatterns.IND <- .findUpatterns.ID
 
 
-## * .findUpatterns.UN
-.findUpatterns.UN <- function(structure, 
+## * .findUpatterns.CS
+.findUpatterns.CS <- function(structure, 
                               index.clusterTime, U.time,
                               index.cluster, U.cluster,
                               index.clusterStrata, U.strata,
@@ -125,13 +115,16 @@
                                          index.clusterStrata = index.clusterStrata, U.strata = U.strata)
     UpatternVar <- Upatterns.init$Upattern
     Xpattern.var <- Upatterns.init$var$Xpattern
-    
+    if(sum("rho" %in% structure$param$type & is.na(structure$param$constraint)) == 0){return(Upatterns.init)} ## no 'free' correlation parameter
+
     ## ** identify unique cor patterns
+    n.cluster <- length(U.cluster)
     X.cor <- structure$cor$X
     structure.param <- structure$param[structure$param$type=="rho",]
-    param.rho <- structure.param$name[is.na(structure.param$constraint)] ## index.level=0 indicates correlation fixed to 0, i.e. not a real parameter (e.g. crossed random effects)
-    n.cluster <- length(U.cluster)
-    if(length(param.rho)==0){return(Upatterns.init)}
+    ## from linear predictor to correlation parameter
+    lp2rho <- do.call(c,lapply(1:NROW(structure.param$name), function(iRow){ ## iRow <- 1
+        stats::setNames(rep(structure.param$name[iRow], length(structure.param$code[[iRow]])), as.character(structure.param$code[[iRow]]))
+    }))
 
     ## *** group clusters by linear predictor patterns
     ## *** (to later work on a single representative cluster per pattern)
@@ -154,7 +147,6 @@
 
     ## *** form all pairs of observations within representative cluster
     ## *** and deduce correlation parameter
-    
     ## identify all pairs
     pattern.pairwise <- do.call(rbind,lapply(indexPatternCluster1.cor[nobs.Upattern.cor>1], function(iC){ ## iC <- 1
         iPair <- base::t(unorderedPairs(1:length(index.cluster[[iC]]), distinct = TRUE))
@@ -165,79 +157,39 @@
                           index.y = iPair[,2],
                           obs.x = index.cluster[[iC]][iPair[,1]],
                           obs.y = index.cluster[[iC]][iPair[,2]])
-        iDf$lp.x <- lp.cor[iDf$obs.x]
-        iDf$lp.y <- lp.cor[iDf$obs.y]
+        iDf$lp <- paste(lp.cor[iDf$obs.x], lp.cor[iDf$obs.y], sep=sep["rho.name"])
         return(iDf)
     }))
     rownames(pattern.pairwise) <- NULL
-        
-    ## matrix converting the pair of linear predictors into correlation parameters
-    M.lp2rho <- matrix(as.character(NA), nrow = n.lp.cor, ncol = n.lp.cor)
-    for(iR in 1:NROW(structure.param)){
-        M.lp2rho[structure.param$lp.x[[iR]] + n.lp.cor*(structure.param$lp.y[[iR]]-1)] <- structure.param$name[[iR]]
-        M.lp2rho[structure.param$lp.y[[iR]] + n.lp.cor*(structure.param$lp.x[[iR]]-1)] <- structure.param$name[[iR]]
-    }
-    ## convert linear predictor into correlation parameter
-    pattern.pairwise$name <- M.lp2rho[pattern.pairwise$lp.x + n.lp.cor*(pattern.pairwise$lp.y-1)]
-
-    ## remove correlation parameters fixed to 0 (e.g. crossed random effects)
-    constraint.pairwise <- pattern.pairwise[pattern.pairwise$name %in% setdiff(structure.param$name,param.rho),,drop=FALSE]
-    pattern.pairwise <- pattern.pairwise[pattern.pairwise$name %in% param.rho,,drop=FALSE]
-    ## Upattern.pairwise <- pattern.pairwise[!duplicated(pattern.pairwise[,c("pattern","name")]),]
+    pattern.pairwise$param.rho <- lp2rho[pattern.pairwise$lp]
 
     ## *** summarize correlation patterns
     UpatternCor <- data.frame(name = NA,
                               var = NA,
                               cor = Upattern.cor,
-                              index.strata = unname(index.clusterStrata[indexPatternCluster1.cor]),
-                              n.time = unname(nobs.Upattern.cor),
-                              n.cluster = unname(lengths(ls.indexPatternCluster.cor)),
+                              index.strata = NA,
+                              n.time = NA,
+                              index.cluster = NA,
                               param = NA)
+    UpatternCor$index.strata <- unname(tapply(index.clusterStrata, pattern.cor, unique)[UpatternCor$cor])
+    UpatternCor$index.cluster <- unname(tapply(U.cluster, pattern.cor, unique)[UpatternCor$cor])
+    UpatternCor$n.time <- lengths(pattern2lp.cor)
 
     ## use intersect instead of unique to keep common ordering of the model parameters, i.e. avoid to have rho1, rho2 in one pattern and rho2, rho1 in the other
-    UpatternCor$param <- tapply(pattern.pairwise$name, INDEX = factor(pattern.pairwise$pattern,Upattern.cor),
+    UpatternCor$param <- tapply(pattern.pairwise$param.rho, INDEX = factor(pattern.pairwise$pattern,Upattern.cor),
                                 FUN = function(iVec){intersect(structure.param$name,iVec)},simplify=FALSE) 
     
     ## *** characterize each correlation pattern
-    Xpattern.cor <- lapply(Upattern.cor, function(iPattern){ ## iPattern <- Upattern.cor[1]
+    Xpattern.cor <- lapply(1:NROW(UpatternCor), function(iP){ ## iP <- 1
+        iN.time <- UpatternCor$n.time[iP]
+        iPattern.pairwise <- pattern.pairwise[pattern.pairwise$pattern == UpatternCor$cor[iP],,drop=FALSE]
+        iM <- matrix(NA_character_, nrow = iN.time, ncol = iN.time)
+        iM[iPattern.pairwise[,"index.x"] + iN.time*(iPattern.pairwise[,"index.y"]-1)] <- iPattern.pairwise[,"param.rho"]
+        iM[iPattern.pairwise[,"index.y"] + iN.time*(iPattern.pairwise[,"index.x"]-1)] <- iPattern.pairwise[,"param.rho"]
+        diag(iM) <- "one"
 
-        iCluster <- indexPatternCluster1.cor[[iPattern]]
-        iIndex.cluster <- index.cluster[[iCluster]]
-        iRep <- length(iIndex.cluster)        
-        if(iRep==1){return(NULL)}
-        iOut <- X.cor[iIndex.cluster,,drop=FALSE]
-        iPattern.pairwise <- pattern.pairwise[pattern.pairwise$pattern == iPattern,]
-        iConstraint.pairwise <- constraint.pairwise[constraint.pairwise$pattern == iPattern,]
-        iUparam <- unique(iPattern.pairwise$name)
-        attr(iOut, "index.cluster") <- ls.indexPatternCluster.cor[[iPattern]]
-        attr(iOut, "index.time") <- index.clusterTime[[iCluster]]
-        attr(iOut, "index.strata") <- index.clusterStrata[[iCluster]]
-        attr(iOut, "index.pair") <- rbind(data.frame(row =  iPattern.pairwise$index.x,
-                                                     col = iPattern.pairwise$index.y,
-                                                     param = iPattern.pairwise$name),
-                                          data.frame(row =  iPattern.pairwise$index.y,
-                                                     col = iPattern.pairwise$index.x,
-                                                     param = iPattern.pairwise$name))
-        attr(iOut, "index.vec2matrix") <- attr(iOut, "index.pair")$row + (attr(iOut, "index.pair")$col-1)*iRep
-        attr(iOut, "param") <- intersect(param.rho,iUparam) ## ignore parameter constrained to a specific value
-        attr(iOut, "indicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,identity,simplify=FALSE)
-        ## attr(iOut, "Mindicator.param") <- tapply(attr(iOut, "index.vec2matrix"),attr(iOut, "index.pair")$param,function(iIndex){
-        ##     iM <- matrix(0, nrow = iRep, ncol = iRep)
-        ##     iM[iIndex] <- 1
-        ##     return(iM)
-        ## }, simplify=FALSE)
-        attr(iOut, "Omega.cor") <- matrix(NA, nrow = iRep, ncol = iRep)
-        diag(attr(iOut, "Omega.cor")) <- 1
-        ## case with NA, i.e. correlation parameter constrained to be 0
-        if(NROW(iConstraint.pairwise)>0){
-            iConstraint.param <- stats::setNames(structure.param[!is.na(structure.param$constraint),"constraint"], structure.param[!is.na(structure.param$constraint),"name"])
-            attr(iOut, "Omega.cor")[iConstraint.pairwise$index.x + iRep * (iConstraint.pairwise$index.y - 1)] <- unname(iConstraint.param[iConstraint.pairwise$name])
-            attr(iOut, "Omega.cor")[iConstraint.pairwise$index.y + iRep * (iConstraint.pairwise$index.x - 1)] <- unname(iConstraint.param[iConstraint.pairwise$name])
-        }
-
-        ## table(attr(iOut, "Omega.cor")[unlist(attr(iOut, "indicator.param"))], useNA = "always")
-        ## table(attr(iOut, "Omega.cor")[-unlist(attr(iOut, "indicator.param"))], useNA = "always")
-
+        iOut <- array(NA_character_, dim = c(iN.time, iN.time, 1))
+        iOut[,,1] <- iM
         return(iOut)
     })
 
@@ -251,19 +203,18 @@
                            cor = structure$cor$pattern[index.Upattern],
                            index.strata = NA,
                            n.time = NA,
-                           n.cluster = NA,
+                           index.cluster = NA,
                            param = NA)
 
     matchVar <- match(Upattern$var,UpatternVar$var)
     matchCor <- match(Upattern$cor,UpatternCor$cor)
     Upattern$index.strata <- UpatternCor[matchCor,"index.strata"]
-    Upattern$n.cluster <- UpatternCor[matchCor,"n.cluster"]
     Upattern$n.time <- UpatternCor[matchCor,"n.time"]
+    Upattern$index.cluster <- tapply(U.cluster, factor(vec.pattern, levels = Upattern$name), identity, simplify = FALSE)
     Upattern$param <- unname(mapply(x = UpatternVar$param[matchVar], y = UpatternCor$param[matchCor], FUN = function(x,y){unname(c(x,y))}, SIMPLIFY = FALSE))
-    
+
     ## ** export
     structure$pattern <- vec.pattern
-    attr(structure$pattern,"list") <- tapply(1:n.cluster, vec.pattern, base::identity)
     structure$Upattern <- Upattern
     attr(structure$Upattern,"sep") <- sep
     structure$var$Xpattern <- Xpattern.var
@@ -271,11 +222,14 @@
     return(structure)
 }
 
-## * .findUpatterns.CS
-.findUpatterns.CS <- .findUpatterns.UN
-
 ## * .findUpatterns.RE
-.findUpatterns.RE <- .findUpatterns.UN
+.findUpatterns.RE <- .findUpatterns.CS
+
+## * .findUpatterns.UN
+.findUpatterns.UN <- .findUpatterns.CS
+
+## * .findUpatterns.DUN
+.findUpatterns.DUN <- .findUpatterns.CS
 
 ## * .findUpatterns.TOEPLITZ
 .findUpatterns.TOEPLITZ <- .findUpatterns.UN

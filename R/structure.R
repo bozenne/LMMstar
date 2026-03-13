@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: mar  6 2026 (11:17) 
+## Last-Updated: mar 13 2026 (14:02) 
 ##           By: Brice Ozenne
-##     Update #: 1915
+##     Update #: 1973
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -195,7 +195,8 @@ IND <- function(formula = ~1, heterogeneous =  TRUE){
 
     ## ** identify strata variable and covariate variables
     outCov <- .formulaStructure(list(variance = formula, correlation = NULL, correlation.cross = NULL), correlation = FALSE)
-    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["variance"] && is.null(formula$variance)){outCov$formula$variance <- ~1}
+    if(update.time["variance"] && !is.null(formula$variance)){outCov$formula$variance <- formula$variance}
 
     ## ** create structure
     out <- list(call = match.call(),
@@ -231,10 +232,11 @@ IND <- function(formula = ~1, heterogeneous =  TRUE){
 ##'
 ##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
 ##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
-##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
-##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
-##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
-##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, or \code{"UN"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value (identical blocks \eqn{A} and \eqn{B}).
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
 ##'
 ##' @details A typical formula would be \code{~1}. It will model: \itemize{
 ##' \item \eqn{\sigma^2_{j}=\sigma^2}: a variance constant over repetitions.
@@ -387,8 +389,7 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
     }
 
     ## *** cross
-    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN","UN"))
-    
+    cross <- match.arg(cross, choices = c("ID","CS","AR1","EXP","TOEPLITZ","DUN","UN"))
 
     ## *** twin
     if(length(twin)!=1){
@@ -424,6 +425,7 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
     ## ** from formula to covariate names
     outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
     if(length(setdiff(outCov$name$correlation, c(outCov$strata,time)))==0){ ## no block if no covariates
+        twin <- TRUE
         cross <- NA
         outCov$name$correlation <- all.vars(outCov$formula$correlation)
         outCov$formula$correlation.cross <- NULL
@@ -431,7 +433,8 @@ CS <- function(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, t
         warning("CS covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
     }
 
-    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["variance"] && is.null(formula$variance)){outCov$formula$variance <- ~1}
+    if(update.time["variance"] && !is.null(formula$variance)){outCov$formula$variance <- formula$variance}
     if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
 
     ## ** create structure
@@ -625,10 +628,11 @@ RE <- function(formula, time, ranef = NULL){
 ##'
 ##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
 ##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
-##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
-##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
-##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
-##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, or \code{"UN"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value (identical blocks \eqn{A} and \eqn{B}).
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.
 ##' 
 ##' @details \bold{formula}: a typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 ##' 
@@ -756,7 +760,7 @@ RE <- function(formula, time, ranef = NULL){
 
 ## * TOEPLITZ (Toeplitz, code)
 ##' @export
-TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twin = TRUE, time){
+TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twin = FALSE, time){
 
     ## ** normalize input    
     ## *** formula
@@ -770,7 +774,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
     }
 
     ## *** cross
-    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN","UN"))
+    cross <- match.arg(cross, choices = c("ID","CS","AR1","EXP","TOEPLITZ","DUN","UN"))
     
     ## *** twin
     if(length(twin)!=1){
@@ -806,6 +810,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
     ## ** from formula to covariate names
     outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
     if(length(setdiff(outCov$name$correlation, time))==0){ ## no block if no covariates
+        twin <- TRUE
         cross <- NA
         outCov$name$correlation <- all.vars(outCov$formula$correlation)
         outCov$formula$correlation.cross <- NULL
@@ -813,7 +818,8 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
         warning("TOEPLITZ covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
     }
 
-    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["variance"] && is.null(formula$variance)){outCov$formula$variance <- ~1}
+    if(update.time["variance"] && !is.null(formula$variance)){outCov$formula$variance <- formula$variance}
     if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
     if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
 
@@ -833,7 +839,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
                 class = c(variance = "IND", correlation = "TOEPLITZ", correlation.cross = cross))
     attr(out$formula,"update.time") <- update.time
     attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
-    
+
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("TOEPLITZ",class(out))
@@ -841,7 +847,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
 }
 
 ## * UN (unstructured, documentation)
-##' @title Unstructured Structure 
+##' @title Unstructured
 ##' @description Variance-covariance structure where the residuals have time-specific variance and correlation.
 ##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
 ##' \item \eqn{A}: pairs of observations both at level 0. 
@@ -851,12 +857,17 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
 ##'
 ##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
 ##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
-##' @param heterogeneous [logical] should a repetition-specific variance model be considered?
-##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}.
-##' @param twin [logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
-##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"TOEPLITZ"}, \code{"DUN"}.
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value.
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}.
 ##'
 ##' @return An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##'
+##' @details When setting the argument \code{twin} equal to \code{TRUE}, blocks \code{A} and \code{B} will typically use different parameters
+##' because the correspond to distinct time values.
+##' The user has to specify redondant time variable (e.g. 1,2,3,1,2,3 instead of 1,2,3,4,5,6) to obtain equal blocks on the diagonal.
 ##' 
 ##' @keywords multivariate
 ##' 
@@ -870,7 +881,7 @@ TOEPLITZ <- function(formula = ~1, heterogeneous = TRUE, cross = "TOEPLITZ", twi
 
 ## * UN (unstructured, code)
 ##' @export
-UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, time){
+UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = FALSE, time){
 
     ## ** normalize input    
     ## *** formula
@@ -884,7 +895,7 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
     }
 
     ## *** cross
-    cross <- match.arg(cross, choices = c("ID","CS","TOEPLITZ","DUN"))
+    cross <- match.arg(cross, choices = c("ID","CS","AR1","EXP","TOEPLITZ","DUN"))
 
     ## *** twin
     if(length(twin)!=1){
@@ -914,6 +925,7 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
     ## ** from formula to covariate names
     outCov <- .formulaStructure(formula, ls.time = ls.time, correlation = TRUE)
     if(length(setdiff(outCov$name$correlation, time))==0){ ## no block if no covariates
+        twin <- TRUE
         cross <- NA
         outCov$name$correlation <- all.vars(outCov$formula$correlation)
         outCov$formula$correlation.cross <- NULL
@@ -921,7 +933,8 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
         warning("UN covariance structure has not been developped for more 1 covariate defining blocks in the correlation structure. \n")
     }
 
-    if(update.time["variance"]){outCov$formula$variance <- formula$variance}
+    if(update.time["variance"] && is.null(formula$variance)){outCov$formula$variance <- ~1}
+    if(update.time["variance"] && !is.null(formula$variance)){outCov$formula$variance <- formula$variance}
     if(update.time["correlation"]){outCov$formula$correlation <- formula$correlation}
     if(update.time["correlation.cross"]){outCov$formula$correlation.cross <- formula$correlation.cross}
 
@@ -948,77 +961,124 @@ UN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = TRUE, t
     return(out)
 }
 
+## * DUN (unstructured with constant diagonal, documentation)
+##' @title Unstructured with constant diagonal 
+##' @description Variance-covariance structure where the residuals have time-specific variance and correlation.
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+##' }
+##' Same as unstructured when no covariates but more restrictive in presence of a covariate:\itemize{
+##' \item constraint the cross-correlation of lag-0 to be constant over time (constant diagonal element in the C blocks)
+##' \item time is considered relatively to the levels in the block instead of absolute so block \code{A} and \code{B} can use same parameter when \code{twin} is set to \code{TRUE}.
+##' } 
+##'
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value.
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}.
+##'
+##' @return An object of class \code{DUN} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
+##' @keywords multivariate
+##' 
+
+## * DUN (unstructured with constant diagonal, code)
+##' @export
+DUN <- function(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = FALSE, time){
+
+    out <- UN(formula = formula, heterogeneous = heterogeneous, cross = cross, twin = twin, time = time)
+    class(out)[class(out)=="UN"] <- "DUN"
+    out$class["correlation"] <- "DUN"
+
+    return(out)
+
+}
+
 ## * EXP (exponential)
-## ##' @title Exponential Structure
-## ##' @description Variance-covariance structure where the residuals have a correlation decreasing exponentially,
-## ##' Can be stratified on a categorical variable.
-## ##'
-## ##' @param formula formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-## ##' and variables influencing the residual variance and correlation (right hand side).
-## ##' @param var.cluster [character] cluster variable.
-## ##' @param var.time [character] time variable.
-## ##' @param nugget [logical] whether a nugget effect is present.
-## ##' @param add.time not used.
-## ##'
-## ##' @details A typical formula would be \code{~1}, indicating a variance constant over time and correlation with exponential decrease over time.
-## ##'
-## ##' Inspired from \code{nlme::corExp} where if \eqn{K} denotes the nugget effect and \eqn{\rho} the time effect,
-## ##' the correlation between two observations with a time gap \eqn{dt} is \eqn{exp(-\rho dt)} when no nugget effect is present and \eqn{(1-K) exp(-\rho dt)} when a nugget effect is assumed. 
-## ##'
-## ##' @return An object of class \code{EXP} that can be passed to the argument \code{structure} of the \code{lmm} function.
-## ##' 
-## ##' @keywords multivariate
-## ##' 
-## ##' @examples
-## ##' EXP(var.cluster = "id", var.time = "time", add.time = TRUE)
-## ##' EXP(~space, var.cluster = "id", var.time = "time", add.time = TRUE)
-## ##' EXP(list(~space,~space), var.cluster = "id", var.time = "time", add.time = TRUE)
-## ##' 
-## ##' @export
-## EXP <- function(formula, var.cluster, var.time, nugget = FALSE, add.time){
+##' @title Exponential Structure
+##' @description Variance-covariance structure where the residuals have a correlation decreasing exponentially with time
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+##' }
+##'
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value.
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}.
+##'
+##' @details Inspired from \code{nlme::corExp} where if \eqn{K} denotes the nugget effect and \eqn{\rho} the time effect,
+##' the correlation between two observations with a time gap \eqn{dt} is \eqn{exp(-\rho dt)} when no nugget effect is present and \eqn{(1-K) exp(-\rho dt)} when a nugget effect is assumed. 
+##'
+##' @return An object of class \code{EXP} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
+##' @keywords multivariate
+##' 
+##' @examples
+##' EXP(~1)
+##' EXP(~1, time = "space")
+##' 
 
-##     if(missing(formula) || is.null(formula)){
-##         outCov <- .formulaStructure(list(~1,stats::as.formula(paste0("~",var.time))), heterogeneous = nugget)
-##     }else if(is.list(formula)){
-##         outCov <- .formulaStructure(formula, heterogeneous = nugget)
-##     }else if(!missing(add.time) && (is.character(add.time) || identical(add.time,TRUE)) && length(all.vars(stats::update(formula,0~.)))==0){
-##         if(is.character(add.time)){
-##             var.time <- add.time
-##         }
-##         if(attr(stats::terms(formula),"response")==1){ # with strata
-##             ff <- stats::as.formula(paste0(all.vars(formula),"~",var.time))
-##         }else{
-##             ff <- stats::as.formula(paste0("~",var.time))
-##         }
-##         outCov <- .formulaStructure(list(formula,ff), heterogeneous = nugget)
-##     }else{
-##         if(attr(stats::terms(formula),"response")==1){ # with strata
-##             outCov <- .formulaStructure(list(stats::as.formula(paste0(all.vars(formula),"~1")),formula), heterogeneous = nugget)
-##         }else{
-##             outCov <- .formulaStructure(list(~1,formula), heterogeneous = nugget)
-##         }
-##     }
+## * EXP (exponential, code)
+##' @export
+EXP <- function(formula = ~1, heterogeneous = TRUE, cross = "EXP", twin = FALSE, time){
 
-##     out <- list(call = match.call(),
-##                 name = data.frame(cluster = if(!missing(var.cluster)){var.cluster}else{NA},
-##                                   strata = if(!is.null(outCov$strata)){outCov$strata}else{NA},
-##                                   time = if(!missing(var.time)){var.time}else{NA},
-##                                   var = if(length(outCov$X.var)>0){I(list(outCov$X.var))}else{NA},
-##                                   cor = if(length(outCov$X.cor)>0){I(list(outCov$X.cor))}else{NA},
-##                                   stringsAsFactors = FALSE),
-##                 formula = list(var = outCov$formula.var,
-##                                cor = outCov$formula.cor),
-##                 heterogeneous = nugget,
-##                 class = "EXP")
+    out <- TOEPLITZ(formula = formula, heterogeneous = heterogeneous, cross = cross, twin = twin, time = time)
+    class(out)[class(out)=="TOEPLITZ"] <- "EXP"
+    out$class["correlation"] <- "EXP"
 
-##     ## export
-##     class(out) <- append("structure",class(out))
-##     class(out) <- append("EXP",class(out))
-##     return(out)
-## }
+    return(out)
 
-## * AR1 (documentation)
-## special but famous case of exponential?
+}
+
+
+## * AR1 (autoregressive)
+##' @title Autoregressive Structure
+##' @description Variance-covariance structure where the residuals are correlated to the power of the time gap.
+##' Similar to exponential structure except that there is no nugget effect and time is treated as a factor variable instead of a numeric variable.
+##' In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+##' \item \eqn{A}: pairs of observations both at level 0. 
+##' \item \eqn{B}: pairs of observations both at level 1. 
+##' \item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+##' }
+##'
+##' @param formula [formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+##' right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).
+##' @param heterogeneous [logical] should the variance be repetition-specific?
+##' @param cross [character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}.
+##' @param twin [logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+##' Otherwise only depends on whether the pair of observations have the same covariate value.
+##' @param time [character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}.
+##'
+##' @return An object of class \code{EXP} that can be passed to the argument \code{structure} of the \code{lmm} function.
+##' 
+##' @keywords multivariate
+##' 
+##' @examples
+##' AR(~1)
+##' 
+
+## * AR1 (autoregressive, code)
+##' @export
+AR1 <- function(formula = ~1, heterogeneous = TRUE, cross = "AR1", twin = FALSE, time){
+
+    out <- TOEPLITZ(formula = formula, heterogeneous = heterogeneous, cross = cross, twin = twin, time = time)
+    class(out)[class(out)=="TOEPLITZ"] <- "AR1"
+    out$class["correlation"] <- "AR1"
+
+    return(out)
+
+}
+
 ## * LV (latent variable, documentation)
 ## * ANTE (ante-dependence, documentation)
 

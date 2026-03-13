@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar  6 2026 (10:28) 
+## Last-Updated: mar 13 2026 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 3550
+##     Update #: 3588
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -334,29 +334,29 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     grid.timeFormat <- do.call(rbind,lapply(names(structure.timeFormat), function(iName){data.frame(moment = iName, format = structure.timeFormat[[iName]])}))
     rownames(grid.timeFormat) <- grid.timeFormat$moment
     grid.timeFormat$moment <- factor(grid.timeFormat$moment, levels = c("variance","correlation","correlation.cross"), labels = c("variance","correlation","correlation"))
-    out <- list(variance = list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL),
-                correlation = list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL))    
-    if(NROW(grid.timeFormat)==2){ 
+    out <- list(variance = list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL))
+
+    if(NROW(grid.timeFormat) == 1){ 
         ## do nothing 
+    }else if(NROW(grid.timeFormat) == 2){
+        out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL)
     }else if(NROW(grid.timeFormat)==3){
-        if(grid.timeFormat["correlation","format"]==grid.timeFormat["correlation.cross","format"] & isTRUE(all.equal(structure$formula[["correlation"]],structure$formula[["correlation.cross"]]))){
-            grid.timeFormat <- grid.timeFormat[c("variance","correlation"),] ## no need for specific design matrix for the cross blocks
-        }else{
-            out$correlation$X.cross <- NULL
-            out$correlation$lp.cross <- NULL
-            out$correlation$lp2data.cross <- NULL
-            out$correlation$lp2X.cross <- NULL
-            out$correlation$xfactor.cross <- NULL
-            out$correlation$xnumeric.cross <- NULL
-        }
-    }else{
-        stop("Something went wrong with the identification of the format of the time variable in the covariance structure. \n")
-    }
+        
+         if(grid.timeFormat["correlation","format"]==grid.timeFormat["correlation.cross","format"] & isTRUE(all.equal(structure$formula[["correlation"]],structure$formula[["correlation.cross"]]))){
+             out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL)
+             grid.timeFormat <- grid.timeFormat[c("variance","correlation"),] ## no need for specific design matrix for the cross blocks
+         }else{
+             out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL,
+                                      X.cross = NULL, lp.cross = NULL, lp2data.cross = NULL, lp2X.cross = NULL, xfactor.cross = NULL, xnumeric.cross = NULL)
+         }
+     }else{
+         stop("Something went wrong with the identification of the format of the time variable in the covariance structure. \n")
+     }
     test.newdata <- !is.null(structure$param) ## if TRUE then model.matrix call on newdata otherwise call from lmm->.model.matrix on original data
 
     ## ** variance and correlation design lists
     for(iGrid in 1:NROW(grid.timeFormat)){ ## iGrid <- 1
-        iMoment <- grid.timeFormat[iGrid,"moment"]
+        iMoment <- as.character(grid.timeFormat[iGrid,"moment"])
         iFormat <- grid.timeFormat[iGrid,"format"]
         iSuffix <- ifelse(iGrid==3,".cross","")
         iFormula <- structure$formula[[paste0(iMoment,iSuffix)]]
@@ -366,13 +366,17 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         if("xfactor" %in% names(structure[[iMoment]])){ ## from model.matrix.lmm
             iXfactor <- structure[[iMoment]][[paste0("xfactor",iSuffix)]]
             iXnumeric <- structure[[iMoment]][[paste0("xnumeric",iSuffix)]]
-        }else if(iFormat == "factor"){
+        }else if(iFormat == "factor0"){ ## covariates as factor
+            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
+            iXfactor[var.time] <- NULL
+            iXnumeric <- NULL            
+        }else if(iFormat == "factor"){ ## factor: covariate and time as factor
             iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
             iXnumeric <- NULL
-        }else if(iFormat == "numeric"){
-            iXnumeric <- var.time
+        }else if(iFormat == "numeric"){ ## covariate as factor, time as numeric
             iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
-            iXfactor[var.time] <- NULL            
+            iXfactor[var.time] <- NULL
+            iXnumeric <- var.time            
         }else if(iFormat == "original"){
             iXfactor <- NULL
             iXnumeric <- NULL
@@ -397,11 +401,10 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 }
             }
         }
-
         ## *** linear predictors
         ## linear predictor for each observation
         iLp <- nlme::collapse(iX, sep = sep, as.factor = !test.newdata)
-        
+
         if(!test.newdata){
             ## position of the observations with distinct linear predictors
             iIndex.Ulp <- which(!duplicated(iLp))
@@ -559,7 +562,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                 index.clusterTime = outInit$index.clusterTime, U.time = U.time,
                                 index.cluster = outInit$index.cluster, U.cluster = U.cluster,
                                 index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata,
-                                sep = options$sep["pattern"])
+                                sep = options$sep[c("rho.name","pattern")])
 
     ## ** prepare calculation of the score
     if(precompute.moments){        
@@ -852,11 +855,11 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
         if(NCOL(X)==X.qr$rank){break}
     }
-    if(length(rmX)>0){
+    if(drop.X>=1 & length(rmX)>0){        
         type <- switch(type, "var" = "variance", "cor" = "correlation", type)
         message("Design matrix for the ",type," structure is singular. \n",
                 "Coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
-    } else if(!augmodel){
+    } else if(length(rmX)==0 & !augmodel){
         attr(X,"original.colnames") <- NULL
         attr(X,"formula") <- NULL
         attr(X,"term.labels") <- NULL

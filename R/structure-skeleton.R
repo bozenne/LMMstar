@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: mar  6 2026 (15:48) 
+## Last-Updated: mar 13 2026 (14:37) 
 ##           By: Brice Ozenne
-##     Update #: 2573
+##     Update #: 2602
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -61,7 +61,6 @@
         outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = options$drop.X, sep = options$sep["lp"])
         structure$xfactor <- outDesign$xfactor
         structure$var <- outDesign$var
-        structure$cor <- outDesign$cor
     }
 
     ## ** prepare
@@ -73,7 +72,6 @@
     ## **  variance parameters
     structure <- .skeletonSigma(structure, U.strata = U.strata)
     structure <- .skeletonK(structure, U.strata = U.strata, sep = options$sep[c("k.cov","k.strata")])
-
 
     ## ** export
     structure$param <- structure$param[order(structure$param$index.strata),,drop=FALSE]
@@ -137,6 +135,8 @@
         outCrossBlock <- switch(structure$class["correlation.cross"],
                                 ID = .skeletonRho.ID(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
                                 CS = .skeletonRho.CS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                AR1 = .skeletonRho.AR1(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
+                                EXP = .skeletonRho.EXP(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
                                 TOEPLITZ = .skeletonRho.TOEPLITZ(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
                                 DUN = .skeletonRho.DUN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep),
                                 UN = .skeletonRho.UN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "B", sep = options$sep)
@@ -158,6 +158,8 @@
         outDiagBlock <- switch(structure$class["correlation"],
                                ID = .skeletonRho.ID(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
                                CS = .skeletonRho.CS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               AR1 = .skeletonRho.AR1(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
+                               EXP = .skeletonRho.EXP(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
                                TOEPLITZ = .skeletonRho.TOEPLITZ(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
                                DUN = .skeletonRho.DUN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep),
                                UN = .skeletonRho.UN(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = "W", sep = options$sep)
@@ -205,10 +207,11 @@
         structure.rho$k.x <- c(k.xW, k.xB)
         structure.rho$k.y <- c(k.yW, k.yB)
     }
-    browser()
+
     ## *** export
     rownames(structure.rho) <- NULL
-    return(rbind(structure$param, structure.rho))
+    structure$param <- rbind(structure$param, structure.rho)
+    return(structure)
 }
 
 ## * skeleton.RE
@@ -220,8 +223,15 @@
 ## * skeleton.UN
 .skeleton.UN <- .skeleton.CS
 
+## * skeleton.DUN
+.skeleton.DUN <- .skeleton.CS
+
 ## * skeleton.EXP
 .skeleton.EXP <- .skeleton.CS
+
+## * skeleton.AR1
+.skeleton.AR1 <- .skeleton.CS
+
 
 ## * skeleton.CUSTOM
 .skeleton.CUSTOM <- function(structure, data, indexData = NULL, options = NULL){

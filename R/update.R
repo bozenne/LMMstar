@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: mar  6 2026 (14:34) 
+## Last-Updated: mar 13 2026 (14:03) 
 ##           By: Brice Ozenne
-##     Update #: 210
+##     Update #: 217
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,7 @@ update.IND <- function(object, var.cluster, var.time, var.strata, ...){
         ## use .formulaStructure to obtain ~0+strata instead of 'just' adding strata to the formula
         ## If both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
         outCov <- .formulaStructure(list(variance = formula.variance, correlation = NULL, correlation.cross = NULL),
-                                    var.time = list(variance = var.time, correlation = NULL, correlation.cross = NULL),
+                                    ls.time = list(variance = var.time, correlation = NULL, correlation.cross = NULL),
                                     correlation = FALSE)
         object$formula$variance <- outCov$formula$variance
         object$name$variance <- list(outCov$name$variance)
@@ -165,7 +165,7 @@ update.CS <- function(object, var.cluster, var.time, var.strata, ...){
         ## If both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
         outCov <- .formulaStructure(list(variance = formula.variance, correlation = formula.correlation, correlation.cross = formula.correlation.cross),
                                     ls.time = ls.time, correlation = TRUE)
-        
+   
         if(update.time["variance"] || update.strata){
             object$formula$variance <- outCov$formula$variance
             object$name$variance <- list(outCov$name$variance)
@@ -269,6 +269,17 @@ update.TOEPLITZ <- update.CS
 ##' @noRd
 update.UN <- update.CS
 
+## * update.DUN
+##' @noRd
+update.DUN <- update.CS
+
+## * update.EXP
+##' @noRd
+update.EXP <- update.CS
+
+## * update.AR1
+##' @noRd
+update.AR1 <- update.CS
 
 ## * update.CUSTOM
 ##' @noRd

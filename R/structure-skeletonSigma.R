@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: feb 25 2026 (13:12) 
+## Last-Updated: mar 13 2026 (13:29) 
 ##           By: Brice Ozenne
-##     Update #: 76
+##     Update #: 77
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -135,6 +135,15 @@
 
 ## * skeletonSigma.UN
 .skeletonSigma.UN <- .skeletonSigma.ID
+
+## * skeletonSigma.DUN
+.skeletonSigma.DUN <- .skeletonSigma.ID
+
+## * skeletonSigma.EXP
+.skeletonSigma.EXP <- .skeletonSigma.ID
+
+## * skeletonSigma.AR1
+.skeletonSigma.AR1 <- .skeletonSigma.ID
 
 ##----------------------------------------------------------------------
 ### structure-skeletonSigma.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: mar  6 2026 (10:35) 
+## Last-Updated: mar 13 2026 (13:30) 
 ##           By: Brice Ozenne
-##     Update #: 80
+##     Update #: 81
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -128,8 +128,14 @@
 ## * skeletonK.UN
 .skeletonK.UN <- .skeletonK.IND
 
+## * skeletonK.DUN
+.skeletonK.DUN <- .skeletonK.IND
+
 ## * skeletonK.EXP
-.skeletonK.UN <- .skeletonK.IND
+.skeletonK.EXP <- .skeletonK.IND
+
+## * skeletonK.AR1
+.skeletonK.AR1 <- .skeletonK.IND
 
 ##----------------------------------------------------------------------
 ### structure-skeletonK.R ends here

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: mar  6 2026 (15:52) 
+## Last-Updated: mar 13 2026 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 1650
+##     Update #: 1694
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,10 +66,15 @@
     name.cluster <- attr(structure$name$cluster,"original")
     name.nesting <- structure$nesting
     n.strata <- length(U.strata)
-    
+
     ## ** find name for correlation coefficient, e.g. rho(id)
     if(block=="W"){
-        cluster.var <- stats::na.omit(c(attr(structure$name$cluster,"original"),structure$name$cluster))[1]
+        class <- ifelse(block=="W",structure$class["correlation"],structure$class["correlation.cross"])
+        if(class == "CS"){
+            cluster.var <- stats::na.omit(c(attr(structure$name$cluster,"original"),structure$name$cluster))[1]
+        }else if(class %in% c("EXP","AR1")){ ##
+            cluster.var <- structure$name$time
+        }
         if(cluster.var=="XXcluster.indexXX"){
             label.clusterW <- NULL            
         }else if(!is.null(structure$nesting)){ ## instead of rho(id) which should be for the cross block element, uses rho(id/...) for the diagonal block
@@ -78,33 +83,29 @@
             label.clusterW <- cluster.var
         }
     }
-    
+
     ## ** identify parameters
     if(block == "W"){
         if(structure$twin){ ## identical blocks on the diagonal or single block (no covariates)
             ## internal indentifier for the parameter (one parameter per strata)
             code.rho <- tapply(1:NROW(lp), strata, FUN = function(iVec){
-                paste("W",lp[iVec,1,drop=FALSE],lp[iVec,2,drop=FALSE],sep=sep["rho.name"])
+                paste(lp[iVec,1,drop=FALSE],lp[iVec,2,drop=FALSE],sep=sep["rho.name"])
             }, simplify = FALSE)
             ## strata relative to the parameter
             strata.rho <- tapply(strata, strata, FUN = unique)
             ## provide a name for the parameter
-            if(n.strata==1){
-                level.rho <- paste(paste0("(",label.clusterW,")"), sep = sep[3])
-            }else{
-                level.rho <- paste(paste0("(",label.clusterW,")"),U.strata[strata.rho], sep = sep[3])
-            }
+            level.rho <- paste(paste0("(",label.clusterW,")"), sep = sep[3])
             ## index of the corresponding observations
-            indexObs.rho <- tapply(1:NROW(index), strata, FUN = function(iVec){index[iVec,,drop=FALSE]})
+            indexObs.rho <- tapply(1:NROW(index), strata, FUN = function(iVec){index[iVec,,drop=FALSE]}, simplify = FALSE)
         }else{ ## distinct blocks on the diagonal
             ## internal indentifier for the parameter (one parameter per strata and covariate, i.e. per linear predictor)
-            code.rho <- as.list(paste("W",lp[,1],lp[,2],sep=sep["rho.name"]))
+            code.rho <- as.list(paste(lp[,1],lp[,2],sep=sep["rho.name"]))
             ## strata relative to the parameter
             strata.rho <- strata
             ## provide a name for the parameter
-            level.rho <- paste(paste0("(",nlme::collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep[1], as.factor = FALSE),")"),U.strata[strata], sep = sep[3])
+            level.rho <- paste0("(",nlme::collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep[1], as.factor = FALSE),")")
             ## index of the corresponding observations
-            indexObs.rho <- apply(index, MARGIN = 1, FUN = identity, simplify = FALSE)
+            indexObs.rho <- lapply(1:NROW(index), FUN = function(iI){index[iI,,drop=FALSE]}) ## use lapply instead of apply to make sure that the elements of the list are matrices and not vectors
         }        
 
     }else if(block == "B"){
@@ -120,11 +121,11 @@
         }
         
         ## internal identifier for the parameter        
-        code.rho <- tapply(paste(block,lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
+        code.rho <- tapply(paste(lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
         ## strata
         strata.rho <- tapply(strata, index.rho, unique)
         ## index of the corresponding observations
-        indexObs.rho <- tapply(1:NROW(index), index.rho, function(iVec){index[iVec,,drop=FALSE]})
+        indexObs.rho <- tapply(1:NROW(index), index.rho, function(iVec){index[iVec,,drop=FALSE]}, simplify = FALSE)
 
         ## provide a name for the parameter
         if(structure$twin){
@@ -141,9 +142,6 @@
             }
             ## naming
             level.rho <- paste0("(",sapply(lsDiff.nesting, function(iVec){paste(rev(names(iVec[iVec>0])),collapse="/")}),")")
-            if(n.strata>1){
-                level.rho <- paste(level.rho, U.strata[strata.rho], sep = sep["rho.strata"])
-            }
         }else{ 
             level.rho <- paste0("(",
                                 nlme::collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE),
@@ -153,6 +151,9 @@
             name.nesting <- NULL
         }        
     }   
+    if(n.strata>1){
+        level.rho <- paste(level.rho, U.strata[strata.rho], sep = sep["rho.strata"])
+    }
 
     ## ** constraint
     constraint.rho <- rep(NA, length(code.rho))
@@ -256,28 +257,24 @@
     if(structure$twin){ ## shared correlation parameters for all blocks
         index.rho <- paste(diff.time, strata, sep = sep["rho.strata"])
     }else{ ## specific correlation parameters for each block
-        index.rho <- paste(diff.time,
-                           collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE),
-                           collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE),
-                           strata, sep = sep["rho.strata"])
+        name.lp1 <- collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        name.lp2 <- collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        index.rho <- paste(diff.time, name.lp1, name.lp2, strata, sep = sep["rho.strata"])
     }
     ## internal identifier for the parameter
-    code.rho <- tapply(paste(block,lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
+    code.rho <- tapply(paste(lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
     ## strata
     strata.rho <- tapply(strata, index.rho, unique)
     ## index of the corresponding observations
     indexObs.rho <- tapply(1:NROW(index), index.rho, function(iVec){index[iVec,,drop=FALSE]})
 
     ## provide a name for the parameter
-    if(structure$twin){
-        if(is.na(structure$class["correlation.cross"])){
-            level.rho <- paste0("(",tapply(diff.time, index.rho, unique),")")
-        }else{
-            level.rho <- paste0(block,"(",tapply(diff.time, index.rho, unique),")")
-        }
+    if(is.na(structure$class["correlation.cross"])){
+        level.rho <- paste0("(",tapply(diff.time, index.rho, unique),")")
+    }else if(structure$twin){
+        level.rho <- paste0(block,"(",tapply(diff.time, index.rho, unique),")")
     }else{
-        level.rho <- tapply(paste0("(",diff.time,"|",collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"]),",",collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"]),")"),
-                            index.rho, unique)
+        level.rho <- tapply(paste0("(",diff.time,"|",name.lp1,",",name.lp2,")"), index.rho, unique)
     }
     if(n.strata>1){
         level.rho <- paste(level.rho, U.strata[strata.rho], sep = sep["rho.strata"])
@@ -316,35 +313,97 @@
     n.strata <- length(U.strata)
     
     ## ** identify parameters
-    if(length(name.cov)==0){
-    }
-    diff.time <- abs(lp2data[lp[,1],name.time]-lp2data[lp[,2],name.time])
-
-    if(structure$twin){ ## shared correlation parameters for all blocks
-        index.rho <- paste(diff.time, strata, sep = sep["rho.strata"])
-    }else{ ## specific correlation parameters for each block
-        index.rho <- paste(diff.time,
-                           collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE),
-                           collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE),
+    if(length(name.cov)==0 || structure$twin){
+        index.rho <- paste(paste(lp2data[lp[,1],name.time], lp2data[lp[,2],name.time], sep = sep["lp"]),
+                           strata, sep = sep["rho.strata"])
+    }else{
+        name.lp1 <- collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        name.lp2 <- collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        index.rho <- paste(paste(lp2data[lp[,1],name.time], lp2data[lp[,2],name.time], sep = sep["lp"]),
+                           name.lp1, name.lp2,
                            strata, sep = sep["rho.strata"])
     }
     ## internal identifier for the parameter
-    code.rho <- tapply(paste(block,lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
+    code.rho <- tapply(paste(lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
     ## strata
     strata.rho <- tapply(strata, index.rho, unique)
     ## index of the corresponding observations
     indexObs.rho <- tapply(1:NROW(index), index.rho, function(iVec){index[iVec,,drop=FALSE]})
 
     ## provide a name for the parameter
-    if(structure$twin){
-        if(is.na(structure$class["correlation.cross"])){
-            level.rho <- paste0("(",tapply(diff.time, index.rho, unique),")")
-        }else{
-            level.rho <- paste0(block,"(",tapply(diff.time, index.rho, unique),")")
-        }
+    name.pairTime <- paste(lp2data[lp[,1],name.time], lp2data[lp[,2],name.time], sep = ",")
+    if(length(name.cov)==0){
+        level.rho <- paste0("(",tapply(name.pairTime, index.rho, unique),")")
+    }else if(structure$twin){ ## shared correlation parameters for all blocks
+        level.rho <- paste0(block, "(",tapply(name.pairTime, index.rho, unique),")")
     }else{
-        level.rho <- tapply(paste0("(",diff.time,"|",collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"]),",",collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"]),")"),
-                            index.rho, unique)
+        level.rho <- paste0("(",tapply(paste0(name.pairTime,"|",name.lp1,",",name.lp2), index.rho, unique),")")
+    }
+    if(n.strata>1){
+        level.rho <- paste(level.rho, U.strata[strata.rho], sep = sep["rho.strata"])
+    }
+
+    ## ** constraint
+    constraint.rho <- rep(NA, length(code.rho))
+
+    ## ** export
+    return(list(code = code.rho,
+                level = level.rho,
+                strata = unname(strata.rho),
+                nesting = NULL,
+                constraint = constraint.rho,
+                indexObs = indexObs.rho))
+
+}
+
+## * .skeletonRho.DUN
+## ONLY RELEVANT FOR BETWEEN BLOCKS
+.skeletonRho.DUN <- function(structure, XpairPattern, U.strata, name.cov, block, sep){
+
+    ## ** extract data
+    lp <- XpairPattern[[paste0("lp",block)]]
+    strata <- XpairPattern[[paste0("strata",block)]]
+    index <- XpairPattern[[paste0("index",block)]]
+    if(block=="B" && "lp2data.cross" %in% names(structure$cor)){
+        lp2data <- structure$cor$lp2data.cross
+    }else{ ## block W or same design matrix for both blocks
+        lp2data <- structure$cor$lp2data
+    }
+    
+    name.cor <- unlist(structure$name$cor)
+    name.time <- structure$name$time
+    name.strata <-  structure$name$strata
+    name.cluster <- attr(structure$name$cluster,"original")
+    name.nesting <- structure$nesting
+    n.strata <- length(U.strata)
+    
+    ## ** identify parameters
+    vec.time1 <- as.numeric(droplevels(lp2data[lp[,1],name.time]))
+    vec.time2 <- as.numeric(droplevels(lp2data[lp[,2],name.time]))
+    vec.time12 <-  ifelse(vec.time1==vec.time2,paste(".", ".", sep = sep["lp"]),paste(vec.time1, vec.time2, sep = sep["lp"]))
+
+    if(length(name.cov)==0 || structure$twin){
+        index.rho <- paste(vec.time12, strata, sep = sep["rho.strata"])
+    }else{
+        name.lp1 <- collapse(lp2data[lp[,1],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        name.lp2 <- collapse(lp2data[lp[,2],name.cov,drop=FALSE], sep = sep["lp"], as.factor = FALSE)
+        index.rho <- paste(vec.time12, name.lp1, name.lp2, strata, sep = sep["rho.strata"])
+    }
+    ## internal identifier for the parameter
+    code.rho <- tapply(paste(lp[,1],lp[,2], sep=sep["rho.name"]), index.rho, FUN = identity, simplify = FALSE)
+    ## strata
+    strata.rho <- tapply(strata, index.rho, unique)
+    ## index of the corresponding observations
+    indexObs.rho <- tapply(1:NROW(index), index.rho, function(iVec){index[iVec,,drop=FALSE]})
+
+    ## provide a name for the parameter
+    name.pairTime <- ifelse(vec.time1==vec.time2,".,.",paste(lp2data[lp[,1],name.time], lp2data[lp[,2],name.time], sep = ","))
+    if(length(name.cov)==0){
+        level.rho <- paste0("(",tapply(name.pairTime, index.rho, unique),")")
+    }else if(structure$twin){ ## shared correlation parameters for all blocks
+        level.rho <- paste0(block, "(",tapply(name.pairTime, index.rho, unique),")")
+    }else{
+        level.rho <- paste0("(",tapply(paste0(name.pairTime,"|",name.lp1,",",name.lp2), index.rho, unique),")")
     }
     if(n.strata>1){
         level.rho <- paste(level.rho, U.strata[strata.rho], sep = sep["rho.strata"])
@@ -364,39 +423,11 @@
 }
 
 ## * .skeletonRho.EXP
-## .skeletonRho.EXP <- function(structure, data, 
-##                            U.cluster, index.cluster,
-##                            U.time, index.clusterTime, 
-##                            U.strata, index.clusterStrata){
+.skeletonRho.EXP <- .skeletonRho.CS
 
-##     ## *** param rho
-##     regressor <- colnames(X.cor)[which(attr(X.cor, "assign") == max(attr(X.cor, "assign")))]
+## * .skeletonRho.AR1
+.skeletonRho.AR1 <- .skeletonRho.CS
 
-##     if(n.strata==1){
-##         param.rho <- "lambda"
-##         strata.rho <- 1
-##         code.rho <- regressor
-##         level.rho <- ""
-##         if(structure$heterogeneous){
-##             param.rho <- c(param.rho,"nugget")
-##             strata.rho <- c(strata.rho,1)
-##             code.rho <- c(code.rho,NA)
-##             level.rho <- c(code.rho,"")
-##         }
-##     }else{
-##         param.rho <- paste0("lambda",U.strata)
-##         strata.rho <- 1:n.strata
-##         code.rho <- regressor
-##         level.rho <- U.strata
-##         if(structure$heterogeneous){
-##             param.rho <- c(param.rho,paste0("nugget",U.strata))
-##             strata.rho <- c(strata.rho,1:n.strata)
-##             code.rho <- c(code.rho,rep(NA, n.strata))
-##             level.rho <- c(level.rho,U.strata)
-##         }
-##     }
-
-## }
 
 ## * helper
 ## ** .pairPatternX
