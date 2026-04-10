@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: mar 13 2026 (14:57) 
+## Last-Updated: apr 10 2026 (18:08) 
 ##           By: Brice Ozenne
-##     Update #: 3588
+##     Update #: 3651
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -567,11 +567,10 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     ## ** prepare calculation of the score
     if(precompute.moments){        
         if(is.na(var.weights["likelihood"])){
-            precompute.weights <- stats::setNames(structure$Upattern$n.cluster, structure$Upattern$name)
+            precompute.weights <- stats::setNames(lengths(structure$Upattern$index.cluster), structure$Upattern$name)
         }else{
-            precompute.weights <- stats::setNames(sapply(structure$Upattern$name, function(iPattern){
-                iCluster <- attr(structure$pattern,"list")[[iPattern]] ## cluster corresponding to the pattern
-                iIndex <- sapply(index.cluster[iCluster],"[[",1)  ##  first occurence of the cluster corresponding to the pattern (as the weights are duplicated within individuals)n
+            precompute.weights <- stats::setNames(lapply(structure$Upattern$index.cluster, function(iCluster){ ## iCluster <- structure$Upattern$index.cluster[[1]]
+                iIndex <- sapply(outInit$index.cluster[iCluster],"[[",1) ##  first occurence of the cluster corresponding to the pattern (as the weights are duplicated within individuals)
                 return(sum(data[iIndex,var.weights["likelihood"]])) ## sum weights 
             }), structure$Upattern$name)
         }
@@ -591,11 +590,11 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
             precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
                                             pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                            pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
+                                            pattern.cluster = structure$Upattern$index.cluster, index.cluster = index.cluster)
             ## XY: for the numerator of the GLS estimator
             precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, pattern = structure$Upattern$name,
                                             pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                            pattern.cluster = attr(structure$pattern,"list"), index.cluster = index.cluster)
+                                            pattern.cluster = structure$Upattern$index.cluster, index.cluster = index.cluster)
 
         }else{
             precompute.XX <- NULL
@@ -609,30 +608,80 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     }
 
     ## ** find all pairs of coefficients
-    structure$pair.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[3]
-        iParamVcov <- structure$Upattern[structure$Upattern$name == iName,"param"][[1]]
-        if(length(iParamVcov)==0){return(NULL)}
-        iOut <- unorderedPairs(iParamVcov)
-        colnames(iOut) <- paste(iOut[1,],iOut[2,],sep = ";")
-        attr(iOut, "key") <- matrix(NA, nrow = length(iParamVcov), ncol = length(iParamVcov), dimnames = list(iParamVcov,iParamVcov))
-        for(iCol in 1:NCOL(iOut)){
-            attr(iOut, "key")[iOut[1,iCol],iOut[2,iCol]] <- iCol
-            attr(iOut, "key")[iOut[2,iCol],iOut[1,iCol]] <- iCol
-        }
-        return(iOut)
-    }),structure$Upattern$name)
-    ## global necessary for REML (as all patterns may be incomplete)
-    ## (only contains observed pairs of parameters, e.g., not pairs of parameters from different strata)
-    attr(structure$pair.vcov,"global") <- do.call(cbind,structure$pair.vcov)[,!duplicated(unlist(lapply(structure$pair.vcov,colnames))),drop=FALSE] 
+    param.constraint <- c("one",structure$param$name[!is.na(structure$param$constraint)]) ## derivative = 0 when relative to a fixed parameter
 
-    structure$pair.meanvcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){ ## iName <- structure$Upattern$name[1]
-        iPattern <- structure$Upattern[structure$Upattern$name == iName,,drop=FALSE]
-        if(length(iPattern$param[[1]])==0){return(NULL)}
-        iParamMu <- c(skeleton.mu$name[which(skeleton.mu$index.strata == iPattern$index.strata)],skeleton.mu$name[is.na(skeleton.mu$index.strata)>0])
-        iOut <- unname(t(expand.grid(iParamMu, iPattern$param[[1]])))
-        colnames(iOut) <- paste(iOut[1,],iOut[2,],sep = ";")
-        return(iOut)
+    ## *** vcov-vcov
+    ls.Mparam.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
+        ## collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
+        iName.var <- structure$Upattern[structure$Upattern$name == iName,"var"]
+        iName.cor <- structure$Upattern[structure$Upattern$name == iName,"cor"]
+
+        iM.param <- do.call(cbind,c(apply(structure$var$Xpattern[[iName.var]], MARGIN = 3, FUN = as.vector, simplify = FALSE),
+                                    apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE)))
+        return(unique(iM.param))
     }), structure$Upattern$name)
+    Mparam.vcov <- unique(do.call(rbind,ls.Mparam.vcov))
+    ls.Mpair.vcovvcov <- apply(Mparam.vcov, MARGIN = 1, FUN = function(iParam){unorderedPairs(setdiff(iParam,param.constraint))}, simplify = FALSE)
+    structure$pair.vcovvcov <- t(unique(t(do.call(cbind,ls.Mpair.vcovvcov))))
+
+    ## *** mean-vcov
+    obs2cluster <- unlist(mapply(x = 1:length(outInit$index.clusterTime), y = lengths(outInit$index.clusterTime), FUN = function(x, y){rep(x, times = y)}, SIMPLIFY = FALSE))
+
+    ls.Mparam.meanvcov <- lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[2]
+        ## collect, for each pattern, the vector of mean parameters
+        iCluster <- structure$Upattern[structure$Upattern$name==iName,"index.cluster"][[1]]
+        iX.bin <- X.mean[unlist(outInit$index.cluster[iCluster]),,drop=FALSE] != 0
+        iParam.mean <- c(colnames(X.mean)[colSums(iX.bin)>0], rep(NA,sum(colSums(iX.bin)==0)))
+        ## add it to the vector of variance and correlation parameters
+        iOut <- cbind(ls.Mparam.vcov[[iName]], matrix(iParam.mean, byrow = TRUE, nrow = NROW(ls.Mparam.vcov[[iName]]), ncol = length(iParam.mean)))
+        return(cbind(pattern = iName,iOut))
+    })
+
+    ## unique variance+correlation+mean parameter patterns
+    Mparam.meanvcov <- do.call(rbind,ls.Mparam.meanvcov)
+    Mparam.meanvcovU <- cbind(index = 1:NROW(Mparam.meanvcov), Mparam.meanvcov)[!duplicated(Mparam.meanvcov[,-1,drop=FALSE]),,drop=FALSE]
+    
+    ## but mean parameter patterns may be missing so unique is not catching all the repeated due to NA
+    if(any(is.na(Mparam.meanvcovU)) & length(unique(structure$Upattern$n.time))!=1){ ## find repeats with NA, e.g. sigma time1 time2 (NA) is a repeat of sigma time1 time2 time3
+
+        allParam <- na.omit(unique(as.vector(Mparam.meanvcov)))
+        pattern.full <- unique(structure$Upattern[structure$Upattern$n.time == max(structure$Upattern$n.time),"name"])
+        
+        Mparam.meanvcovU.full <- apply(Mparam.meanvcovU[Mparam.meanvcovU[,"pattern"]!=pattern.full,], MARGIN = 1, function(iRow){allParam %in% iRow})
+        rownames(Mparam.meanvcovU.full) <- allParam
+        Mparam.meanvcovU.NA <- apply(Mparam.meanvcov[Mparam.meanvcovU[,"pattern"]==pattern.full,], MARGIN = 1, function(iRow){allParam %in% iRow})
+        rownames(Mparam.meanvcovU.NA) <- allParam
+        
+        test.keep <- apply(Mparam.meanvcovU.NA, MARGIN = 2, function(iRow){
+            min(rowSums(sweep(Mparam.meanvcovU.full, MARGIN = 1, FUN = "-", STATS = iRow)!=0))
+        })
+        if(any(test.keep==0)){
+            Mparam.meanvcovU <- Mparam.meanvcovU[-which(Mparam.meanvcovU[,"pattern"]!=pattern.full)[test.keep==0],,drop=FALSE]
+        }
+    }
+    browser()
+    
+    ls.Mpair.meanvcov <- apply(Mparam.meanvcovU[,-(1:2),drop=FALSE], MARGIN = 1, FUN = function(iParam){expand.grid(setdiff(stats::na.omit(iParam),c(param.constraint,colnames(X.mean))),
+                                                                                               intersect(stats::na.omit(iParam),colnames(X.mean)))
+    }, simplify = FALSE)
+    structure$pair.meanvcov <- unname(t(unique(do.call(rbind,ls.Mpair.meanvcov))))
+
+    ## *** track back to Upattern
+    structure$pattern.vcovvcov <- matrix(NA, nrow = NROW(structure$Upattern), ncol = NCOL(structure$pair.vcovvcov),
+                                         dimnames = list(structure$Upattern$name,NULL))
+    structure$pattern.meanvcov <- matrix(NA, nrow = NROW(structure$Upattern), ncol = NCOL(structure$pair.meanvcov),
+                                         dimnames = list(structure$Upattern$name,NULL))
+
+    for(iPattern in 1:NROW(structure$Upattern)){ ## iPattern <- 1
+        for(iPair in 1:NCOL(structure$pair.vcovvcov)){ ## iPair <- 1
+            iTest <- (ls.Mparam.vcov[[iPattern]] == structure$pair.vcovvcov[1,iPair]) + (ls.Mparam.vcov[[iPattern]] == structure$pair.vcovvcov[2,iPair])
+            structure$pattern.vcovvcov[iPattern,iPair] <- any(rowSums(iTest) == 2)
+        }
+        for(iPair in 1:NCOL(structure$pair.meanvcov)){ ## iPair <- 1
+            iTest <- (ls.Mparam.meanvcov[[iPattern]] == structure$pair.meanvcov[1,iPair]) + (ls.Mparam.meanvcov[[iPattern]] == structure$pair.meanvcov[2,iPair])
+            structure$pattern.meanvcov[iPattern,iPair] <- any(rowSums(iTest) == 2)
+        }
+    }
 
     ## ** param
     skeleton.param <- rbind(skeleton.mu,                            

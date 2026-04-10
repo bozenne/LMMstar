@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:55) 
 ## Version: 
-## Last-Updated: mar 13 2026 (13:30) 
+## Last-Updated: apr 10 2026 (13:38) 
 ##           By: Brice Ozenne
-##     Update #: 81
+##     Update #: 108
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -56,7 +56,9 @@
 
     ## ** identify and name parameters
     index.k <- which(attr(X.var,"assign")>(n.strata>1)) ## complement with structure$param$index.level
-    if(length(index.k)==0){return(structure)} ## no variance multiplier
+    if(length(index.k)==0){ ## no variance multiplier
+        return(.skeletonK.ID(structure, U.strata = U.strata, sep = sep))
+    } 
 
     M.level.k <- attr(X.var,"M.level")[index.k,,drop=FALSE]
     vec.level.k <- nlme::collapse(lapply(1:NCOL(M.level.k), function(iVar){

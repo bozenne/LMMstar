@@ -1,11 +1,11 @@
-### structure-initialization.R --- 
+### structure-initialize.R --- 
 ##----------------------------------------------------------------------
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:20) 
 ## Version: 
-## Last-Updated: sep 26 2025 (09:54) 
+## Last-Updated: apr 10 2026 (15:49) 
 ##           By: Brice Ozenne
-##     Update #: 610
+##     Update #: 615
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -15,7 +15,7 @@
 ## 
 ### Code:
 
-## * initialization
+## * initialize
 ##' @title Initialize Variance-Covariance Structure
 ##' @description Initialize the parameters of the variance-covariance structure using residual variance and correlations.
 ##' @noRd
@@ -80,14 +80,17 @@
 
     ## combine all residuals and all design matrices
     M.res <- do.call(rbind,lapply(1:length(object$var$Xpattern), function(iPattern){ ## iPattern <- 1
-        X.iPattern <- object$var$Xpattern[[iPattern]]
-        cluster.iPattern <- attr(X.iPattern,"index.cluster")
+browser()
+            X.iPattern <- apply(object$var$Xpattern[[iPattern]], MARGIN = 3, diag, simplify = FALSE)
+        
+        
+        cluster.iPattern <- unlist(object$Upattern[object$Upattern$var==iPattern,"index.cluster"] )
         obs.iPattern <- unlist(index.cluster[cluster.iPattern])
         iOut <- cbind(index.lp = object$var$lp[obs.iPattern],
                       index.obs = obs.iPattern,
-                      index.strata = attr(X.iPattern,"index.strata"),
+                      index.strata = unique(object$Upattern[object$Upattern$var==iPattern,"index.strata"]),
                       residuals = residuals[obs.iPattern],
-                      do.call(rbind,rep(list(X.iPattern),length(cluster.iPattern))))
+                      do.call(rbind,rep(list(diag(X.iPattern)),length(cluster.iPattern))))
         return(iOut)
     }))
 
@@ -266,7 +269,7 @@
     }else{
         residuals.studentized <- residuals
     }
-
+browser()
     ## ** combine all residuals and all design matrices
     M.prodres <- do.call(rbind,lapply(1:length(object$cor$Xpattern), function(iPattern){ ## iPattern <- 1
         
@@ -649,4 +652,4 @@
     
 }
 ##----------------------------------------------------------------------
-### structure-initialization.R ends here
+### structure-initialize.R ends here

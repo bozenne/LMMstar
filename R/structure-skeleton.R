@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: mar 13 2026 (14:37) 
+## Last-Updated: apr 10 2026 (12:11) 
 ##           By: Brice Ozenne
-##     Update #: 2602
+##     Update #: 2610
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -85,7 +85,6 @@
 
 ## * skeleton.CS
 .skeleton.CS <- function(structure, data, indexData = NULL, options = NULL){
-
 
     ## ** initialize (not use by LMMstar, only if direct call from the user like in the examples of the documentation)
     if(is.null(indexData)){

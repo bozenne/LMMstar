@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: feb  9 2026 (10:31) 
+## Last-Updated: apr 10 2026 (13:55) 
 ##           By: Brice Ozenne
-##     Update #: 389
+##     Update #: 390
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -521,7 +521,7 @@ tr <- function(object){
 ##' unorderedPairs(1:5, distinct = FALSE)
 ##' unorderedPairs(rep(1,5), distinct = TRUE) - (utils::combn(5, m = 2)>0)
 ##' 
-unorderedPairs <- function(x, distinct = FALSE, unique = FALSE){
+unorderedPairs <- function(x, distinct = FALSE){
     n.x <- length(x)
     ## work on integers
     y <- 1:n.x

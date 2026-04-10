@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:27) 
 ## Version: 
-## Last-Updated: okt 30 2025 (13:30) 
+## Last-Updated: apr 10 2026 (15:28) 
 ##           By: Brice Ozenne
-##     Update #: 41
+##     Update #: 47
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,7 +103,7 @@
                                            residuals = wY,
                                            pattern = design$vcov$Upattern$name,
                                            pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                           pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
+                                           pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)
 
         }else{
             precompute.XY <- NULL
@@ -158,7 +158,6 @@
         if(!is.null(init.mu)){
             param.value[param.mu2] <- init.mu[param.mu2]
         }else if(length(param.mu2)>0){
-
             if(!is.null(init.Omega)){
                 start.OmegaM1 <- stats::setNames(lapply(Upattern$name, function(iPattern){ ## iPattern <- 1
                     iCluster <- attr(design$vcov$pattern,"list")[[iPattern]][1]

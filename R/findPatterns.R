@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: mar 13 2026 (16:31) 
+## Last-Updated: apr 10 2026 (17:59) 
 ##           By: Brice Ozenne
-##     Update #: 984
+##     Update #: 998
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -71,23 +71,25 @@
     }
 
     ## ** characterize each variance pattern
-    if(length(param.k)>0){
-        Xpattern.var <- lapply(1:NROW(Upattern),function(iP){ ## iP <- Upattern$name[1]
-            iC <- Upattern$index.cluster[[iP]][1]
-            iParam.k <- intersect(param.k,Upattern$param[[iP]])
-            iX <- X.var[index.cluster[[iC]],iParam.k,drop=FALSE]
-            iN.time <- Upattern$n.time[[iP]]
-            iTimeParam.k <- apply(iX, MARGIN = 1, function(iRow){c(names(iRow)[which(iRow==1)],NA)[1]})
-
-            iOut <- array(NA, dim = c(iN.time,iN.time,2))
-            iOut[,,1] <- tcrossprod(1:iN.time,rep(1,iN.time))
-            iOut[,,1][] <- iTimeParam.k[iOut[,,1][]]
-            iOut[,,2] <- t(iOut[,,1])
-            return(iOut)
-        })
-    }else{
-        Xpattern.var <- NULL
-    }
+    Xpattern.var <- lapply(1:NROW(Upattern), function(iP){ ## iP <- 1
+        iLp <- structure$var$pattern2lp[[iP]]
+        iSigma <- apply(structure$var$lp2X[iLp,param.sigma,drop=FALSE], MARGIN = 1, function(iRow){param.sigma[iRow>0]})
+        if(length(unique(iSigma))!=1){
+            stop("Something went wrong when identifying the sigma parameters in the residual covariance patterns. \n",
+                 "Consider contacting the package manager with a reproducible example. \n")
+        }
+        if(length(param.k)>0){
+            iK <- apply(structure$var$lp2X[iLp,param.k,drop=FALSE], MARGIN = 1, function(iRow){c(param.k[iRow>0],"one")[1]})
+            iOut <- array(NA_character_, dim = c(rep(length(iLp),2),3), dimnames = list(NULL,NULL,c("sigma","k1","k2")))
+            iOut[,,"sigma"] <- unique(iSigma)
+            iOut[,,"k1"] <- matrix(iK, byrow = TRUE, nrow = length(iLp), ncol = length(iLp))
+            iOut[,,"k2"] <- matrix(iK, byrow = FALSE, nrow = length(iLp), ncol = length(iLp))
+        }else{
+            iOut <- array(unique(iSigma), dim = c(rep(length(iLp),2),1), dimnames = list(NULL,NULL,"sigma"))
+        }
+        return(iOut)
+        
+    })
 
     ## ** export
     structure$pattern <- as.character(pattern.var)
@@ -113,6 +115,7 @@
                                          index.clusterTime = index.clusterTime, U.time = U.time,
                                          index.cluster = index.cluster, U.cluster = U.cluster,
                                          index.clusterStrata = index.clusterStrata, U.strata = U.strata)
+    
     UpatternVar <- Upatterns.init$Upattern
     Xpattern.var <- Upatterns.init$var$Xpattern
     if(sum("rho" %in% structure$param$type & is.na(structure$param$constraint)) == 0){return(Upatterns.init)} ## no 'free' correlation parameter
@@ -178,7 +181,7 @@
     ## use intersect instead of unique to keep common ordering of the model parameters, i.e. avoid to have rho1, rho2 in one pattern and rho2, rho1 in the other
     UpatternCor$param <- tapply(pattern.pairwise$param.rho, INDEX = factor(pattern.pairwise$pattern,Upattern.cor),
                                 FUN = function(iVec){intersect(structure.param$name,iVec)},simplify=FALSE) 
-    
+
     ## *** characterize each correlation pattern
     Xpattern.cor <- lapply(1:NROW(UpatternCor), function(iP){ ## iP <- 1
         iN.time <- UpatternCor$n.time[iP]
@@ -194,7 +197,7 @@
     })
 
     ## ** joint variance and correlation patterns
-    vec.pattern <- paste0(structure$var$pattern,sep,structure$cor$pattern)
+    vec.pattern <- paste0(structure$var$pattern,sep["pattern"],structure$cor$pattern)
     test.Upattern <- !duplicated(vec.pattern)
     index.Upattern <- which(test.Upattern)[order(vec.pattern[test.Upattern])] ## re-order index so patterns appears in alphabetic order (instead of order driven by the dataset)
 
@@ -216,7 +219,7 @@
     ## ** export
     structure$pattern <- vec.pattern
     structure$Upattern <- Upattern
-    attr(structure$Upattern,"sep") <- sep
+    attr(structure$Upattern,"sep") <- sep["pattern"]
     structure$var$Xpattern <- Xpattern.var
     structure$cor$Xpattern <- Xpattern.cor
     return(structure)
