@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: apr 10 2026 (15:26) 
+## Last-Updated: okt  2 2026 (17:01) 
 ##           By: Brice Ozenne
-##     Update #: 3352
+##     Update #: 3362
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -292,7 +292,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     
     dfNNA.Utime <- data[!duplicated(data$XXtimeXX),c("XXtimeXX","XXtime.indexXX")]
     time.matchNNA <- match(U.time,dfNNA.Utime$XXtimeXX)
-    out$ordering <- list(n = length(U.time), levels = U.time, index = dfNNA.Utime$XXtime.indexXX[time.matchNNA], var = var.time)
+    out$time <- list(n = length(U.time), levels = U.time, index = dfNNA.Utime$XXtime.indexXX[time.matchNNA], var = var.time)
 
     dfNNA.Ustrata <- data[!duplicated(data$XXstrataXX),c("XXstrataXX","XXstrata.indexXX")]
     strata.matchNNA <- match(U.strata,dfNNA.Ustrata$XXstrataXX)
@@ -330,7 +330,8 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
                                     data = data, var.outcome = out$outcome$var, var.weights = out$weights$var,
                                     precompute.moments = precompute.moments,
                                     drop.X = options$drop.X,
-                                    options = options)
+                                    options = options,
+                                    df = out$args$df)
 
     ## *** update xfactor according to factors used in the vcov structure
     ## NOTE: use model.frame to handline splines in the formula
@@ -372,11 +373,11 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
         if(out$args$control$trace>1){cat("\n")}
     }
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
-    outEstimate <- .optim(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
-                          transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                          precompute.moments = precompute.moments, 
-                          optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
-                          tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
+    outEstimate <- .optim.lmm(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+                              transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
+                              precompute.moments = precompute.moments, 
+                              optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
+                              tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
     param.value <- outEstimate$estimate
     out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
     if((trace==0 && out$args$control$trace>0)){
@@ -1124,7 +1125,7 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     var.time.original <- attr(var.time,"original")
     var.strata.original <- attr(var.strata,"original")
     structure1time2IND <- c("CS","RE","TOEPLITZ","UN","EXP") ## simplify structures to ID when a single timepoint
-    
+
     ## ** initialize structure when not specified
     if(missing(structure) || is.null(structure)){
         if(!is.null(ranef$formula)){

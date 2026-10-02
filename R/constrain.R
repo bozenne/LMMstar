@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: jul 17 2025 (11:29) 
+## Last-Updated: sep 30 2026 (10:29) 
 ##           By: Brice Ozenne
-##     Update #: 146
+##     Update #: 147
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -132,16 +132,16 @@
     }
 
     ## refit
-    eee <- .optim(design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
-                  transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
-                  precompute.moments = "precompute.XX" %in% names(x$design),
-                  optimizer = "FS", init = init,
-                  n.iter = x$opt$control[["n.iter"]],
-                  tol.score = x$opt$control[["tol.score"]],
-                  tol.param = x$opt$control[["tol.param"]],
-                  n.backtracking = x$opt$control[["n.backtracking"]],
-                  init.cor = x$opt$control[["init.cor"]],
-                  trace = trace)
+    eee <- .optim.lmm(design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
+                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
+                      precompute.moments = "precompute.XX" %in% names(x$design),
+                      optimizer = "FS", init = init,
+                      n.iter = x$opt$control[["n.iter"]],
+                      tol.score = x$opt$control[["tol.score"]],
+                      tol.param = x$opt$control[["tol.param"]],
+                      n.backtracking = x$opt$control[["n.backtracking"]],
+                      init.cor = x$opt$control[["init.cor"]],
+                      trace = trace)
 
     x$opt[c("cv","n.iter","score","previous.estimate")] <- eee[c("cv","n.iter","score","previous.estimate")]
     x$param <- eee$estimate

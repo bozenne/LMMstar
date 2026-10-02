@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: apr 10 2026 (17:59) 
+## Last-Updated: okt  1 2026 (13:37) 
 ##           By: Brice Ozenne
-##     Update #: 998
+##     Update #: 1016
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,6 +72,7 @@
 
     ## ** characterize each variance pattern
     Xpattern.var <- lapply(1:NROW(Upattern), function(iP){ ## iP <- 1
+        
         iLp <- structure$var$pattern2lp[[iP]]
         iSigma <- apply(structure$var$lp2X[iLp,param.sigma,drop=FALSE], MARGIN = 1, function(iRow){param.sigma[iRow>0]})
         if(length(unique(iSigma))!=1){
@@ -80,13 +81,11 @@
         }
         if(length(param.k)>0){
             iK <- apply(structure$var$lp2X[iLp,param.k,drop=FALSE], MARGIN = 1, function(iRow){c(param.k[iRow>0],"one")[1]})
-            iOut <- array(NA_character_, dim = c(rep(length(iLp),2),3), dimnames = list(NULL,NULL,c("sigma","k1","k2")))
-            iOut[,,"sigma"] <- unique(iSigma)
-            iOut[,,"k1"] <- matrix(iK, byrow = TRUE, nrow = length(iLp), ncol = length(iLp))
-            iOut[,,"k2"] <- matrix(iK, byrow = FALSE, nrow = length(iLp), ncol = length(iLp))
+            iOut <- cbind(sigma = iSigma, k = iK)
         }else{
-            iOut <- array(unique(iSigma), dim = c(rep(length(iLp),2),1), dimnames = list(NULL,NULL,"sigma"))
+            iOut <- cbind(sigma = iSigma)
         }
+        rownames(iOut) <- NULL
         return(iOut)
         
     })
@@ -191,8 +190,8 @@
         iM[iPattern.pairwise[,"index.y"] + iN.time*(iPattern.pairwise[,"index.x"]-1)] <- iPattern.pairwise[,"param.rho"]
         diag(iM) <- "one"
 
-        iOut <- array(NA_character_, dim = c(iN.time, iN.time, 1))
-        iOut[,,1] <- iM
+        iOut <- array(NA_character_, dim = c(iN.time, iN.time, 1), dimnames = list(NULL,NULL,"rho"))
+        iOut[,,"rho"] <- iM
         return(iOut)
     })
 

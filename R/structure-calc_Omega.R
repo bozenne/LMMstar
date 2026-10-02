@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: jul 29 2024 (09:58) 
+## Last-Updated: okt  2 2026 (13:05) 
 ##           By: Brice Ozenne
-##     Update #: 616
+##     Update #: 684
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,7 +21,8 @@
 ##' @noRd
 ##'
 ##' @param structure [structure]
-##' @param param [named numeric vector] values of the parameters.
+##' @param param [named numeric vector] values of the parameters (transformed).
+##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
 ##' @param Upattern [data.frame] Optional, used to only evaluate the residual variance-covariance with respect to a subset of patterns.
 ##' Should contain the name of the pattern, the index of the variance pattern, the index of the correlation pattern.
 ##' @param simplify [logical] should the correlation matrix and the vector of standard deviations be add to the output as attributes.
@@ -65,12 +66,15 @@
 ##' .calc_Omega(Sun4, param = param4)
 ##' .calc_Omega(Sun24, param = param24, simplify = FALSE)
 `.calc_Omega` <-
-    function(object, param, Upattern, simplify) UseMethod(".calc_Omega")
+    function(object, param, transform.sigma, transform.k, transform.rho, Upattern, simplify) UseMethod(".calc_Omega")
 
 
 ## * calc_Omega.ID
-.calc_Omega.ID <- function(object, param, Upattern = NULL, simplify = TRUE){
-
+.calc_Omega.ID <- function(object, param, transform.sigma, transform.k, transform.rho,
+                           Upattern = NULL, simplify = TRUE){
+    
+    ## ** prepare
+    ## pattern
     if(is.null(Upattern)){
         Upattern <- object$Upattern
     }
@@ -78,37 +82,85 @@
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
 
-    Omega <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-        iPattern.var <- Upattern[iPattern,"var"]
-        iPattern.cor <- Upattern[iPattern,"cor"]
+    ## param
+    param <- param[object$param$name] ## re-order and possibly remove mu parameters
+    type <- object$param$type
+    param1 <- c("one" = 1,param[type != "mu"])
+
+    ## ** back-transform
+    if(transform.sigma != "none"){
+        name.sigma <- names(param)[type == "sigma"]
+        if(transform.sigma  == "log"){
+            param1[name.sigma] <- exp(param[name.sigma])
+        }else if(transform.sigma  == "square"){
+            param1[name.sigma] <- sqrt(param[name.sigma])
+        }else if(transform.sigma  == "logsquare"){
+            param1[name.sigma] <- exp(0.5*param[name.sigma])
+        }        
+    }   
+    if(transform.k != "none"){
+        name.k <- names(param)[type == "k"]
+        if(transform.k  %in% c("log","logsd")){
+            param1[name.k] <- exp(param[name.k])
+        }else if(transform.k %in% c("square","var")){
+            param1[name.k] <- sqrt(param[name.k])
+        }else if(transform.k  %in% c("logsquare","logvar")){
+            param1[name.k] <- exp(0.5*param[name.k])
+        }        
+    }
+    if(transform.rho == c("atanh")){
+        name.rho <- names(param)[type == "rho"]
+        param1[name.rho] <- tanh(param[name.rho])
+    }
+
+    ## ** loop over covariance patterns
+    out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
+
+        ## *** patterns
+        iX.var <- X.var[[Upattern[iPattern,"var"]]]
+        iX.cor <- X.cor[[Upattern[iPattern,"cor"]]]
         iNtime <- Upattern[iPattern,"n.time"]
 
-        if(length(X.var[[iPattern.var]])>0){
-            Omega.sd <- unname(exp(X.var[[iPattern.var]] %*% log(param[colnames(X.var[[iPattern.var]])])))
-        }else{
-            Omega.sd <- rep(1, iNtime)
+        ## *** variance
+        ## convert vector of sigma: sigma sigma sigma sigma
+        ##                of k    : 1     k2    k3    k4
+        ## into values based of param1
+        ## then take the product to get
+        ##                       : sigma k2*sigma k3*sigma k4*sigma
+        if(transform.k %in% c("none","log","square","logsquare")){
+            Omega.sd <- apply(matrix(param1[iX.var], iNtime, NCOL(iX.var)), 1, prod)
+        }else if(transform.k %in% c("sd","logsd","var","logvar")){
+            Omega.sd <- param1[ifelse(iX.var[,"k"]=="one","sigma",iX.var[,"k"])]
         }
-        if(!is.null(X.cor) && !is.null(X.cor[[iPattern.cor]])){            
-            Omega.cor <- attr(X.cor[[iPattern.cor]],"Omega.cor")
-            iParam.cor <- attr(X.cor[[iPattern.cor]],"param")
-            for(iiP in 1:length(iParam.cor)){ ## iiP <- 3
-                Omega.cor[attr(X.cor[[iPattern.cor]],"indicator.param")[[iParam.cor[iiP]]]] <- param[iParam.cor[iiP]]
-            }
-            Omega <- Omega.cor * tcrossprod(Omega.sd)
+
+        ## *** correlation
+        if(is.null(iX.cor) || iNtime == 1){
+            Omega.cor <- matrix(1, nrow = iNtime, ncol = iNtime)
         }else{
-            Omega.cor <- NULL            
-            Omega <- diag(as.double(Omega.sd)^2, nrow = iNtime, ncol = iNtime)
+            ## convert matrix of rho: 1     rho12 rho13 rho14
+            ##                        rho12     1 rho23 rho24
+            ##                        rho13 rho23     1 rho34
+            ##                        rho14 rho24 rho34     1
+            ## into values and multiply them
+            Omega.cor <- matrix(param1[iX.cor[,,"rho"]], nrow = iNtime, ncol = iNtime)
+        }
+
+        ## *** assemble
+        if(transform.rho %in% c("none","atanh")){
+            Omega <- tcrossprod(Omega.sd)*Omega.cor
+        }else{
+            Omega <- Omega.cor
+            diag(Omega) <- Omega.sd^2
         }
         if(simplify == FALSE){
             attr(Omega,"sd") <- Omega.sd
             attr(Omega,"cor") <- Omega.cor
-            attr(Omega,"time") <- attr(X.var[[iPattern.var]], "index.time")
         }
         return(Omega)
-    }), Upattern$name)
+    })
 
     ## print(Omega)
-    return(Omega)
+    return(stats::setNames(out,Upattern$name))
 }
 
 ## * calc_Omega.IND

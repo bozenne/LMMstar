@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt  3 2024 (11:19) 
+## Last-Updated: okt  1 2026 (11:16) 
 ##           By: Brice Ozenne
-##     Update #: 211
+##     Update #: 218
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -29,26 +29,26 @@
     out$key[upper.tri(out$key)] <- t(out$key)[upper.tri(out$key)]
 
     ## ** fill matrix
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        iN.time <- pattern.ntime[iPattern]
+    for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
+        iN.time <- pattern.ntime[iP]
 
         if(iN.time == 1){
-            iX.summary <- crossprod(X[unlist(index.cluster[pattern.cluster[[iPattern]]]),,drop=FALSE])
-            out$pattern[[iPattern]][1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
+            iX.summary <- crossprod(X[unlist(index.cluster[pattern.cluster[[iP]]]),,drop=FALSE])
+            out$pattern[[iP]][1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
 
         }else{
-            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])),
+            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iP]]], function(iIndex){X[iIndex,,drop=FALSE]})),
+                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iP]]])),
                         dimnames = list(NULL,colnames(X),NULL))
 
             for(iCol1 in 1:p){ ## iCol1 <- 1
                 for(iCol2 in 1:iCol1){ ## iCol2 <- 2
-                    out$pattern[[iPattern]][,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
+                    out$pattern[[iP]][,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
                 }
             }
         }
         ## Possible alternative: 
-        ## iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){as.vector(X[iIndex,,drop=FALSE])}))
+        ## iX <- do.call(rbind,lapply(index.cluster[pattern.cluster[[iP]]], function(iIndex){as.vector(X[iIndex,,drop=FALSE])}))
         ## iX.summary <- crossprod(iX)
         ## Issue how to properly store the elements (too many of them T^2 p^2 instead of T^2 p(p+1)/2)
     }
@@ -63,23 +63,23 @@
     name.mucoef <- colnames(X)
     n.pattern <- length(pattern)
 
-    out <- stats::setNames(lapply(pattern, function(iPattern){
-        matrix(0, nrow = pattern.ntime[iPattern]^2, ncol = p, dimnames = list(NULL,name.mucoef))
+    out <- stats::setNames(lapply(1:n.pattern, function(iP){
+        matrix(0, nrow = pattern.ntime[iP]^2, ncol = p, dimnames = list(NULL,name.mucoef))
     }), pattern)
 
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        iN.time <- pattern.ntime[iPattern]
-        iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
+    for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
+        iN.time <- pattern.ntime[iP]
+        iIndex.cluster <- index.cluster[pattern.cluster[[iP]]]
 
         if(iN.time == 1){
-            out[[iPattern]][] <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE], residuals[unlist(iIndex.cluster)])[,1]
+            out[[iP]][] <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE], residuals[unlist(iIndex.cluster)])[,1]
         }else{
             iResiduals <- do.call(cbind, lapply(iIndex.cluster, function(iIndex){residuals[iIndex,,drop=FALSE]}))
             iX <- array(unlist(lapply(iIndex.cluster, function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iPattern]]])),
+                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iP]]])),
                         dimnames = list(NULL,colnames(X),NULL))
             for(iCol in 1:p){ ## iCol <- 3
-                out[[iPattern]][,iCol] <- as.vector(tcrossprod(iX[,iCol,], iResiduals))
+                out[[iP]][,iCol] <- as.vector(tcrossprod(iX[,iCol,], iResiduals))
             }    
         }
     }
@@ -94,8 +94,8 @@
     n.pattern <- length(pattern)
     out <- stats::setNames(vector(mode = "list", length = length(pattern)), pattern)
 
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        out[[iPattern]] <- as.vector(tcrossprod(do.call(cbind,lapply(index.cluster[pattern.cluster[[iPattern]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))))
+    for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
+        out[[iP]] <- as.vector(tcrossprod(do.call(cbind,lapply(index.cluster[pattern.cluster[[iP]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))))
     }
     
     return(out)

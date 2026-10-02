@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt 30 2025 (10:56) 
+## Last-Updated: okt  1 2026 (12:42) 
 ##           By: Brice Ozenne
-##     Update #: 1552
+##     Update #: 1553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -413,7 +413,6 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
             Omega <- .calc_Omega(object = design$vcov, param = theta, simplify = FALSE)
             if(keep.grad){
                 dOmega <- .calc_dOmega(object = design$vcov, param = theta, Omega = Omega,
-                                       ## Jacobian = object$reparametrize$Jacobian, ## not needed
                                        transform.sigma = init$transform.sigma, transform.k = init$transform.k, transform.rho = init$transform.rho)
             }
             precision <- lapply(Omega, solve)

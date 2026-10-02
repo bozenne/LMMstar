@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: jul 24 2025 (16:45) 
+## Last-Updated: sep 30 2026 (10:30) 
 ##           By: Brice Ozenne
-##     Update #: 814
+##     Update #: 815
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -488,22 +488,22 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         }
 
         ## *** re-estimate
-        iEstimate <- try(.optim(design = iDesign,
-                                time = object$time,
-                                method.fit = object$args$method.fit,
-                                type.information = object$args$type.information,
-                                transform.sigma = object$reparametrize$transform.sigma,
-                                transform.k = object$reparametrize$transform.k,
-                                transform.rho = object$reparametrize$transform.rho,
-                                precompute.moments = precompute.moments, 
-                                optimizer = object$args$control$optimizer,
-                                init = param.init,
-                                n.iter = object$opt$control[["n.iter"]],
-                                tol.score = object$opt$control[["tol.score"]],
-                                tol.param = object$opt$control[["tol.param"]],
-                                n.backtracking = object$opt$control[["n.backtracking"]],
-                                init.cor = object$opt$control[["init.cor"]],
-                                trace = FALSE), silent = TRUE)
+        iEstimate <- try(.optim.lmm(design = iDesign,
+                                    time = object$time,
+                                    method.fit = object$args$method.fit,
+                                    type.information = object$args$type.information,
+                                    transform.sigma = object$reparametrize$transform.sigma,
+                                    transform.k = object$reparametrize$transform.k,
+                                    transform.rho = object$reparametrize$transform.rho,
+                                    precompute.moments = precompute.moments, 
+                                    optimizer = object$args$control$optimizer,
+                                    init = param.init,
+                                    n.iter = object$opt$control[["n.iter"]],
+                                    tol.score = object$opt$control[["tol.score"]],
+                                    tol.param = object$opt$control[["tol.param"]],
+                                    n.backtracking = object$opt$control[["n.backtracking"]],
+                                    init.cor = object$opt$control[["init.cor"]],
+                                    trace = FALSE), silent = TRUE)
 
         if(!inherits(iEstimate,"try-error") && studentized){
             iVcov <- .moments.lmm(value = iEstimate$estimate,

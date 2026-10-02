@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: apr 10 2026 (18:08) 
+## Last-Updated: okt  2 2026 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 3651
+##     Update #: 3692
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -342,16 +342,16 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL)
     }else if(NROW(grid.timeFormat)==3){
         
-         if(grid.timeFormat["correlation","format"]==grid.timeFormat["correlation.cross","format"] & isTRUE(all.equal(structure$formula[["correlation"]],structure$formula[["correlation.cross"]]))){
-             out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL)
-             grid.timeFormat <- grid.timeFormat[c("variance","correlation"),] ## no need for specific design matrix for the cross blocks
-         }else{
-             out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL,
-                                      X.cross = NULL, lp.cross = NULL, lp2data.cross = NULL, lp2X.cross = NULL, xfactor.cross = NULL, xnumeric.cross = NULL)
-         }
-     }else{
-         stop("Something went wrong with the identification of the format of the time variable in the covariance structure. \n")
-     }
+        if(grid.timeFormat["correlation","format"]==grid.timeFormat["correlation.cross","format"] & isTRUE(all.equal(structure$formula[["correlation"]],structure$formula[["correlation.cross"]]))){
+            out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL)
+            grid.timeFormat <- grid.timeFormat[c("variance","correlation"),] ## no need for specific design matrix for the cross blocks
+        }else{
+            out$correlation <-  list(X = NULL, lp = NULL, lp2data = NULL, lp2X = NULL, xfactor = NULL, xnumeric = NULL,
+                                     X.cross = NULL, lp.cross = NULL, lp2data.cross = NULL, lp2X.cross = NULL, xfactor.cross = NULL, xnumeric.cross = NULL)
+        }
+    }else{
+        stop("Something went wrong with the identification of the format of the time variable in the covariance structure. \n")
+    }
     test.newdata <- !is.null(structure$param) ## if TRUE then model.matrix call on newdata otherwise call from lmm->.model.matrix on original data
 
     ## ** variance and correlation design lists
@@ -366,24 +366,30 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         if("xfactor" %in% names(structure[[iMoment]])){ ## from model.matrix.lmm
             iXfactor <- structure[[iMoment]][[paste0("xfactor",iSuffix)]]
             iXnumeric <- structure[[iMoment]][[paste0("xnumeric",iSuffix)]]
-        }else if(iFormat == "factor0"){ ## covariates as factor
-            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
-            iXfactor[var.time] <- NULL
-            iXnumeric <- NULL            
-        }else if(iFormat == "factor"){ ## factor: covariate and time as factor
-            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
-            iXnumeric <- NULL
-        }else if(iFormat == "numeric"){ ## covariate as factor, time as numeric
-            iXfactor <- stats::.getXlevels(stats::terms(iFormula),stats::model.frame(iFormula,data))
-            iXfactor[var.time] <- NULL
-            iXnumeric <- var.time            
         }else if(iFormat == "original"){
             iXfactor <- NULL
             iXnumeric <- NULL
+        }else{
+            data.md <- stats::model.frame(iFormula,data)
+            if(iFormat == "numeric"){ ## force time as numeric
+                iXnumeric <- var.time
+                if(!is.numeric(data.md[[var.time]])){
+                    data.md[[var.time]] <- as.numeric(data.md[[var.time]])
+                }
+            }else{
+                iXnumeric <- NULL
+                if(iFormat == "factor" && !is.factor(data.md[[var.time]])){ ## force time as factor
+                    data.md[[var.time]] <- as.factor(data.md[[var.time]])
+                }                
+            }
+            iXfactor <- stats::.getXlevels(stats::terms(iFormula),data.md)
+            if(iFormat %in% c("factor0","numeric")){
+                iXfactor[var.time] <- NULL
+            }
         }
 
         iData <- .updateFactor(data, xfactor = iXfactor, xnumeric = iXnumeric)
-
+        
         ## *** design matrix
         if(structure.CUSTOM){
             iX <- iData[,iVars,drop=FALSE]                    
@@ -480,7 +486,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                               data, var.outcome, var.weights,
                               drop.X, ## drop singular component of the design matrix
                               precompute.moments,
-                              options){
+                              options, df){
 
     ## ** indexes
     outInit <- .extractIndexData(data = data, var.cluster = structure$name$cluster, var.time = structure$name$ordering, var.strata = structure$name$strata)
@@ -614,15 +620,32 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     ls.Mparam.vcov <- stats::setNames(lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
         ## collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
         iName.var <- structure$Upattern[structure$Upattern$name == iName,"var"]
-        iName.cor <- structure$Upattern[structure$Upattern$name == iName,"cor"]
 
-        iM.param <- do.call(cbind,c(apply(structure$var$Xpattern[[iName.var]], MARGIN = 3, FUN = as.vector, simplify = FALSE),
-                                    apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE)))
+        if(is.null(structure$cor)){
+            iM.param <- structure$var$Xpattern[[iName.var]]
+        }else{
+            iName.cor <- structure$Upattern[structure$Upattern$name == iName,"cor"]
+            iM.param <- cbind(apply(structure$var$Xpattern[[iName.var]], 2, FUN = rep, times = 4), ## sigma, k1
+                              apply(structure$var$Xpattern[[iName.var]], 2, FUN = rep, each = 4), ## sigma, k2
+                              do.call(cbind, apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE))
+                              )
+        }
+        
         return(unique(iM.param))
     }), structure$Upattern$name)
+
     Mparam.vcov <- unique(do.call(rbind,ls.Mparam.vcov))
-    ls.Mpair.vcovvcov <- apply(Mparam.vcov, MARGIN = 1, FUN = function(iParam){unorderedPairs(setdiff(iParam,param.constraint))}, simplify = FALSE)
+    ls.Mpair.vcovvcov <- apply(Mparam.vcov, MARGIN = 1, FUN = function(iParam){
+        unorderedPairs(setdiff(iParam,param.constraint)) ## setdiff will remove duplicated sigma, e.g. sigma, one, sigma, one --> sigma
+    }, simplify = FALSE)
     structure$pair.vcovvcov <- t(unique(t(do.call(cbind,ls.Mpair.vcovvcov))))
+
+    if(df){
+        ls.Mtriplet.vcovvcov <- apply(Mparam.vcov, MARGIN = 1, FUN = function(iParam){
+            unorderedTriplet(setdiff(iParam,param.constraint)) ## setdiff will remove duplicated sigma, e.g. sigma, one, sigma, one --> sigma
+        }, simplify = FALSE)
+        structure$triplet.vcovvcov <- t(unique(t(do.call(cbind,ls.Mtriplet.vcovvcov))))
+    }
 
     ## *** mean-vcov
     obs2cluster <- unlist(mapply(x = 1:length(outInit$index.clusterTime), y = lengths(outInit$index.clusterTime), FUN = function(x, y){rep(x, times = y)}, SIMPLIFY = FALSE))
@@ -659,10 +682,9 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
             Mparam.meanvcovU <- Mparam.meanvcovU[-which(Mparam.meanvcovU[,"pattern"]!=pattern.full)[test.keep==0],,drop=FALSE]
         }
     }
-    browser()
     
     ls.Mpair.meanvcov <- apply(Mparam.meanvcovU[,-(1:2),drop=FALSE], MARGIN = 1, FUN = function(iParam){expand.grid(setdiff(stats::na.omit(iParam),c(param.constraint,colnames(X.mean))),
-                                                                                               intersect(stats::na.omit(iParam),colnames(X.mean)))
+                                                                                                                    intersect(stats::na.omit(iParam),colnames(X.mean)))
     }, simplify = FALSE)
     structure$pair.meanvcov <- unname(t(unique(do.call(rbind,ls.Mpair.meanvcov))))
 
@@ -671,7 +693,6 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                                          dimnames = list(structure$Upattern$name,NULL))
     structure$pattern.meanvcov <- matrix(NA, nrow = NROW(structure$Upattern), ncol = NCOL(structure$pair.meanvcov),
                                          dimnames = list(structure$Upattern$name,NULL))
-
     for(iPattern in 1:NROW(structure$Upattern)){ ## iPattern <- 1
         for(iPair in 1:NCOL(structure$pair.vcovvcov)){ ## iPair <- 1
             iTest <- (ls.Mparam.vcov[[iPattern]] == structure$pair.vcovvcov[1,iPair]) + (ls.Mparam.vcov[[iPattern]] == structure$pair.vcovvcov[2,iPair])

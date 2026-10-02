@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: sep 26 2025 (14:16) 
+## Last-Updated: okt  2 2026 (17:12) 
 ##           By: Brice Ozenne
-##     Update #: 749
+##     Update #: 806
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -123,51 +123,17 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                          logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, precompute.moments, method.numDeriv, transform.names){
 
-    param.value <- value[design$param$name]
-    param.type <- design$param$type
-    param.level <- design$param$level
-    n.cluster <- length(design$index.cluster)
-    df.analytic <- FALSE
-    df.numeric <- df
     out <- list()
-
-    ## ** 1- reparametrisation
-    if(trace>=1){cat("- reparametrization \n")}
-    name.allcoef <- names(param.value)
-    index.var <- which(param.type %in% c("sigma","k","rho"))
-    if(df.analytic){
-        test.d2Omega <- TRUE
-    }else if(vcov || information){
-        test.d2Omega <- (method.fit == "REML" || type.information == "observed")
+    if(df){ ## use if in case method.numDeriv is not specified
+        test.d3Omega <- (method.fit == "REML" || type.information == "observed") & (method.numDeriv == "none")
     }else{
-        test.d2Omega  <- FALSE
+        test.d3Omega <- FALSE
     }
-
-    out$reparametrize <- .reparametrize(p = param.value[index.var], type = param.type[index.var], level = param.level[index.var], 
-                                        sigma = design$param$sigma[index.var], k.x = design$param$k.x[index.var], k.y = design$param$k.y[index.var],
-                                        Jacobian = TRUE, dJacobian = 2*test.d2Omega, inverse = FALSE, ##  2 is necessary to export the right dJacobian
-                                        transform.sigma = transform.sigma,
-                                        transform.k = transform.k,
-                                        transform.rho = transform.rho,
-                                        transform.names = TRUE)
-
-    newname.allcoef <- stats::setNames(name.allcoef, name.allcoef)
-    if(out$reparametrize$transform==FALSE){
-        out$reparametrize$newname <- NULL
-        out$reparametrize$Jacobian <- NULL
-        out$reparametrize$dJacobian <- NULL
-    }else{
-        newname.allcoef[names(out$reparametrize$p)] <- out$reparametrize$newname
-    }
-    if(score || information || vcov || df.analytic){
-        type.effects <- c("mu","sigma","k","rho")[c("mean","variance","variance","correlation") %in% effects]
-        attr(effects, "original.names") <- names(newname.allcoef[param.type %in% type.effects])
-        attr(effects, "reparametrize.names") <- as.character(newname.allcoef[param.type %in% type.effects])        
-    }
-
-    ## ** 2- compute partial derivatives regarding the mean and the variance
+    test.d2Omega <- df || ((vcov || information) & (method.fit == "REML" || type.information == "observed"))
+    
+    ## ** 1- compute partial derivatives regarding the mean and the variance
     if(trace>=1){cat("- residuals \n")}
-    out$fitted <- design$mean %*% param.value[colnames(design$mean)]
+    out$fitted <- design$mean %*% value[colnames(design$mean)]
     out$residuals <- design$Y - out$fitted
 
     if(precompute.moments){
@@ -175,12 +141,12 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         if(attr(design$weights, "user-defined")){
             wRR <- sweep(wRR, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights[,"likelihood"]*design$weights[,"Omega"]))
         } ## otherwise weights are set automatically to 1 but no need to update the residuals
-        
+
         precompute <- list(weights = design$precompute.weights,
                            XX = design$precompute.XX,
                            RR = .precomputeRR(residuals = wRR, pattern = design$vcov$Upattern$name, 
                                               pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                              pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)                           
+                                              pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)                           
                            )
 
         if(score || information || vcov || df.analytic){
@@ -190,7 +156,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
             } ## otherwise weights are set automatically to 1 but no need to update the residuals
             precompute$XR  <-  .precomputeXR(X = design$mean, residuals = wR, pattern = design$vcov$Upattern$name,
                                              pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                             pattern.cluster = attr(design$vcov$pattern,"list"), index.cluster = design$index.cluster)
+                                             pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)
         }
         
     }else{
@@ -198,7 +164,11 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     }
 
     if(trace>=1){cat("- Omega \n")}
-    out$Omega <- .calc_Omega(object = design$vcov, param = param.value, simplify = FALSE)
+    out$Omega <- .calc_Omega(object = design$vcov, param = value,
+                             transform.sigma = transform.sigma,
+                             transform.k = transform.k,
+                             transform.rho = transform.rho,
+                             simplify = FALSE)
 
     ## choleski decomposition
     Omega.chol <- lapply(out$Omega,function(iO){try(chol(iO),silent=TRUE)})
@@ -230,8 +200,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     ## log(sapply(out$OmegaM1,det))
     if(score || information || vcov || df.analytic){
         if(trace>=1){cat("- dOmega \n")}
-        out$dOmega <- .calc_dOmega(object = design$vcov, param = param.value, Omega = out$Omega, 
-                                   Jacobian = out$reparametrize$Jacobian,
+        out$dOmega <- .calc_dOmega(object = design$vcov, param = value, Omega = out$Omega, 
                                    transform.sigma = transform.sigma,
                                    transform.k = transform.k,
                                    transform.rho = transform.rho)
@@ -239,22 +208,27 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
 
     if(test.d2Omega){
         if(trace>=1){cat("- d2Omega \n")}
-        out$d2Omega <- .calc_d2Omega(object = design$vcov, param = param.value, Omega = out$Omega, dOmega = out$dOmega, 
-                                     Jacobian = out$reparametrize$Jacobian, dJacobian = out$reparametrize$dJacobian,
+        out$d2Omega <- .calc_d2Omega(object = design$vcov, param = value, Omega = out$Omega, 
                                      transform.sigma = transform.sigma,
                                      transform.k = transform.k,
                                      transform.rho = transform.rho)
     }
 
-    ## ** 3- precompute
+    if(test.d3Omega){
+        if(trace>=1){cat("- d3Omega \n")}
+        out$d3Omega <- .calc_d3Omega(object = design$vcov, param = value, Omega = out$Omega, 
+                                     transform.sigma = transform.sigma,
+                                     transform.k = transform.k,
+                                     transform.rho = transform.rho)
+    }
+
+    ## ** 2- precompute
     ## *** require the full information whenever the information is not block diagonal
     ## all the matrix is need in order to get the inverse (vcov) 
     if((vcov && (method.fit=="REML"||type.information=="observed"))  || df.analytic){
         effects2 <- c("mean","variance","correlation")
-        attr(effects2, "original.names") <- names(newname.allcoef)
-        attr(effects2, "reparametrize.names") <- as.character(newname.allcoef)
     }else if(score || information || vcov || df.analytic){
-        effects2 <- effects
+        effects2 <- c("mu","sigma","k","rho")[c("mean","variance","variance","correlation") %in% effects]
     }
 
     ## *** matrix product between the residual variance-covariance matrix and its derivative
@@ -268,7 +242,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                                            logLik = logLik, score = (score || (vcov && robust)), information = information, vcov = vcov, df = df.analytic)
     }
 
-    ## ** 4- compute likelihood derivatives
+    ## ** 3- compute likelihood derivatives
 
     ## *** log-likelihood
     if(logLik){
@@ -369,14 +343,14 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
 
     if(df){
         if(trace>=1){cat("- degrees-of-freedom \n")}
-        if(df.analytic){
+        if(method.numDeriv=="none"){
             ## out$df2 <- .df_analytic(residuals = out$residuals, precision = out$OmegaM1, dOmega = out$dOmega, d2Omega = out$d2Omega, Upattern.ncluster = Upattern.ncluster, vcov = out$vcov,
             ##                         pattern = design$vcov$pattern, index.clusterTime = design$index.time, index.cluster = design$index.cluster,
             ##                         name.varcoef = design$vcov$Upattern$param, name.allcoef = name.allcoef,
             ##                         pair.meanvarcoef = design$param$pair.meanvarcoef, pair.varcoef = design$vcov$pair.varcoef,
             ##                         indiv = indiv, REML = (method.fit=="REML"), type.information = type.information, name.effects = name.effects, robust = robust, diag = TRUE,
             ##                         precompute = precompute)
-        }else if(df.numeric){
+        }else{
             ## require vcov for all parameters to compute df
             effects.all <- c("mean", "variance", "correlation")
             attr(effects.all, "original.names") <- names(newname.allcoef)

@@ -51,7 +51,7 @@
 ##' 
 ##' @importFrom ggplot2 autoplot
 ##' @importFrom rlang .data
-##' @importFrom nlme ranef
+##' @importFrom nlme ranef getGroups
 ##' @importFrom stats aggregate anova coef confint cor df df.residual dummy.coef effects fitted influence logLik model.matrix model.tables nobs profile residuals sigma update variable.names vcov weights
 ##' @importFrom lava bootstrap estimate iid information score
 ##' @keywords internal 

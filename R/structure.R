@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: mar 13 2026 (14:02) 
+## Last-Updated: sep 30 2026 (11:07) 
 ##           By: Brice Ozenne
-##     Update #: 1973
+##     Update #: 1974
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,6 +95,7 @@ ID <- function(formula = ~1){
                                correlation.cross = NULL),
                 class = c(variance = "ID", correlation = NA, correlation.cross = NA))
     attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
+    attr(out$formula,"update.time") <- TRUE
     
     ## ** export
     class(out) <- append("structure",class(out))

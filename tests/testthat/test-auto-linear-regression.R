@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: jul 18 2025 (15:48) 
+## Last-Updated: okt  1 2026 (12:41) 
 ##           By: Brice Ozenne
-##     Update #: 224
+##     Update #: 225
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,6 +48,7 @@ set.seed(10)
 d <- lava::sim(m,n, latent = FALSE)
 d$time <- "t1"
 
+stats::.getXlevels(~time,data.frame(time = 1:4))
 
 ## * single variance parameter (ML)
 

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: sep 26 2025 (15:52) 
+## Last-Updated: okt  2 2026 (12:48) 
 ##           By: Brice Ozenne
-##     Update #: 978
+##     Update #: 980
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -365,7 +365,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
 
     ## ** prepare output
     compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$XR) || is.null(precompute$RR)
-    name.effects <- attr(effects,"original.names")
+    name.effects <- c(name.mucoef, name.varcoef)
     n.effects <- length(name.effects)
     if(compute.indiv){
         Score <- matrix(0, nrow = n.cluster, ncol = n.effects,

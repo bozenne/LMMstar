@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (13:27) 
 ## Version: 
-## Last-Updated: mar 13 2026 (14:56) 
+## Last-Updated: sep 30 2026 (10:57) 
 ##           By: Brice Ozenne
-##     Update #: 1694
+##     Update #: 1695
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -39,7 +39,7 @@
 .skeletonRho.ID <- function(structure, XpairPattern, U.strata, name.cov, block, sep){
 
     ## ** run 'normal' CS
-    out <- .crossBlockCS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = block, sep = sep)
+    out <- .skeletonRho.CS(structure, XpairPattern = XpairPattern, U.strata = U.strata, name.cov = name.cov, block = block, sep = sep)
 
     ## ** add constraint
     lp2data <- structure$cor$lp2data

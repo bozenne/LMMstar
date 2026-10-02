@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: apr 10 2026 (13:55) 
+## Last-Updated: okt  2 2026 (16:56) 
 ##           By: Brice Ozenne
-##     Update #: 390
+##     Update #: 401
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -504,7 +504,6 @@ tr <- function(object){
 ##'
 ##' @param x vector of values
 ##' @param distinct [logical] should pairs containing the same observations be removed?
-##' @param unique [logical] should pairs leading to the same values be removed? 
 ##' 
 ##' @details adapted from RecordLinkage package
 ##'
@@ -514,8 +513,8 @@ tr <- function(object){
 ##' unorderedPairs(1, distinct = TRUE)
 ##' 
 ##' ## two observations
-##' unorderedPairs(c(1,1), distinct = FALSE) ## all possible pairs
-##' unorderedPairs(c(1,1), distinct = TRUE) ## only pairs between distinct observations
+##' unorderedPairs(c(1,2), distinct = FALSE) ## all possible pairs
+##' unorderedPairs(c(1,2), distinct = TRUE) ## only pairs between distinct observations
 ##' 
 ##' unorderedPairs(1:5, distinct = TRUE) - utils::combn(5, m = 2)
 ##' unorderedPairs(1:5, distinct = FALSE)
@@ -543,6 +542,41 @@ unorderedPairs <- function(x, distinct = FALSE){
     return(out)
 }
 
+
+##' @examples
+##' @title Form All Triplets
+##' @description Form all triplets of values
+##' @noRd
+##'
+##' @param x vector of values
+##' @param distinct [logical] should pairs containing the same observations be removed?
+##'
+##' @examples
+##' unorderedTriplet(1:5, distinct = TRUE) - utils::combn(5, m = 3)
+unorderedTriplet <- function(x, distinct = FALSE){
+    n.x <- length(x)
+    ## work on integers
+    y <- 1:n.x
+
+    out <- do.call(cbind,lapply(1:n.x, function(iK) {
+        do.call(cbind,lapply(iK:n.x, function(iL) {
+            rbind(y[iK], y[iL], y[iL:n.x])
+        }))
+    }))
+    
+    ## remove 'diagonal' pairs (e.g. (1,1) or (2,2))
+    if(distinct){## same as combn but faster when x is large
+        if(all(out[1,]==out[2,] | out[2,]==out[3,])){
+            return(NULL)
+        }else{
+            out <- out[,out[1,]!=out[2,] & out[2,]!=out[3,],drop=FALSE]
+        }
+    }
+
+    ## restaure original values
+    out[] <- x[as.vector(out)]
+    return(out)
+}
 
 ## * sdiag (copied from the mgcv package)
 ##' @title Index of Diagonals of a Matrix

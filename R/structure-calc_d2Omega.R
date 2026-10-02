@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: jul  9 2025 (14:39) 
+## Last-Updated: okt  2 2026 (17:06) 
 ##           By: Brice Ozenne
-##     Update #: 240
+##     Update #: 468
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -21,14 +21,12 @@
 ##' @noRd
 ##'
 ##' @param structure [structure]
-##' @param param [named numeric vector] values of the parameters.
+##' @param param [named numeric vector] values of the parameters (transformed).
 ##' @param Omega [list of matrices] Residual Variance-Covariance Matrix for each pattern.
-##' @param dOmega [list of matrices] First derivative of the residual Variance-Covariance Matrix for each pattern.
-##' @param Jacobian [matrix] Jacobian of the reparametrisation.
-##' @param dJacobian [array] First derivative of the Jacobian of the reparametrisation.
 ##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
 ##' Only active if \code{"log"}, \code{"log"}, \code{"atanh"}: then the derivative is directly computed on the transformation scale instead of using the Jacobian.
-##'
+##' @param Upattern [data.frame] Optional, used to only evaluate the second derivative of the residual variance-covariance with respect to a subset of patterns.
+##' 
 ##' @keywords internal
 ##' 
 ##' @examples
@@ -67,76 +65,60 @@
 ##' .calc_d2Omega(Sun4, param = param4)
 ##' .calc_d2Omega(Sun24, param = param24)
 `.calc_d2Omega` <-
-    function(object, param, Omega, dOmega, Jacobian, dJacobian,
+    function(object, param, Omega, 
              transform.sigma, transform.k, transform.rho) UseMethod(".calc_d2Omega")
 
 ## * calc_d2Omega.ID
-.calc_d2Omega.ID <- function(object, param, Omega, dOmega, Jacobian = NULL, dJacobian = NULL,
+.calc_d2Omega.ID <- function(object, param, Omega, 
                              transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
-   
+
     ## ** prepare
-    type <- stats::setNames(object$param$type,object$param$name) 
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
-    name.paramVar <- c(name.sigma,name.k,name.rho)
-
-    param <- param[name.paramVar]
-    name.param <- names(param)
-    if(missing(Omega)){
-        Omega <- .calc_Omega(object, param = param, simplify = FALSE)
-    }
-    if(missing(dOmega)){
-        dOmega <- .calc_dOmega(object, param = param, Omega = Omega, Jacobian = Jacobian,
-                               transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)
-    }
-
+    ## pattern
     Upattern <- object$Upattern
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
-    if(identical(transform.sigma,"log") && identical(transform.k,"log") && identical(transform.rho,"atanh")){
-        Jacobian <- NULL
-        dJacobian <- NULL
-    }else{
-        transform.sigma <- "none"
-        transform.k <- "none"
-        transform.rho <- "none"
-    }
-    if(!is.null(Jacobian)){
-        test.nooffdiag <- all(abs(c(Jacobian[lower.tri(Jacobian,diag=FALSE)],Jacobian[upper.tri(Jacobian,diag=FALSE)]))<1e-10)
-        if(test.nooffdiag){
-            JacobianM1 <- Jacobian
-            diag(JacobianM1) <- 1/diag(Jacobian)
-            ## range(JacobianM1 - solve(Jacobian))
-        }else{
-            JacobianM1 <- solve(Jacobian)
-        }
-        
+    
+    ## param
+    type <- stats::setNames(object$param$type, object$param$name)
+    
+    name.sigma <- object$param$name[type=="sigma"]
+    name.k <- object$param$name[type=="k"]
+    name.rho <- object$param$name[type=="rho"]
+    
+    ## Omega
+    if(is.null(Omega)){
+        Omega <- .calc_Omega(object, param = param,
+                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, Upattern = Upattern, simplify = FALSE)
     }
 
     ## ** loop over covariance patterns
     out <- lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
 
+        ## *** patterns
         iPattern.var <- Upattern[iPattern,"var"]
         iPattern.cor <- Upattern[iPattern,"cor"]
         iNtime <- Upattern[iPattern,"n.time"]
-        iName.param <- Upattern[iPattern,"param"][[1]]
-        if(is.null(iName.param)){return(NULL)}
 
+        ## *** Omega
         iOmega.sd <- attr(Omega[[iPattern]],"sd")
-        iOmega.var <- tcrossprod(iOmega.sd)
         iOmega.cor <- attr(Omega[[iPattern]],"cor")
-        iOmega <- Omega[[iPattern]] ; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL; attr(iOmega,"time") <- NULL;
+        iOmega <- Omega[[iPattern]]; attr(iOmega,"sd") <- NULL; attr(iOmega,"cor") <- NULL;
 
-        iScore <- stats::setNames(vector(mode = "list", length = length(iName.param)), iName.param)
-
-        iPair <- object$pair.vcov[[Upattern[iPattern,"name"]]]
-        n.iPair <- NCOL(iPair)
-
-        iHess <- lapply(1:n.iPair, function(iPair){matrix(0, nrow = iNtime, ncol = iNtime)})
-        names(iHess) <- colnames(iPair)
-
+        ## *** relevant parameters
+        iName.param <- Upattern[iPattern,"param"][[1]]
+        ## special case with a single timepoint and therefore no correlation parameter
+        ## so maybe no parameter at all if the variance is constrained
+        if(is.null(iName.param)){
+            return(NULL)
+        }else{
+            test.pair <- colSums(matrix(object$pair.vcovvcov %in% iName.param, nrow = 2, ncol = NCOL(object$pair.vcovvcov)))==2
+            iPair <- object$pair.vcovvcov[,which(test.pair),drop=FALSE]
+            n.iPair <- sum(test.pair)
+            iHess <- replicate(n = n.iPair, matrix(0, nrow = iNtime, ncol = iNtime), simplify = FALSE)
+        }
+        
+        ## *** loop over all pairs of parameters
         for(iiPair in 1:n.iPair){ ## iiPair <- 2
 
             ## name of parameters
@@ -147,101 +129,60 @@
             iType1 <- type[iCoef1]
             iType2 <- type[iCoef2]
 
-            ## indicators
-            iMindicator.var1 <- attr(X.var[[iPattern.var]],"Mindicator.param")[[iCoef1]]
-            iMindicator.var2 <- attr(X.var[[iPattern.var]],"Mindicator.param")[[iCoef2]]
-            iIndicator.cor2 <- attr(X.cor[[iPattern.cor]],"indicator.param")[[iCoef2]]
-
+            ## first derivatives 
             if(iType1 == "sigma"){
-                if(iType2 == "sigma"){
-                    if(iCoef1!=iCoef2){
-                        stop("Cannot compute the Hessian with interacting sigma coefficients. \n")
-                    }
-                    if(transform.sigma == "log"){
-                        iHess[[iiPair]] <- 4 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]] <- 2 * iOmega / param[iCoef1]^2
-                    }
-                }else if(iType2 == "k"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
-                    }
-                }else if(iType2 == "rho"){
-                    if(transform.rho == "atanh"){
-                        iHess[[iiPair]][iIndicator.cor2] <- 2 * iOmega.var[iIndicator.cor2] * (1-param[iCoef2]^2)
-                    }else{ ## no transformation (other transformations are made through jacobian)
-                        iHess[[iiPair]][iIndicator.cor2] <- 2 * iOmega.var[iIndicator.cor2] / param[iCoef1]
-                    }
-                }
-            }else if(iType1 == "k"){                    
-                if(iType2 == "k"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        if(iCoef1==iCoef2){
-                            iHess[[iiPair]] <- iMindicator.var1*(iMindicator.var1-1) * iOmega / param[iCoef1]^2
-                        }else{
-                            iHess[[iiPair]] <- iMindicator.var1 * iMindicator.var2 * iOmega / (param[iCoef1]*param[iCoef2])
-                        }
-                    }
-                }else if(iType2 == "rho"){
-                    if(transform.k == "log"){
-                        iHess[[iiPair]][iIndicator.cor2] <- iMindicator.var1[iIndicator.cor2] * iOmega.var[iIndicator.cor2] * (1-param[iCoef2]^2)
-                    }else{ ## no transformation  (other transformations are made through jacobian)
-                        iHess[[iiPair]][iIndicator.cor2] <- iMindicator.var1[iIndicator.cor2] * iOmega.var[iIndicator.cor2] / param[iCoef1]
-                    }
-                }
-            }else if(transform.rho == "atanh" && iType1 == "rho" && iType2 == "rho" && iCoef1 == iCoef2){
-                iHess[[iiPair]][iIndicator.cor2] <- - 2 * iOmega.var[iIndicator.cor2] * param[iCoef2] * (1 - param[iCoef2]^2)
-            }
-                 
-        }
-      
-        ## apply transformation
-        if(!is.null(Jacobian) || !is.null(dJacobian)){
+                iDparam1 <- .dsigma_transform(value = param[iCoef1], Omega.sd = iOmega.sd, transform = transform.sigma, power = 1)
+            }else if(iType1 == "k"){
+                iDparam1 <- .dk_transform(value = param[iCoef1], indicator = (X.var[[iPattern.var]][,"k"] == iCoef1), Omega.sd = iOmega.sd, transform = transform.k, power = 1)
+            } ## if iType1 == "rho" only requires second derivative as iCoef1 must be equal to iCoef2 otherwise derivative = 0
 
-            iParamVar <- Upattern[iPattern,"param"][[1]]
-            n.iParamVar <- length(iParamVar)
-            
-            if(any(abs(JacobianM1[iParamVar,setdiff(name.paramVar,iParamVar),drop=FALSE])>1e-10) || any(abs(dJacobian[iParamVar,setdiff(name.paramVar,iParamVar),,drop=FALSE])>1e-10)){
-                stop("Something went wrong when computing the derivative of the residual variance covariance matrix. \n",
-                     "Contact the package manager with a reproducible example generating this error message. \n")
+            if(iType2 == "sigma"){
+                if(iCoef1 != iCoef2){
+                    stop("Second Omega derivative cannot handle multiple sigma parameters in a single pattern. \n")
+                }
+                iDparam2 <- iDparam1
+            }else if(iType2 == "k"){
+                iDparam2 <- .dk_transform(value = param[iCoef2], indicator = (X.var[[iPattern.var]][,"k"] == iCoef2), Omega.sd = iOmega.sd, transform = transform.k, power = 1)
+            }else if(iType2 == "rho" & transform.rho != "cov" & iType1 %in% c("sigma","k")){
+                iDparam2 <- .drho_transform(value = param[iCoef2], indicator = (X.cor[[iPattern.cor]][,,"rho"] == iCoef2), transform = transform.rho, power = 1)
             }
-            M.iScore <- do.call(cbind,lapply(dOmega[[iPattern]],as.double)) %*% JacobianM1[iParamVar,iParamVar,drop=FALSE]
-            iHess2 <- vector(mode = "list", length = n.iPair)
-            names(iHess2) <- names(iHess)
-            for(iP in 1:n.iParamVar){ ## iP <- 1
-                ## d/d theta_1 = 
-                ##  [dOmega_[11]/d2 theta_1] ... [dOmega_[11]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[11]/d theta_1] ... [dOmega_[11]/d theta_p] %*% dJacobian/d theta_1
-                ##  [dOmega_[ij]/d2 theta_1] ... [dOmega_[ij]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[ij]/d theta_1] ... [dOmega_[ij]/d theta_p] %*% dJacobian/d theta_1
-                ##  [dOmega_[mm]/d2 theta_1] ... [dOmega_[mm]/d theta_1 d theta_p] %*% Jacobian + [dOmega_[mm]/d theta_1] ... [dOmega_[mm]/d theta_p] %*% dJacobian/d theta_1
-                iCoef1 <- iParamVar[iP]
-                ## find all pairs involving the current parameter plus another parameter
-                ## e.g. if the current parameter is sigma we want (sigma,sigma) (sigma,k2) (sigma,k3) (sigma k4) (sigma rho)
-                ## e.g. if the current parameter is k4 we want (sigma,k4) (k2,k4) (k3,k4) (k4 k4) (k4 rho)
-                iIndex.pair  <- which(colSums(iPair == iCoef1)>0)
-                ## name of the coefficient of the other pair
-                iCoef.pairCoef <- apply(iPair[,iIndex.pair,drop=FALSE], 2, function(iCol){
-                    iOut <- setdiff(iCol,iCoef1)
-                    if(length(iOut)==0){return(iCoef1)}else{return(iOut)} 
-                })
-                ## reorder the pairs according to the order of the parameters
-                iIndex.pair <- iIndex.pair[match(iCoef.pairCoef, iParamVar)]
-                ## apply transformation
-                M.iHess2 <- (do.call(cbind,lapply(iHess[iIndex.pair],as.double)) %*% Jacobian[iParamVar,iParamVar,drop=FALSE] + M.iScore %*% dJacobian[iParamVar,iParamVar,iCoef1]) * Jacobian[iCoef1,iCoef1]
-                ## convert back to time format
-                iHess2[iIndex.pair] <- lapply(1:NCOL(M.iScore), function(iCol){matrix(M.iHess2[,iCol], nrow = iNtime, ncol = iNtime, byrow = FALSE)})
+
+            ## second derivative
+            if(iType1 == "sigma" && iType2 == "sigma"){
+                iDparam12 <- .dsigma_transform(value = param[iCoef1], Omega.sd = iOmega.sd, transform = transform.sigma, power = 2)
+            }else if(iType1 == "sigma" && iType2 == "k"){
+                iDparam12 <- .dsigmak_transform(value = param[c(iCoef1,iCoef2)], indicator = (X.var[[iPattern.var]][,"k"] == iCoef2), Omega.sd = iOmega.sd, transform = c(transform.sigma,transform.k), power = c(1,1))
+            }else if(iType1 == "k" && iType2 == "k"){
+                iDparam12 <- (iCoef1 == iCoef2) * .dk_transform(value = param[iCoef1], indicator = (X.var[[iPattern.var]][,"k"] == iCoef1), Omega.sd = iOmega.sd, transform = transform.sigma, power = 2)
+            }else if(iType1 == "rho" && transform.rho == "atanh"){ ## for the first type to be rho it means that both types are rho
+                iDparam12 <- (iCoef1 == iCoef2) * .drho_transform(value = param[iCoef1], indicator = (X.cor[[iPattern.cor]][,,"rho"] == iCoef1), transform = transform.rho, power = 2)
             }
-            iHess <- iHess2
+
+            ## assemble
+            if(iType1 %in% c("sigma","k") && iType2 %in% c("sigma","k")){
+                
+                ## d^2 u(x,y)u(x,y)^t / dxdy = d u(dx,y)u(x,y)^t + d u(x,y)u(dx,y)^t/dy
+                ##                           = u(dx,dy)u(x,y)^t  + u(dx,y)u(x,dy)^t + u(x,dy)u(dx,y)^t + u(x,y)u(dx,dy)^t
+                iHess[[iiPair]] <- (tcrossprod(iDparam12, iOmega.sd) + tcrossprod(iDparam1, iDparam2) + tcrossprod(iDparam2, iDparam1) + tcrossprod(iOmega.sd, iDparam12)) * iOmega.cor
+
+            }else if(iType2 %in% c("rho")){
+
+                if(transform.rho == "cov"){
+                    ## iHess[[iiPair]] <- matrix(0, nrow = iNtime, ncol = iNtime) ## do nothing this is already the case.
+                    ## first derivative with respect to cov was constant
+                }else if(iType1 %in% c("sigma","k")){
+                    iHess[[iiPair]] <- (tcrossprod(iOmega.sd, iDparam1) + tcrossprod(iDparam1, iOmega.sd))*iDparam2
+                }else if(iType1 == "rho" && transform.rho == "atanh"){
+                    iHess[[iiPair]] <- tcrossprod(iOmega.sd) * iDparam12
+                }
+            }
         }
+
         return(iHess)        
     })
 
     ## ** export
-    out <- stats::setNames(out,Upattern$name)
-    return(out)
+    return(stats::setNames(out,Upattern$name))
 } 
 
 ## * calc_d2Omega.IND
@@ -388,6 +329,51 @@
     return(out)
 }
 
+## * helper
+## ** .dsigmak_transform
+##' @param value [numeric vector] parameter value after transformation.
+##' @param indicator [logical vector] TRUE where the k parameter is and FALSE otherwise.
+##' For instance for [\sigma \sigma*k_1 \sigma*k_2 \sigma*k_3] it would be [FALSE TRUE FALSE FALSE] for k_1
+##' @param Omega.sd [numeric vector] square root of the diagonal of the residual variance-covariance matrix.
+##' @param transformation [character] transformation for the sigma parameter: \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
+##' @param power [positive integer vector] order of each of the two derivative.
+.dsigmak_transform <- function(value, indicator, Omega.sd, transform, power = c(1,1)){
+
+    if(transform[2] == "none"){
+        ## d^2 sigma sigma*k_1 sigma*k_2 / d sigma d k_2 = 0 1 0
+        if(all(power==1)){
+            out <- indicator
+        }else{
+            out <- rep(0, length(Omega.sd))
+        }
+    }else if(transform[2] == "log"){
+        ## d^2 sigma exp(log(k)) / d log(k) d sigma = exp(log(k)) = k
+        out <- indicator * value[2]
+    }else if(transform[2] == "square"){
+        ## d sigma sqrt(k^2) / d k^2 d sigma = 1 / (2 sqrt(k^2)) = 1 / (2 k)
+        out <- indicator * prod(1/2 - seq(from = 0, to = power-1, by = 1)) / value[2]^power
+    }else if(transform[2] == "logsquare"){
+        ## d sigma exp(0.5 log(k^2)) / d log(k^2) d sigma = 0.5 exp(0.5 log(k^2)) = 0.5 k
+        out <- indicator * value[2] / 2^power
+    }else if(transform[2] %in% c("sd","logsd","var","logvar")){
+        ## vector of values becomes [f(sigma) sd_2 sd_3 sd_4]
+        ## so d^2 / d sd_2 d sigma ---> 0 because no elements contains sigma and sd_2
+        out <- rep(0, length(Omega.sd))
+    }
+
+    if(transform[1] == "log"){
+        ## d. / d log(x) = d. / d x * d x / d log(x) = d. / d x * 1 / (d log(x))/dx = x d . / d x
+        out <- out * value[1]
+    }else if(transform[1] == "square"){
+        ## d. / d x^2 = d. / d x * d x / d x^2 = (1/2x) d . / d x
+        out <- out * prod(1/2 - seq(from = 0, to = power-1, by = 1)) / value[1]^power
+    }else if(transform[1] == "logsquare"){
+        ## d. / d log(x^2) = d. / 2 d log(x) = x/2 d . / d x
+        out <- out  * value[1] / 2^power
+    }
+    
+    return(out)
+}
 
 ##----------------------------------------------------------------------
 ### calc_d2Omega.R ends here

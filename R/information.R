@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: sep 26 2025 (15:13) 
+## Last-Updated: okt  2 2026 (12:37) 
 ##           By: Brice Ozenne
-##     Update #: 1276
+##     Update #: 1277
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,7 +180,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
     ## ** prepare output
     compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$XR) || is.null(precompute$RR)
-    name.effects <- attr(effects,"original.names")
+    name.effects <- c(name.mucoef, name.varcoef2)
     n.effects <- length(name.effects)
     if(compute.indiv){
         info <- array(0, dim = c(n.cluster, n.effects, n.effects),

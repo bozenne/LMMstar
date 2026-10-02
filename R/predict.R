@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt  9 2025 (18:08) 
+## Last-Updated: okt  1 2026 (12:42) 
 ##           By: Brice Ozenne
-##     Update #: 1555
+##     Update #: 1556
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -427,7 +427,6 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
         Omega <- .calc_Omega(newdesign$vcov, param = theta, simplify = FALSE)
         if(se[1]){
             dOmega <- .calc_dOmega(newdesign$vcov, param = theta, Omega = Omega,
-                                   Jacobian = reparametrize$Jacobian,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho)            
         }
         
