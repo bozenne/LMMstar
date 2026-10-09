@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 21 2021 (18:12) 
 ## Version: 
-## Last-Updated: okt  2 2026 (13:05) 
+## Last-Updated: okt  7 2026 (11:39) 
 ##           By: Brice Ozenne
-##     Update #: 684
+##     Update #: 688
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -66,7 +66,8 @@
 ##' .calc_Omega(Sun4, param = param4)
 ##' .calc_Omega(Sun24, param = param24, simplify = FALSE)
 `.calc_Omega` <-
-    function(object, param, transform.sigma, transform.k, transform.rho, Upattern, simplify) UseMethod(".calc_Omega")
+    function(object, param, transform.sigma, transform.k, transform.rho,
+             Upattern, simplify) UseMethod(".calc_Omega")
 
 
 ## * calc_Omega.ID
@@ -135,7 +136,7 @@
 
         ## *** correlation
         if(is.null(iX.cor) || iNtime == 1){
-            Omega.cor <- matrix(1, nrow = iNtime, ncol = iNtime)
+            Omega.cor <- diag(1, nrow = iNtime, ncol = iNtime)
         }else{
             ## convert matrix of rho: 1     rho12 rho13 rho14
             ##                        rho12     1 rho23 rho24

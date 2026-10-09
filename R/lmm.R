@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt  2 2026 (17:01) 
+## Last-Updated: okt  8 2026 (14:39) 
 ##           By: Brice Ozenne
-##     Update #: 3362
+##     Update #: 3372
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -313,22 +313,18 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
 
     ## *** update transformation and precompute moments
     if(inherits(structure,"CUSTOM")){
-        precompute.moments <- FALSE
         if((is.null(structure$d2FCT.sigma) || is.null(structure$d2FCT.rho)) && (outArgs$df || outArgs$method.fit=="REML" || outArgs$type.information=="observed")){
             ## need second derivative but transformation based on dJacobian not implemented!
             control$transform.sigma <- "none"
             control$transform.k <- "none"
             control$transform.rho <- "none"
         }
-    }else{
-        precompute.moments <- options$precompute.moments        
     }
 
     ## *** design matrix
     out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
                                     structure = structure,
                                     data = data, var.outcome = out$outcome$var, var.weights = out$weights$var,
-                                    precompute.moments = precompute.moments,
                                     drop.X = options$drop.X,
                                     options = options,
                                     df = out$args$df)
@@ -375,7 +371,6 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
     outEstimate <- .optim.lmm(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
                               transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                              precompute.moments = precompute.moments, 
                               optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
                               tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
     param.value <- outEstimate$estimate
@@ -395,7 +390,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     outMoments <- .moments.lmm(value = out$param, design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
                                transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
-                               trace = trace>=2, precompute.moments = precompute.moments, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
+                               trace = trace>=2, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
     out[names(outMoments)] <- outMoments
     out$fitted <- out$fitted[,1]
     out$residuals <- out$residuals[,1]
@@ -735,8 +730,10 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
             if(any(sapply(stats::na.omit(var.weights), function(iVar){any(data[[iVar]]<=0)}))){
                 stop("Argument \'weights\' should take strictly positive values. \n")
             }
-            if(!is.na(var.cluster) && any(sapply(stats::na.omit(var.weights), function(iVar){any(tapply(data[[iVar]], data[[var.cluster]], function(iW){sum(!duplicated(iW))})>1)}))){
-                stop("Invalid argument \'weights\': values should be constant within clusters. \n")
+            if(!is.na(var.cluster) && !is.na(var.cluster[1])){
+                if(max(tapply(data[[var.cluster[1]]], data[[var.cluster]], function(iW){sum(!duplicated(iW))}))>1){
+                    stop("Invalid argument \'weights\': values should be constant within clusters. \n")
+                }
             }
         }
     }else{
@@ -761,8 +758,14 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     ## ** degrees-of-freedom
     if(is.null(df)){
         df <- options$df
-    }else if(!is.logical(df)){
-        stop("Argument \'df\' should be TRUE or FALSE. \n")
+    }else if(df %in% c("analytic","numeric")){
+        df.save <- df
+        df <- TRUE
+        attr(df,"method") <- df.save
+    }else if(is.logical(args$df)){
+        attr(df,"method") <- "analytic"
+    }else{
+        stop("Argument \'df\' must be of type logical or \"analytic\" or \"numeric\". \n")        
     }
     
     ## ** type of information

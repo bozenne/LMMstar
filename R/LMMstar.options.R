@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: jul 18 2025 (10:35) 
+## Last-Updated: okt  8 2026 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 187
+##     Update #: 190
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -41,7 +41,6 @@
 #' \item optimizer [character]: method used to estimate the model parameters. Either \code{"FS"}, an home-made fisher scoring algorithm, or a method from \code{optimx:optimx} like \code{"BFGS"}or \code{Nelder-Mead}.
 #' \item param.optimizer [numeric vector]: default option for the \code{FS} optimization routine: maximum number of gradient descent iterations (\code{n.iter}), maximum acceptable score value (\code{tol.score}), maximum acceptable change in parameter value (\code{tol.param}), method to initialize the correlation parameters (\code{init.cor}).
 #' \item pool.method [character vector]: possible methods to pool estimates. NOT MEANT TO BE CHANGED BY THE USER.
-#' \item precompute.moments [logical]: Should the cross terms between the residuals and design matrix be pre-computed. Useful when the number of subject is substantially larger than the number of mean paramters.
 #' \item sep [character vector]: character used to combined two strings of characters in various functions (lp: .vcov.model.matrix, k.cov/k.strata: .skeletonK, pattern: .findUpatterns, rho.name/rho.strata: .skeletonRho, reformat: .reformat ).
 #' \item trace [logical]: Should the progress of the execution of the \code{lmm} function be displayed?
 #' \item tranform.sigma, tranform.k, tranform.rho: transformation used to compute the confidence intervals/p-values for the variance and correlation parameters. See the detail section of the coef function for more information.
@@ -90,7 +89,6 @@ LMMstar.options <- function(..., reinitialise = FALSE){
                     optimizer = "FS",
                     param.optimizer = c(n.iter = 100, tol.score = 1e-4, tol.param = 1e-5, n.backtracking = 10, init.cor = 1),
                     pool.method = c("average","pool.se","pool.gls","pool.gls1","pool.rubin","p.rejection"),
-                    precompute.moments = TRUE,
                     sep = c(lp = ":", ## (.vcov.matrix.lmm) separator between the linear predictor when aggregated across repetitions
                             k.cov = ".", ## (.skeletonK) separator between the letter k and the covariate levels, e.g. k?2.1 
                             k.strata = ":", ## (.skeletonK) separtor between the covariate level(s), e.g. k.2?1
@@ -159,8 +157,8 @@ LMMstar.options <- function(..., reinitialise = FALSE){
             if("columns.summarize" %in% names(args) && any(args$columns.summarize %in% c(ok.column2,"") == FALSE)){
                 stop("Argument \'columns.summarize\' must be a character vector with values among \"",paste(c(ok.column2,""), collapse = "\" \""),"\". \n")
             }
-            if("df" %in% names(args) && !is.logical(args$df)){
-                stop("Argument \'df\' must be of type logical. \n")
+            if("df" %in% names(args) && !is.logical(args$df) && (df %in% c("analytic","numeric") == FALSE)){
+                stop("Argument \'df\' must be of type logical or \"analytic\" or \"numeric\". \n")
             }
             if("drop.X" %in% names(args) && !is.logical(args$drop.X)){
                 stop("Argument \'drop.X\' must be of type logical. \n")

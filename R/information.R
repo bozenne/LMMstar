@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt  2 2026 (12:37) 
+## Last-Updated: okt  8 2026 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 1277
+##     Update #: 1331
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -130,7 +130,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
-                            trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), transform.names = transform.names)$information
+                            trace = FALSE, transform.names = transform.names)$information
     }
 
     ## ** restaure NAs and name
@@ -165,7 +165,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 ##                                                                 + 0.5 tr[ (X \OmegaM1 X)^{-1} (X \OmegaM1 d2\Omega \OmegaM1 X) ]
 .information <- function(X, residuals, precision, dOmega, d2Omega, weights, 
                          pattern, index.cluster, name.allcoef,
-                         pair.meanvcov, pair.vcov, indiv, REML, type.information, effects, 
+                         pair.vcov, indiv, REML, type.information, effects, 
                          precompute){
 
     ## ** extract information
@@ -174,13 +174,12 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     n.mucoef <- length(name.mucoef)
     name.varcoef <- unique(unlist(lapply(dOmega,names)))
     n.varcoef <- length(name.varcoef)    
-    name.varcoef2 <- colnames(attr(pair.vcov,"global"))
-    n.varcoef2 <- length(name.varcoef2)
+    npair.vcov <- NROW(pair.vcov) ## number of pairs of variance parameters
     U.pattern <- names(dOmega)
 
     ## ** prepare output
     compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$XR) || is.null(precompute$RR)
-    name.effects <- c(name.mucoef, name.varcoef2)
+    name.effects <- c(name.mucoef, name.varcoef)
     n.effects <- length(name.effects)
     if(compute.indiv){
         info <- array(0, dim = c(n.cluster, n.effects, n.effects),
@@ -207,20 +206,25 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         }
 
         if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){## restrict to requested coefficients
+            ## subset of coefficients
             name.varcoef <- intersect(name.varcoef,name.effects)
             n.varcoef <- length(name.varcoef)
+            test.vcov <- n.varcoef>0
+            
+            ## subset of pre-compute (indexed by a single parameter)
             precompute$Omega$tr.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega, function(iO){iO[intersect(names(iO),name.varcoef)]})
             precompute$Omega$OmegaM1.dOmega.OmegaM1 <- lapply(precompute$Omega$OmegaM1.dOmega.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.varcoef),drop=FALSE]})
-            test.vcov <- n.varcoef>0
-
-            cbindpair.vcov <- attr(pair.vcov,"global")
-            cbindpair.vcov[] <- cbindpair.vcov %in% name.varcoef
-            name.varcoef2 <- names(which(colSums(cbindpair.vcov==TRUE)==2))
-            n.varcoef2 <- length(name.varcoef2)
-            precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
+            
+            ## subset of pre-compute (indexed by a pair of parameter)
+            pair.vcov <- pair.vcov[(pair.vcov$param1 %in% name.varcoef) & (pair.vcov$param2 %in% name.varcoef),,drop=FALSE]
+            precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega, function(iO){
+                iO[intersect(colnames(iO),pair.vcov$name)]
+            })
             if(type.information == "observed"){
-                precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1 <- lapply(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
-                precompute$Omega$Omega$tr.OmegaM1.d2Omega <- lapply(precompute$Omega$Omega$tr.OmegaM1.d2Omega, function(iO){iO[,intersect(colnames(iO),name.varcoef2),drop=FALSE]})
+                precompute$Omega$tr.OmegaM1.d2Omega <- lapply(precompute$Omega$tr.OmegaM1.d2Omega, function(iO){iO[intersect(colnames(iO),pair.vcov$name)]})
+            }
+            if(REML || type.information=="observed"){
+                precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1 <- lapply(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1, function(iO){iO[,intersect(colnames(iO),pair.vcov$name),drop=FALSE]})
             }
         }
     }else{
@@ -275,7 +279,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             }
             iX <- t(X[iIndex,,drop=FALSE])
             iOmegaM1 <- precision[[iPattern]] * weights[iId,"Omega"]
-        
+            
             ## **** mean,mean
             if(test.mean){
                 info[iId,name.mucoef,name.mucoef] <- weights[iId,"likelihood"] * (iX %*% iOmegaM1 %*% t(iX))
@@ -285,7 +289,8 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             if(test.vcov){
                 ## subset in case effects is only variance or correlation
                 iName.varcoef <- intersect(names(dOmega[[iPattern]]), name.varcoef)
-
+                iPair.vcov <- pair.vcov[which(pair.vcov[[iPattern]]),,drop=FALSE]
+                
                 ## compute and store contribution
                 if(type.information == "expected"){
                     iValue <- 0.5 * weights[iId,"likelihood"] * precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]]
@@ -294,19 +299,21 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                     iValue <- iValue - 0.5 * prod(weights[iId,]) * (as.vector(tcrossprod(iResidual)) %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
                     ## same as iResidual[,1] %*% matrix(precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,2], nrow = length(iIndex), ncol = length(iIndex)) %*% iResidual 
                 }
-                info[iId,iName.varcoef,iName.varcoef]  <- info[iId,iName.varcoef,iName.varcoef] + iValue[as.vector(attr(pair.vcov[[iPattern]],"key"))]
-
+                iKey <- c(iPair.vcov$key1,stats::na.omit(iPair.vcov$key2)) + (iId-1)*prod(dim(info)[2:3])
+                info[iKey]  <- info[iKey] + c(iValue,iValue[!is.na(iPair.vcov$key2)])
+                
                 if(REML){
                     ## APPROXIMATION: the REML score w.r.t. variance parameter is not linear in the individual contribution
-                    for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[1]
-                        iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
-                        iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
+                    for(iP2 in 1:NROW(iPair.vcov)){ ## iP2 <- 1
+                        iParam2.1 <- iPair.vcov[iP2,"param1"]
+                        iParam2.2 <- iPair.vcov[iP2,"param2"]
+                        iName <- iPair.vcov[iP2,"param"]
                         
                         iREML.num1.1 <- prod(weights[iId,]) * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.1] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1
                         iREML.num1.2 <- prod(weights[iId,]) * iX %*% OmegaM1.dOmega.OmegaM1[[iPattern]][,,iParam2.2] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]] %*% iOmegaM1
-                        iREML.num2 <- prod(weights[iId,]) * iX %*% OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,,iParam2] %*% t(iX)
+                        iREML.num2 <- prod(weights[iId,]) * iX %*% OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]][,,iName] %*% t(iX)
                         ## shortcut for iOmegaM1 %*% (d2Omega[[iPattern]][[iParam2]] - 2 * dOmega[[iPattern]][[iParam2.1]] %*% iOmegaM1 %*% dOmega[[iPattern]][[iParam2.2]]) %*% iOmegaM1
                         
                         iValue <- 0.5 * sum(REML.denom * (iREML.num2 + 0.5 * iREML.num1.1 %*% REML.denom %*% REML.num1[[iParam2.2]] + 0.5 * REML.num1[[iParam2.1]] %*% REML.denom %*% iREML.num1.2))
@@ -342,7 +349,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
             ## **** mean,mean
             if(test.mean){
-                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + (attr(iOmegaM1,"vectorize") %*% precompute$XX$pattern[[iPattern]])[as.double(precompute$XX$key)]                
+                info[name.mucoef,name.mucoef] <- info[name.mucoef,name.mucoef] + (as.vector(iOmegaM1) %*% precompute$XX$pattern[[iPattern]])[as.double(precompute$XX$key)]                
             }
 
             ## **** var,var
@@ -354,8 +361,9 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                     iValue <- - 0.5 * precompute$weights[iPattern] * (precompute$Omega$tr.OmegaM1.dOmega.OmegaM1.dOmega[[iPattern]] - precompute$Omega$tr.OmegaM1.d2Omega[[iPattern]])
                     iValue <- iValue - 0.5 * (precompute$RR[[iPattern]] %*% precompute$Omega$OmegaM1.d2OmegaAndCo.OmegaM1[[iPattern]])[1,]
                 }
-                info[iName.varcoef,iName.varcoef]  <- info[iName.varcoef,iName.varcoef] + iValue[as.vector(attr(pair.vcov[[iPattern]],"key"))]
-
+                iKey <- c(pair.vcov[pair.vcov[[iPattern]],"key1"],stats::na.omit(pair.vcov[pair.vcov[[iPattern]],"key2"]))
+                info[iKey]  <- info[iKey] + c(iValue,iValue[!is.na(pair.vcov[pair.vcov[[iPattern]],"key2"])])
+                ## any(duplicated(sort(c(pair.vcov$key1,stats::na.omit(pair.vcov$key2)))))
             }
 
             ## **** mean,var
@@ -372,11 +380,12 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         ## *** REML contribution
         if(REML && test.vcov){
 
-            for(iParam2 in name.varcoef2){ ## iParam2 <- name.varcoef2[4]
-                iParam2.1 <- attr(pair.vcov,"global")[1,iParam2]
-                iParam2.2 <- attr(pair.vcov,"global")[2,iParam2]
+            for(iP2 in 1:npair.vcov){ ## iP2 <- 1                
+                iParam2.1 <- pair.vcov[iP2,"param1"]
+                iParam2.2 <- pair.vcov[iP2,"param2"]
+                iName <- pair.vcov[iP2,"name"]
                 ## same at 0.5 * tr(REML.denom %*% (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
-                iValue <- 0.5 * sum(REML.denom * (REML.num2[[iParam2]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
+                iValue <- 0.5 * sum(REML.denom * (REML.num2[[iName]] + REML.num1[[iParam2.1]] %*% REML.denom %*% REML.num1[[iParam2.2]]))
                 info[iParam2.1,iParam2.2] <- info[iParam2.1,iParam2.2] - iValue
                 if(iParam2.1 != iParam2.2){
                     info[iParam2.2,iParam2.1] <- info[iParam2.2,iParam2.1] - iValue
@@ -385,7 +394,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
         }
 
     }
- 
     ## ** export
     attr(info,"message") <- message
     return(info)

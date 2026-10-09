@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt  2 2026 (12:48) 
+## Last-Updated: okt  8 2026 (14:15) 
 ##           By: Brice Ozenne
-##     Update #: 980
+##     Update #: 984
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,7 +120,7 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
         out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                             logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
-                            trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), transform.names = transform.names)$score
+                            trace = FALSE, transform.names = transform.names)$score
     }
 
     ## ** name and restaure NAs
@@ -359,7 +359,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     n.cluster <- length(pattern)
     name.mucoef <- colnames(X)
     n.mucoef <- length(name.mucoef)
-    name.varcoef <- unique(unlist(lapply(dOmega,names)))
+    name.varcoef <- intersect(setdiff(name.allcoef,name.mucoef), unique(unlist(lapply(dOmega,names))))
     n.varcoef <- length(name.varcoef)
     U.pattern <- names(dOmega)
 
@@ -368,8 +368,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     name.effects <- c(name.mucoef, name.varcoef)
     n.effects <- length(name.effects)
     if(compute.indiv){
-        Score <- matrix(0, nrow = n.cluster, ncol = n.effects,
-                        dimnames = list(NULL, name.effects))
+        Score <- matrix(0, nrow = n.cluster, ncol = n.effects, dimnames = list(NULL, name.effects))
     }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating score at parameter values where the residual variance-covariance matrix is singular
         return(stats::setNames(rep(NA, n.effects), name.effects))
     }else{
@@ -390,8 +389,8 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
         if(("variance" %in% effects == FALSE) || ("correlation" %in% effects == FALSE)){## restrict to requested coefficients
             name.varcoef <- intersect(name.varcoef,name.effects)
             n.varcoef <- length(name.varcoef)
-            precompute$Omega$tr.OmegaM1.dOmega <- lapply(precompute$Omega$tr.OmegaM1.dOmega, function(iO){iO[intersect(names(iO),name.effects)]})
-            precompute$Omega$OmegaM1.dOmega.OmegaM1 <- lapply(precompute$Omega$OmegaM1.dOmega.OmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),drop=FALSE]})
+            precompute$Omega$dTrace <- lapply(precompute$Omega$dTrace, function(iO){iO[intersect(names(iO),name.effects)]})
+            precompute$Omega$dOmegaM1 <- lapply(precompute$Omega$dOmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),drop=FALSE]})
             test.vcov <- n.varcoef>0
         }
     }else{
@@ -469,7 +468,7 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
             iTime2 <- length(iOmegaM1)
 
             if(test.mean){
-                Score[name.mucoef] <- Score[name.mucoef] + attr(iOmegaM1,"vectorize") %*% precompute$XR[[iPattern]]
+                Score[name.mucoef] <- Score[name.mucoef] + as.vector(iOmegaM1) %*% precompute$XR[[iPattern]]
             }
 
             if(test.vcov){

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  2 2026 (17:06) 
+## Last-Updated: okt  8 2026 (14:54) 
 ##           By: Brice Ozenne
-##     Update #: 468
+##     Update #: 490
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,10 +22,10 @@
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters (transformed).
-##' @param Omega [list of matrices] Residual Variance-Covariance Matrix for each pattern.
-##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
+##' @param Omega [list of matrices] residual Variance-Covariance Matrix for each pattern.
+##' @param transform.sigma,transform.k,transform.rho [character] transformation used on the variance/correlation coefficients.
 ##' Only active if \code{"log"}, \code{"log"}, \code{"atanh"}: then the derivative is directly computed on the transformation scale instead of using the Jacobian.
-##' @param Upattern [data.frame] Optional, used to only evaluate the second derivative of the residual variance-covariance with respect to a subset of patterns.
+##' @param Upattern [data.frame] optional, used to only evaluate the second derivative of the residual variance-covariance with respect to a subset of patterns.
 ##' 
 ##' @keywords internal
 ##' 
@@ -65,26 +65,27 @@
 ##' .calc_d2Omega(Sun4, param = param4)
 ##' .calc_d2Omega(Sun24, param = param24)
 `.calc_d2Omega` <-
-    function(object, param, Omega, 
-             transform.sigma, transform.k, transform.rho) UseMethod(".calc_d2Omega")
+    function(object, param, Omega, transform.sigma, transform.k, transform.rho,
+             Upattern) UseMethod(".calc_d2Omega")
 
 ## * calc_d2Omega.ID
-.calc_d2Omega.ID <- function(object, param, Omega, 
-                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
+.calc_d2Omega.ID <- function(object, param, Omega = NULL, transform.sigma, transform.k, transform.rho,
+                             Upattern = NULL){
 
     ## ** prepare
     ## pattern
-    Upattern <- object$Upattern
+    if(is.null(Upattern)){
+        Upattern <- object$Upattern
+    }
     n.Upattern <- NROW(Upattern)
     X.var <- object$var$Xpattern
     X.cor <- object$cor$Xpattern
     
     ## param
     type <- stats::setNames(object$param$type, object$param$name)
-    
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
+    name.sigma <- object$param[type=="sigma" & is.na(object$param$constraint),"name"]
+    name.k <- object$param[type=="k" & is.na(object$param$constraint),"name"]
+    name.rho <- object$param[type=="rho" & is.na(object$param$constraint),"name"]
     
     ## Omega
     if(is.null(Omega)){
@@ -112,18 +113,18 @@
         if(is.null(iName.param)){
             return(NULL)
         }else{
-            test.pair <- colSums(matrix(object$pair.vcovvcov %in% iName.param, nrow = 2, ncol = NCOL(object$pair.vcovvcov)))==2
-            iPair <- object$pair.vcovvcov[,which(test.pair),drop=FALSE]
-            n.iPair <- sum(test.pair)
+            iPair <- object$pair.vcovvcov[which(object$pair.vcovvcov[[Upattern[iPattern,"name"]]]),c("name","param1","param2"),drop=FALSE]
+            n.iPair <- NROW(iPair)
             iHess <- replicate(n = n.iPair, matrix(0, nrow = iNtime, ncol = iNtime), simplify = FALSE)
+            names(iHess) <- iPair$name
         }
         
         ## *** loop over all pairs of parameters
         for(iiPair in 1:n.iPair){ ## iiPair <- 2
 
             ## name of parameters
-            iCoef1 <- iPair[1,iiPair]
-            iCoef2 <- iPair[2,iiPair]
+            iCoef1 <- iPair[iiPair,"param1"]
+            iCoef2 <- iPair[iiPair,"param2"]
 
             ## type of parameters
             iType1 <- type[iCoef1]

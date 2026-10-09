@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: okt 17 2025 (17:30) 
+## Last-Updated: okt  8 2026 (14:15) 
 ##           By: Brice Ozenne
-##     Update #: 1259
+##     Update #: 1261
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -189,7 +189,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE,
         outMoments <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                    logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = (df || keep.grad) && test.new, indiv = FALSE, effects = effects, robust = robust,
-                                   trace = FALSE, precompute.moments = !is.null(object$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+                                   trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
         trans2original.names <- colnames(outMoments$vcov) ## output names without transformation
         if(any(trans2original.names %in% outMoments$reparametrize$newname)){
@@ -231,7 +231,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE,
                 iVcov <-  .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                       trace = FALSE, precompute.moments = !is.null(object$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)$vcov
+                                       trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)$vcov
                 attr(attr(vcov,"gradient"),"vcov") <- iVcov[rownames(vcov),colnames(vcov)] ## possible re-ordering to account for transformation + drop attributes by subsetting
             }else{
                 attr(attr(vcov,"gradient"),"vcov") <- object$vcov[trans2original.names,trans2original.names] ## drop attributes by subsetting

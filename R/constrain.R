@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: sep 30 2026 (10:29) 
+## Last-Updated: okt  8 2026 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 147
+##     Update #: 148
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -134,7 +134,6 @@
     ## refit
     eee <- .optim.lmm(design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
                       transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
-                      precompute.moments = "precompute.XX" %in% names(x$design),
                       optimizer = "FS", init = init,
                       n.iter = x$opt$control[["n.iter"]],
                       tol.score = x$opt$control[["tol.score"]],

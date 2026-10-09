@@ -13,7 +13,7 @@ library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 This vignette describes the main functionalities of the *LMMstar*
 package.
 
-* Statistical background
+* Statistical background 
 
 The LMMstar package implements a specific class of linear mixed models,
 mainly useful when having repeated observations over a discrete
@@ -112,7 +112,7 @@ The influence function is computed as \(\Information^{-1}
 
 \clearpage
 
-* Summary of the user-interface
+* Summary of the user-interface 
 
 To get start, one should load the *LMMstar* package in the \Rlogo session:
 #+BEGIN_SRC R :exports code :results silent :session *R* :cache no
@@ -194,7 +194,7 @@ functions:
 
 \clearpage
 
-* Illustrative dataset
+* Illustrative dataset 
 
 To illustrate the functionalities of the package, we will use the
 gastricbypass dataset. The long format can be imported using:
@@ -267,7 +267,7 @@ gastricbypassL.NNA <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
 
 \clearpage
 
-* Visualization & descriptive statistics
+* Visualization & descriptive statistics  
 ** Correlation and partial correlations
 
 The =partialCor= function can be used to evaluate group-specific
@@ -337,7 +337,7 @@ used to estimated them.
 
 \clearpage
 
-* Multiple Student's t-tests
+* Multiple Student's t-tests 
 
 When working with multiple outcomes and having no missing data, mean
 comparisons between exposure groups can be carried out using Student's
@@ -395,7 +395,7 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "
 
 \clearpage
 
-* Linear mixed model (LMM)
+* Linear mixed model (LMM) 
 ** Classical covariance patterns
 
 Several build-in covariance patterns can be used when specifying the
@@ -2708,7 +2708,7 @@ as.double(mu3 + Omega_31 * (50 - mu1) / Omega_11)
 
 \clearpage
 
-* Equivalence with other statistical methods
+* Equivalence with other statistical methods 
 ** Welch two sample t-test
 
 A two sample t-test:
@@ -3061,7 +3061,7 @@ technic.
 
 \clearpage
 
-* Missing values and imputation
+* Missing values and imputation 
 
 We reconsider the example of the previous section, but now in presence
 of missing values. The =summarize= function can be used to describe
@@ -3648,52 +3648,111 @@ vcov           x   x        x             x
 weights            x
 #+end_example
 					
-* Likelihood in a linear mixed model
+* Likelihood and derivatives in a linear mixed model
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood
 :END:
 
-Denote by \(\VY\) a vector of \(m\) outcomes, \(\VX\) a vector of
-\(p\) covariates, \(\mu(\Vparam,\VX)\) the modeled mean, and
-\(\Omega(\Vparam,\VX)\) the modeled residual variance-covariance. We
-consider \(n\) replicates (i.e. \(\VY_1,\ldots,\VY_n)\) and
-\(VX_1,\ldots,\VX_n\)) along with a vector of weights
-\(\omega=(w_1,\ldots,w_n)\), which are by default all equal to 1.
+In =lmm=:
+- the argument =formula= specifies \(\mu(\Vparam,\VX)\) the modeled
+  mean of the outcome \(\VY\) conditional a vector of \(p\) covariates
+  \(\VX\).
+- the argument =repetition= (typically equal to =~time|id=) enable to
+  interpret \(\VY\) as a vector of \(m\) outcomes (indexed by =time=)
+  for which we observe independent replicates (across =id=).
+- the argument =structure= define a model for the residual
+  variance-covariance \(\Omega(\Vparam,\VX)\).
+- the right-hand side of argument =weights= defined a vector of
+  weights \(\omega=(w_1,\ldots,w_n)\). The left hand side defines the
+  number of replicates \(\mathbf{r}=(r_{1},\ldots,r_{T})\) which were
+  averaged to obtain the outcome \(\VY\). When left un-specified, the
+  weights and number of replicates are considered equal to 1.
 
 ** Log-likelihood
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood:log
 :END:
 
-The restricted log-likelihood in a linear mixed model can then be
-written:
+With \(n\) independent replicates \(\left(\VY_1,\ldots,\VY_n\right)\) and
+\(\left(\VX_1,\ldots,\VX_n\right)\), the restricted Gaussian log-likelihood is:
 #+BEGIN_EXPORT LaTeX
 \begin{align}
 \Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \notag \\
-& + \sum_{i=1}^{n} w_i \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))}} \right)  \label{eq:log-likelihood}
+& + \sum_{i=1}^{n} w_i \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}} \right)  \label{eq:log-likelihood}
 \end{align}
  #+END_EXPORT
  
- This is what the =logLik= method is computing for the REML
- criteria. The red term is specific to the REML criteria and prevents
- from computing individual contributions to the likelihood[fn::The REML is the
- likelihood of the observations divided by the prior on the estimated
- mean parameters \(\VparamHat_{\mu} \sim \Gaus(\mu,\left(\VX
- \Omega^{-1}(\Vparam) \trans{\VX}\right)^{-1})\). This corresponds to
+where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\) denotes
+ the residuals. This is what the =logLik= method is computing for the
+ REML criteria. The red term is specific to the REML criteria and
+ prevents from computing individual contributions to the
+ likelihood[fn::The REML is the likelihood of the observations divided
+ by the prior on the estimated mean parameters \(\VparamHat_{\mu} \sim
+ \Gaus(\mu,\left(\VX \Omega^{-1}(\Vparam)
+ \trans{\VX}\right)^{-1})\). This corresponds to
  \(\frac{1}{\sqrt{2\pi}^p \left|\left(\sum_{i=1}^n \VX_i
  \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1}\right|}
  \exp\left(-(\VparamHat_{\mu}-\mu)\left(2\sum_{i=1}^n \VX_i
  \Omega_i^{-1}(\Vparam)
- \trans{\VX}_i\right)^{-1})\trans{(\VparamHat_{\mu}-\mu)}\right)\)
+ \trans{\VX}_i\right)^{-1}\trans{(\VparamHat_{\mu}-\mu)}\right)\)
  Since \(\mu\) will be estimated to be \(\Vparam_{\mu}\), the
  exponential term equals 1 and thus does not contribute to the
  log-likelihood. One divided by the other term gives \(\sqrt{2\pi}^p
  \left(\left|\sum_{i=1}^n \VX_i \Omega_i^{-1}(\Vparam)
- \trans{\VX}_i\right|\right)^{-1}\). The log of this term equals the red
- term]. The blue term is what =logLik= outputs for the ML criteria
+ \trans{\VX}_i\right|\right)^{-1}\). The log of this term equals the
+ red term.]. The blue term is what =logLik= outputs for the ML criteria
  when setting the argument =indiv= to =TRUE=.
 
 \bigskip
+
+_Note:_ when having technical replicates \(\VY^*\) and averaging over
+those to obtain \(\VY\) rescales the residual variance-covariance
+matrix. Denote by \(\Omega^*_i(\Vparam)\) the 'single replicate'
+residual variance-covariance matrix which is to be specified in
+argument =structure=. Assuming independent replicates, i.e.
+for two replicates \(r\) and \(r^{\prime}\): \(\Cov(\VY^*_{ir},\VY^*_{ir^{\prime}})=\Omega^*_i(\Vparam)
+\Ind[r=r^{\prime}]\), we
+can relate \(\Omega_i(\Vparam)\) to \(\Omega^*_i(\Vparam)\):
+#+BEGIN_EXPORT latex
+\begin{align*}
+\Omega_{itt^{\prime}}(\Theta) = \Cov\left(Y_{it},Y_{it^{\prime}}\right)=\frac{1}{r_{it}r_{it^{\prime}}}\sum_{r=1}^{r_{it}}\sum_{r^{\prime}=1}^{r_{it^{\prime}}}\Cov\left(Y^*_{itr},Y^*_{it^{\prime}r^{\prime}}\right)
+=\frac{\min(r_{it},r_{it^{\prime}})}{r_{it}r_{it^{\prime}}}\Omega^*_{itt^{\prime}}(\Theta)
+=\frac{1}{\max(r_{it},r_{it^{\prime}})}\Omega^*_{itt^{\prime}}(\Theta)
+\end{align*}
+#+END_EXPORT
+which reduces to dividing by the number of replicates in the special
+case where the number of replicates only varies across subjects but is
+the same across outcomes within a subject. Even in this case having
+technical replicate is not equivalent to re-weighting the
+log-likelihood, e.g. the 'replication' weight creates an additional
+additive for the ML \(\log\) term (i.e. will cancel out after
+differentiation) while it rescales the REML and the residual term
+(i.e. will contribute even after differentiation).
+
+# When the outcomes are ordered by number of replicates (from most to
+# least), the implied residual variance-covariance matrix after
+# averaging can be re-expressed as the Hadamard product
+# \(\Omega_i^*(\Vparam)=\Omega_i(\Vparam) \odot T
+# diag(r_{i1},r_{i2}-r_{i1},r_{i3}-r_{i2},\ldots) \trans{T} \) where
+# \(T\) denotes the lower triangular matrix (including diagonal) with
+# only 1 (or 0) and \(diag(\bullet)\) a diagonal matrix.
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pmax(matrix(c(1000,100,10), byrow = TRUE,3,3),matrix(c(1000,100,10), byrow = FALSE,3,3))
+
+L <- lower.tri(matrix(0,3,3), diag = TRUE)*1
+L %*% diag(c(1000,100-1000,10-100)) %*% t(L)
+#+END_SRC
+
+#+RESULTS:
+:      [,1] [,2] [,3]
+: [1,] 1000 1000 1000
+: [2,] 1000  100  100
+: [3,] 1000  100   10
+:      [,1] [,2] [,3]
+: [1,] 1000 1000 1000
+: [2,] 1000  100  100
+: [3,] 1000  100   10
 
 ** Score
 
@@ -3702,54 +3761,77 @@ score is obtained by derivating once the log-likelihood, i.e., for
 \(\theta \in \Vparam\):
 #+BEGIN_EXPORT LaTeX
 \begin{align*}
-   \Score(\theta) =& \dpartial[\Likelihood(\Vparam|\VY,\VX)][\theta]
-= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right)  \right) } \\
-&+ \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{ -\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right) + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right. \\
- & \qquad \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} (\VY_i-\mu(\Vparam,\VX_i)) \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{(\VY_i-\mu(\Vparam,\VX_i))} } \right).
+   &\Score(\theta) = \dpartial[\Likelihood(\Vparam|\VY,\VX)][\theta]
+= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \trans{\VX}_j\right)^{-1} \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right)  \right) } \\
+&+ \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{ -\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right) + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} 
++ \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right).
 \end{align*}
 #+END_EXPORT
 
- This is what the =score= method is computing for the REML
- criteria. The red term is specific to the REML criteria and prevents
- from computing the score relative to each cluster. The blue term is
- what =score= outputs for the ML criteria when setting the argument
- =indiv= to =TRUE=.
-
-\bigskip
-
-\clearpage
+ This is what the =score= method is computing for the REML criteria
+ (blue and red) and the ML (blue only) criteria. When the individual
+ contribution is requested (=indiv=TRUE=), =score= output:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+   \Score_i(\theta) &
+= \textcolor{\darkred}{ \frac{1}{2} tr \left( \left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \trans{\VX}_j\right)^{-1} \left(w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right)  \right) } \\
+&+ w_i \left( \textcolor{\darkblue}{ -\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right) + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}
++ \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right).
+\end{align*}
+#+END_EXPORT
 
 ** Hessian
 :PROPERTIES:
 :CUSTOM_ID: SM:likelihood:hessian
 :END:
 
-Derivating a second time the log-likelihood gives the hessian, \(\Hessian(\Vparam)\), with element[fn::if one is relative to the mean and the other to the variance then they are respectively \(\theta\) and \(\theta'\)]:
+Derivating a second time the log-likelihood gives the hessian,
+\(\Hessian(\Vparam)\), with element:
 #+BEGIN_EXPORT LaTeX
 \begin{align*}
 & \Hessian(\theta,\theta^{\prime}) = \ddpartial[\Likelihood(\Vparam|\VY,\VX)][\theta][\theta^{\prime}] = \dpartial[\Score(\theta)][\theta^{\prime}] \\
-=& \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right)^{-1} \left\{ \sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
-& \textcolor{\darkred}{ \left. \left. + \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{i=1}^n w_i \VX_i\Omega_i^{-1}(\Vparam) \trans{\VX}_i \right)^{-1} \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+=& \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \trans{\VX}_j\right)^{-1} \left\{ \sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+& \textcolor{\darkred}{ \left. \left. + \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{j=1}^n w_j \VX_i\Omega_j^{-1}(\Vparam) \trans{\VX}_j \right)^{-1} \left(\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
 & +\sum_{i=1}^n w_i \left( \textcolor{\darkblue}{ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right.\\
 & \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
 & \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \right) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right).
 \end{align*}
 #+END_EXPORT
-where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\).
+where \((\theta,\theta^{\prime})\) are either two mean parameters, or
+ two variance parameters, or \(\theta\) is a mean parameter and
+ \(\theta^{\prime}\) as variance parameter. The case \(\theta\)
+ variance parameter and \(\theta\) mean parameter can be deduced by
+ symmetry; doing so enable some simplifications since
+ \(\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]\dpartial[\Omega(\Vparam,\VX_i)][\theta]=0\).
 
-\bigskip
+ \bigskip
 
 The =information= method will (by default) return the (observed)
-information which is the opposite of the hessian. So multiplying the
-previous formula by -1 gives what =information= output for the REML
-criteria. The red term is specific to the REML criteria and prevents
-from computing the information relative to each cluster. The blue term
-is what =information= outputs for the ML criteria (up to a factor -1)
-when setting the argument =indiv= to =TRUE=.
+ information which is the opposite of the hessian. So the previous
+ formula shows *-1* times what the =information= method is computing
+ for the REML criteria (blue and red) and the ML (blue only) criteria,
+ with the default option
+ @@latex:\texttt{type.information="observed"}@@. When the individual
+ contribution is requested (=indiv=TRUE=), =information= output:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+& \Hessian_i(\theta,\theta^{\prime}) = \textcolor{\darkred}{\frac{1}{2} tr \left( \left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \trans{\VX}_j\right)^{-1} \left\{w_i \VX_i \Omega_i^{-1}(\Vparam) \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right)\Omega_i(\Vparam)^{-1} \trans{\VX}_i \right.  \right.}  \\
+& \textcolor{\darkred}{ \left. \left. + 0.5\left(w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \left(\sum_{j=1}^n w_j \VX_i\Omega_j^{-1}(\Vparam) \trans{\VX}_j \right)^{-1} \left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \dpartial[\Omega_j(\Vparam)][\theta^{\prime}] \Omega_j(\Vparam)^{-1} \trans{\VX}_j\right) \right\} \right) } \\
+& \textcolor{\darkred}{ \left. \left. + 0.5\left(\sum_{j=1}^n w_j \VX_j \Omega_j^{-1}(\Vparam) \dpartial[\Omega_j(\Vparam)][\theta] \Omega_j(\Vparam)^{-1} \trans{\VX}_j\right) \left(\sum_{j=1}^n w_j \VX_i\Omega_j^{-1}(\Vparam) \trans{\VX}_j \right)^{-1} \left(w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\VX}_i\right) \right\} \right) } \\
+& + w_i \left( \textcolor{\darkblue}{ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right.\\
+& \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]} } \\
+& \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \right) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right).
+\end{align*}
+#+END_EXPORT
 
-\bigskip
 
-A possible simplification is to use the expected hessian at the maximum likelihood. Indeed for
+
+** Expected Hessian
+:PROPERTIES:
+:CUSTOM_ID: SM:likelihood:Ehessian
+:END:
+
+A possible simplification is to use the expected Hessian at the Maximum (Restricted) Likelihood. Indeed for
 any deterministic matrix \(A\):
 - \(\Esp[A \trans{(\VY_i-\mu(\Vparam,\VX_i))}|\VX_i] = 0\)
 - \(\Esp[(\VY_i-\mu(\Vparam,\VX_i)) A \trans{(\VY_i-\mu(\Vparam,\VX_i))}||\VX_i] = tr(A \Var(\VY_i-\mu(\Vparam,\VX_i)))\)
@@ -3766,10 +3848,9 @@ when \(\Esp[\VY_i-\mu(\Vparam,\VX_i)]=0\). This leads to:
 \end{align}
 #+END_EXPORT
 
-This is what =information= output when the argument =type.information=
-is set to ="expected"= (up to a factor -1).
-
-\clearpage
+which is what =information= output when the argument
+=type.information= is set to ="expected"= (up to a factor *-1*). A
+similar simplification is used when =indiv= is set to =TRUE=.
 
 ** Degrees of freedom
 
@@ -3798,91 +3879,86 @@ where \(\Sigma_{\Vparam}\) is the variance-covariance matrix of all
 
 \bigskip
 
-The derivative of the information matrix (i.e. negative hessian) can
-then be computed using numerical derivatives or using analytical
-formula. To obtain the later we first notice that:
+For the derivative of the information (i.e. *-1* times the derivative
+ of the hessian) we consider
+ \((\theta,\theta^{\prime},,\theta^{\prime\prime})\) are either three
+ mean parameters, or three variance parameters, or \(\theta\) is a
+ mean parameter and \(\theta^{\prime}\) and \(\theta^{\prime\prime}\)
+ are variance parameters, or \(\theta\) and \(\theta^{\prime}\) are
+ mean parameters and \(\theta^{\prime\prime}\) is a variance
+ parameter. The other cases follow by symmetry; doing so enable some
+ simplifications since
+ \(\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]\dpartial[\Omega(\Vparam,\VX_i)][\theta^{\prime}]\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime\prime}]=0\). We
+ first focus on the derivative of the ML term:
+
 #+BEGIN_EXPORT LaTeX
-\begin{align}
-&\Hessian(\theta,\theta^{\prime}) = \Esp[\Hessian(\theta,\theta^{\prime})|\VX] \notag \\
-& + \sum_{i=1}^n  w_i \left( \textcolor{\darkblue}{ tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] \right) } \right. \notag \\
-& \qquad \textcolor{\darkblue}{ -  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}} \notag \\
-& \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] - \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \right) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right) \label{eq:diffInfo}
-\end{align}
+\begin{align*}
+& \dpartial[\textcolor{\darkblue}{\Hessian(\theta,\theta^{\prime})}][\theta^{\prime\prime}]
+ = \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
+ \frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - \Omega_i(\Vparam)^{-1} \dddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}][\theta^{\prime\prime}] - \Upsilon_{\theta\theta^{\prime}\theta^{\prime\prime}} - \Upsilon_{\theta^{\prime}\theta\theta^{\prime\prime}} \right)
+ } \right. \\
+& \qquad \textcolor{\darkblue}{+  \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1}
+\left( \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] - \ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}] + \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \right)
+\Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} }\\
+& \qquad \textcolor{\darkblue}{
++   \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
+} \\
+& \qquad \left. \textcolor{\darkblue}{ + \frac{1}{2} \Vvarepsilon_i(\Vparam) \left(
+\Omega_i(\Vparam)^{-1} \dddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}][\theta^{\prime\prime}]
++ \Upsilon_{\theta\theta^{\prime}\theta^{\prime\prime}}
++ \Upsilon_{\theta\theta^{\prime\prime}\theta^{\prime}}
++ \Upsilon_{\theta^{\prime}\theta\theta^{\prime\prime}}
++ \Upsilon_{\theta^{\prime}\theta^{\prime\prime}\theta}
++ \Upsilon_{\theta^{\prime\prime}\theta\theta^{\prime}}
++ \Upsilon_{\theta^{\prime\prime}\theta^{\prime}\theta}
+\right)\Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)} } \right) .
+\end{align*}
 #+END_EXPORT
 where
 #+BEGIN_EXPORT latex
 \begin{align*}
-\Esp[\Hessian(\theta,\theta^{\prime})|\VX] &=& \textcolor{\darkred}{
-\frac{1}{2} tr \left(A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)\right)
-}  + \sum_{i=1}^n w_i \textcolor{\darkblue}{E_i(\Vparam)} \\
-\textcolor{\darkblue}{E_i(\Vparam)} &=& \textcolor{\darkblue}{\frac{1}{2} tr\left(\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]\right)
-                                        - \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}} \\
-\textcolor{\darkred}{A(\Theta)} &=& \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i }\\
-\textcolor{\darkred}{B(\Theta)} &=& \textcolor{\darkred}{\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] }\\
-\textcolor{\darkred}{b_i(\Theta)} &=& \textcolor{\darkred}{\VX_i \Omega_i^{-1} }\\
-\textcolor{\darkred}{C(\Theta)} &=& \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i }
+\Upsilon_{\theta\theta^{\prime}\theta^{\prime\prime}} =& \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i(\Vparam)^{-1} \left(\dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] - \ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}]\right) \\
+\Upsilon_{\theta^{\prime}\theta\theta^{\prime\prime}} =& \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \left(\dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] - \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]\right) \\
+\Upsilon_{\theta^{\prime\prime}\theta\theta^{\prime}} =& \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \left(\dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] - \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}]\right) 
 \end{align*}
 #+END_EXPORT
-So we will first derive the derivative of
-\(\Esp[\Hessian(\theta,\theta^{\prime})|\VX]\) and then the one of the
-blue term in autoref:eq:diffInfo.  To simplify the derivation of the
-formula we will only derive them at the maximum likelihood, i.e. when
-\(\Esp\left[\dpartial[\Hessian(\theta,\theta^{\prime}|\VX)][\theta^{\prime\prime}]\right]=\frac{\partial
-\Esp[\Hessian(\theta,\theta^{\prime}|\VX)]}{\partial
-\theta^{\prime\prime}}\) where the expectation is taken over
-\(\VX\). We first notice that the derivative with respect to the mean
-parameters is 0. So we just need to compute the derivative with
-respect to a variance parameter \(\theta^{\prime\prime}\):
-#+BEGIN_EXPORT latex
-\begin{align*}
- & \frac{\partial \textcolor{\darkred}{ A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)}}{\partial \theta^{\prime\prime}} \\
- =& \textcolor{\darkred}{A(\Vparam)^{-1} \dpartial[A(\Vparam)][\theta^{\prime\prime}] A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i b_i(\Vparam) B_i(\Vparam) \trans{b}_i(\Vparam) + C(\Vparam)A(\Vparam)^{-1} \trans{C}(\Vparam) \right)} \\
- & +\textcolor{\darkred}{A(\Vparam)^{-1} \left(\sum_{i=1}^n w_i \left(
- \dpartial[b_i(\Vparam)][\theta^{\prime\prime}]  B_i(\Vparam) \trans{b}_i(\Vparam)
- + b_i(\Vparam) \dpartial[B_i(\Vparam)][\theta^{\prime\prime}]   \trans{b}_i(\Vparam)
- + b_i(\Vparam) B_i(\Vparam) \dpartial[\trans{b}_i(\Vparam)][\theta^{\prime\prime}] \right. \right. } \\
-& \qquad \qquad \qquad \qquad \quad + \textcolor{\darkred}{\left. \left.
- \dpartial[C(\Vparam)][\theta^{\prime\prime}]  A^{-1}(\Vparam) \trans{C}(\Vparam)
- + C(\Vparam) A^{-1}\dpartial[A(\Vparam)][\theta^{\prime\prime}]A^{-1}   \trans{C}(\Vparam)
- + C(\Vparam) A^{-1}(\Vparam) \dpartial[\trans{C}(\Vparam)][\theta^{\prime\prime}]
-\right) \right)}
-\end{align*}
-#+END_EXPORT
-
-and
-
+In the special case of the expected information, the derivative of the ML term simplifies to:
 #+BEGIN_EXPORT LaTeX
 \begin{align*}
- \dpartial[\textcolor{\darkblue}{E(\Vparam)}][\theta^{\prime\prime}]=&
- \sum_{i=1}^n w_i \left( \textcolor{\darkblue}{
-- \frac{1}{2} tr\left(
--2\Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta] \right. } \right. \\
-& \qquad \qquad \textcolor{\darkblue}{\left. + \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta]
-+ \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime}] \Omega_i(\Vparam)^{-1} \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]
-\right)} \\
-& \qquad \qquad  \textcolor{\darkblue}{\left. + \dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1}   \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
- \right)}
+\dpartial[\textcolor{\darkblue}{\Esp\left[\Hessian(\theta,\theta^{\prime})|\VX\right]}][\theta^{\prime\prime}]=
+ \sum_{i=1}^n w_i & \left( \textcolor{\darkblue}{
+\dpartial[\mu(\Vparam,\VX_i)][\theta] \Omega_i(\Vparam)^{-1} \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega_i(\Vparam)^{-1}   \trans{\dpartial[\mu(\Vparam,\VX_i)][\theta^{\prime}]}
++ \frac{1}{2} tr\left(\Upsilon_{\theta\theta^{\prime}\theta^{\prime\prime}} + \Upsilon_{\theta^{\prime}\theta\theta^{\prime\prime}} \right)
+} \right)
 \end{align*}
 #+END_EXPORT
-
-where:
+The REML term can be re-expressed as:
 #+BEGIN_EXPORT latex
 \begin{align*}
-\textcolor{\darkred}{\dpartial[A(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam) \trans{\VX}_i} \\
-\textcolor{\darkred}{\dpartial[b_i(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\VX_i \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)} \\
-\textcolor{\darkred}{\dpartial[B_i(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{
-  \frac{\partial^3 \Omega_i(\Vparam)}{\theta\theta^{\prime}\theta^{\prime\prime}} } \\
-  & \textcolor{\darkred}{ - 2 \left(
-  \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime}]
-+ \dpartial[\Omega_i(\Vparam)][\theta]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]\Omega^{-1}_i(\Vparam)\dpartial[\Omega_i(\Vparam)][\theta^{\prime}]
-+ \dpartial[\Omega_i(\Vparam)][\theta]\Omega^{-1}_i(\Vparam)\ddpartial[\Omega_i(\Vparam)][\theta^{\prime}][\theta^{\prime\prime}]
-\right)
-  } \\
-\textcolor{\darkred}{\dpartial[C(\Vparam)][\theta^{\prime\prime}]} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega^{-1}_i(\Vparam) \left(
-\dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}] \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta]
-+ \ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime\prime}]
-+ \dpartial[\Omega_i(\Vparam)][\theta] \Omega^{-1}_i(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime\prime}]
-\right) \Omega^{-1}_i(\Vparam) \trans{\VX}_i} 
+\textcolor{\darkred}{\Hessian(\theta,\theta^{\prime})} &= \textcolor{\darkred}{
+\frac{1}{2} tr \left(A^{-1} \left( C_{\theta\theta^{\prime}} + B_{\theta}A^{-1} B_{\theta^{\prime}} \right)\right)
+} \\
+\textcolor{\darkred}{A} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i }\\
+\textcolor{\darkred}{B_{\theta}} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta] \Omega_i(\Vparam)^{-1} \trans{\VX}_i } \\
+\textcolor{\darkred}{C_{\theta\theta^{\prime}}} &= \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \Omega_i^{-1}(\Vparam)\left(\ddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}] - 2 \dpartial[\Omega_i(\Vparam)][\theta]  \Omega_i^{-1}(\Vparam) \dpartial[\Omega_i(\Vparam)][\theta^{\prime}]\right) \Omega_i^{-1}(\Vparam) \trans{\VX}_i }
+\end{align*}
+#+END_EXPORT
+Therefore the third derivative of the REML term \(\textcolor{\darkred}{\dpartial[\Hessian(\theta,\theta^{\prime})][\theta^{\prime\prime}]}\) equals: 
+#+BEGIN_EXPORT latex
+\begin{align*}
+&\textcolor{\darkred}{
+\frac{1}{2} tr \left(A^{-1} \left(
+D_{\theta\theta^{\prime}\theta^{\prime\prime}} + B_{\theta^{\prime\prime}} A^{-1} C_{\theta\theta^{\prime}} + C_{\theta\theta^{\prime\prime}} A^{-1} B_{\theta^{\prime}} + B_{\theta}A^{-1} C_{\theta^{\prime}\theta^{\prime\prime}} + B_{\theta^{\prime\prime}}A^{-1}B_{\theta}A^{-1}B_{\theta^{\prime}} + B_{\theta}A^{-1}B_{\theta^{\prime\prime}}A^{-1}B_{\theta^{\prime}}
+\right)\right) } \\
+&\text{ with }\textcolor{\darkred}{D_{\theta\theta^{\prime}\theta^{\prime\prime}}} = \textcolor{\darkred}{\sum_{i=1}^n w_i \VX_i \left(
+\Omega_i(\Vparam)^{-1} \dddpartial[\Omega_i(\Vparam)][\theta][\theta^{\prime}][\theta^{\prime\prime}]
++ \Upsilon_{\theta\theta^{\prime}\theta^{\prime\prime}}
++ \Upsilon_{\theta\theta^{\prime\prime}\theta^{\prime}}
++ \Upsilon_{\theta^{\prime}\theta\theta^{\prime\prime}}
++ \Upsilon_{\theta^{\prime}\theta^{\prime\prime}\theta}
++ \Upsilon_{\theta^{\prime\prime}\theta\theta^{\prime}}
++ \Upsilon_{\theta^{\prime\prime}\theta^{\prime}\theta}
+\right)\Omega_i(\Vparam)^{-1}  \trans{\VX}_i }
 \end{align*}
 #+END_EXPORT
 
@@ -3890,7 +3966,7 @@ where:
 
 \clearpage
   
-* Likelihood ratio test with the REML criterion
+* Likelihood ratio test with the REML criterion 
 :PROPERTIES:
 :CUSTOM_ID: SM:LRT-REML
 :END:
@@ -3967,7 +4043,7 @@ parameters in mixed models estimated with REML.
 
 \clearpage
 
-* Sum of squares in a linear mixed model
+* Sum of squares in a linear mixed model 
 :PROPERTIES:
 :CUSTOM_ID: SM:sumSquares
 :END:
@@ -4193,7 +4269,7 @@ summary(partialCor(e.lmm, R2 = TRUE))
 
 \clearpage
 
-* Equivalence with other R packages
+* Equivalence with other R packages 
 
 ** nlme package
 
@@ -4827,7 +4903,6 @@ coef(eSim.lmm)["groupT"]/sqrt(sigma(eSim.lmm)[1,1])
 : 0.9952911
 : [1] 1.000000 1.414214
 
-
 ** stats package (partial residuals)
 
 The function =residuals.lm= can be used to extract partial residuals
@@ -4925,6 +5000,7 @@ coefficient in the design matrix.
 #+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
 #+LaTeX_HEADER: \patchcmd{\ttlh@hang}{\noindent}{}{}{}
 #+LaTeX_HEADER: \makeatother
+#+LaTeX_HEADER: \allowdisplaybreaks
 ** Color
 # ## define new colors
 #+LATEX_HEADER: \RequirePackage{colortbl} % arrayrulecolor to mix colors
@@ -5113,6 +5189,13 @@ coefficient in the design matrix.
 #+LATEX_HEADER: 		\frac{\partial^{2} #1}{\partial #2^2}
 #+LATEX_HEADER: 	}{
 #+LATEX_HEADER: 	\frac{\partial^2 #1}{\partial #2\partial #3}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommandx\dddpartial[4][1=,2=,3=,4=]{
+#+LATEX_HEADER: 	\ifthenelse{\isempty{#3}}{
+#+LATEX_HEADER: 		\frac{\partial^{3} #1}{\partial #2^3}
+#+LATEX_HEADER: 	}{
+#+LATEX_HEADER: 	\frac{\partial^3 #1}{\partial #2\partial #3\partial #4}
 #+LATEX_HEADER: }
 #+LATEX_HEADER: } 
 **** General math

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: sep 26 2025 (14:30) 
+## Last-Updated: okt  8 2026 (14:13) 
 ##           By: Brice Ozenne
-##     Update #: 510
+##     Update #: 514
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -77,7 +77,7 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
         out <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = object$args$type.information,
                             transform.sigma = "none", transform.k = "none", transform.rho = "none",
                             logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
-                            trace = FALSE, precompute.moments = !is.null(object$design$precompute.XX))$logLik
+                            trace = FALSE)$logLik
 
     } 
 
@@ -176,7 +176,6 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
     ## ** prepare output
     compute.indiv <- indiv || is.null(precompute$weights) || is.null(precompute$RR) || (REML & is.null(precompute$REML))
-    compute.indiv <- TRUE
     if(compute.indiv){
         ll <- rep(NA, n.cluster)
     }else if(any(sapply(precision, inherits, "try-error"))){ ## when evaluating log-likelihood at parameter values where the residual variance-covariance matrix is singular
@@ -218,7 +217,7 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
             ## precompute$RR has already been weigthed
             ## logdet is the log det of Omega^-1 instead of log det of Omega thus the minus sign
             iOmegaM1 <- precision[[iPattern]]
-            ll <- ll - 0.5 * unname(precompute$weights[iPattern]) * (NCOL(iOmegaM1) * log2pi - attr(iOmegaM1,"logdet")) - 0.5 * sum(precompute$RR[[iPattern]] * attr(iOmegaM1,"vectorize"))
+            ll <- ll - 0.5 * unname(precompute$weights[iPattern]) * (NCOL(iOmegaM1) * log2pi - attr(iOmegaM1,"logdet")) - 0.5 * sum(precompute$RR[[iPattern]] * as.vector(iOmegaM1))
         }
     }
 

@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex overview"] 1760351013.01382 "overview.aux" "overview.bbl" "overview" 1760351017.9492 0
+["bibtex overview"] 1791475886.80108 "overview.aux" "overview.bbl" "overview" 1791475891.88345 0
   "./bibliography.bib" 1760091102 2764 3fdef4baf208b93517354212ac64e783 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/bibtex/bst/bibtex/apalike.bst" 1291972791 24635 604dafcc79f521a11ea73e506e1fbd98 ""
-  "overview.aux" 1760351016 26490 ad40f120d1d89c70ef738d8b72ccc125 "pdflatex"
+  "overview.aux" 1791475890 25871 890f1fc89fb496e00d86efed9c3be37a "pdflatex"
   (generated)
   "overview.bbl"
   "overview.blg"
   (rewritten before read)
-["pdflatex"] 1760351013.2955 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-overview/overview.tex" "overview.pdf" "overview" 1760351017.95024 0
-  "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1759405651 96918 b44e951870e976cb5314ff35e4f298cd ""
+["pdflatex"] 1791475887.12674 "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-overview/overview.tex" "overview.pdf" "overview" 1791475891.88428 0
+  "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1789976368 96941 ad57431e7715ccebfbfbf77c9c1c48cb ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary10.tfm" 1752479638 848 f478e0761563bbc369eca609a1741348 ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary5.tfm" 1753196118 848 e1bc58a31b9ed9c3729ffea165acfaac ""
   "C:/Users/hpl802/AppData/Local/MiKTeX/fonts/tfm/public/stmaryrd/stmary6.tfm" 1752479641 848 068dd119e13b75777e62821af7d4f2a6 ""
@@ -31,6 +31,9 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/symbols/msbm5.tfm" 1233951854 940 75ac932a52f80982a9f8ea75d03a34cf ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/symbols/msbm7.tfm" 1233951854 940 228d6584342e91276bf566bcf9716b83 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmr12.tfm" 1136765053 1288 655e228510b4c2a1abe905c368440826 ""
+  "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/doublestroke/dsrom10.tfm" 1030470372 452 168d896d9b2ead965bf08c9db69c947f ""
+  "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/doublestroke/dsrom12.tfm" 1030470372 452 d8b5931fd510ede40dce06480d31d007 ""
+  "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/doublestroke/dsrom8.tfm" 1030470372 452 dc44cdd7c88ff2b15557f125edfc277b ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/latex-fonts/lasy6.tfm" 1136765053 520 4889cce2180234b97cad636b6039c722 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/lm/ec-lmbx12.tfm" 1256929440 12088 d750ac78274fa7c9f73ba09914c04f8a ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/tfm/public/lm/ec-lmbx6.tfm" 1256929440 12060 e1421116ee46f156304f311f9d8331aa ""
@@ -79,6 +82,7 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam5.pfb" 1247596673 33536 2645d35275aa4ba040fe69615db002f1 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam7.pfb" 1247596673 33366 60462f3d16c3d0f024f1f856e64b09cd ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb" 1247596673 34694 870c211f62cb72718a00e353f14f254d ""
+  "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/doublestroke/dsrom12.pfb" 1030470372 17091 559f388d601cc54898d17f9de70e2e87 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pfb" 1256929440 121021 836464b5fe0c782d94085eb083550ccc ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pfb" 1256929440 116908 9a7a12d1e4df280ea0ab4aad83cdef88 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx6.pfb" 1256929440 123928 6f08244d167aae9a61a19f4a8031d82d ""
@@ -209,6 +213,7 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/changes/changes.sty" 1626526453 29978 a9cfa26176db050060b35afe018a6d31 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/colortbl/colortbl.sty" 1748080958 12709 4ca3cf5f9f1d551b8a1090fba11ac95d ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/doublestroke/dsfont.sty" 1030470372 230 7bc61880b468bfd38aedc173be7c3486 ""
+  "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/doublestroke/udsrom.fd" 1030470372 211 101be7da01334f0b54b41fbe634f1ce4 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/epstopdf-pkg/epstopdf-base.sty" 1623003186 13886 d1306dcf79a944f6988e688c1785f9ce ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/epstopdf-pkg/epstopdf.sty" 1623003186 4393 47f27fd4d95928d20b1885ba77de11d2 ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/etoolbox/etoolbox.sty" 1739279216 46850 d87daedc2abdc653769a6f1067849fe0 ""
@@ -299,7 +304,7 @@
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xifthen/xifthen.sty" 1448274436 5689 1bfa68243e89a54479e7d0580773c57e ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/hpl802/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-overview/overview.tex" 1760351007 203090 b99a8f2f46789df860b411fc35253744 ""
+  "c:/Users/hpl802/Documents/Github/LMMstar/inst/doc-overview/overview.tex" 1791475880 202055 c0d059e7139216c118902781b0d49fec ""
   "figures/diag-correlation.pdf" 1752478660 6286 ff89af9f4bfa73c6b8c2dba779e150fa ""
   "figures/diag-profileUN.pdf" 1752478660 8102 e34e25f5c22326bd71fe2dece6c021a5 ""
   "figures/diag-qqplot.pdf" 1752478660 14356 46a26cb40c6be4ef1d8dc192d3e08181 ""
@@ -314,14 +319,10 @@
   "figures/forestplot.pdf" 1752478660 5062 f0596ef7ed48f078bd0a247a0dea4f31 ""
   "figures/gg-baseAdj.pdf" 1752478660 10376 b396809e486c38851feb9d2e30630f24 ""
   "figures/imputation.pdf" 1752478660 9354 057328f501c60aabcf96115c305c0c46 ""
-  "figures/scatterplot-group.pdf" 1752478660 12627 32db1ae369bf173b50c5ce71b51438f0 ""
-  "figures/scatterplot.pdf" 1752478660 14219 9731844343f669c5986372095562168d ""
-  "figures/summarize.pdf" 1752478660 7173 008e115e60bd4ed748a9ed65c83417ee ""
-  "figures/summarizeNA.pdf" 1752478660 4702 c202a7a887ee01eeb4dc3c296f3104cb ""
-  "overview.aux" 1760351016 26490 ad40f120d1d89c70ef738d8b72ccc125 "pdflatex"
-  "overview.bbl" 1760351013 2249 4442e68c95f2dc710d9d818881184526 "bibtex overview"
-  "overview.out" 1760351016 11198 d54dd8b291e0dfa3a68463005f48e880 "pdflatex"
-  "overview.tex" 1760351007 203090 b99a8f2f46789df860b411fc35253744 ""
+  "overview.aux" 1791475890 25871 890f1fc89fb496e00d86efed9c3be37a "pdflatex"
+  "overview.bbl" 1791475887 2249 4442e68c95f2dc710d9d818881184526 "bibtex overview"
+  "overview.out" 1791475890 10960 740734eaa0cbe36b4504020b44077a61 "pdflatex"
+  "overview.tex" 1791475880 202055 c0d059e7139216c118902781b0d49fec ""
   (generated)
   "overview.aux"
   "overview.loc"

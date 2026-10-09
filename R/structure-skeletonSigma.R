@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: maj 11 2023 (11:02) 
 ## Version: 
-## Last-Updated: sep 30 2026 (11:17) 
+## Last-Updated: okt  6 2026 (12:26) 
 ##           By: Brice Ozenne
-##     Update #: 84
+##     Update #: 92
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -75,10 +75,13 @@
 
     ## ** find code associated to each parameter
     ## subset rows corresponding only to the 'baseline' variance
-    if(NCOL(X.var)>length(param.sigma)){
+    if(NCOL(X.var)==length(param.sigma)){
+        X.Usigma <- lp2X.var
+    }else if(1){
+        X.var
         X.Usigma <- lp2X.var[rowSums(abs(lp2X.var[,-index.sigma,drop=FALSE]))==0,,drop=FALSE]
     }else{
-        X.Usigma <- lp2X.var
+        
     }
 
     ## generate code

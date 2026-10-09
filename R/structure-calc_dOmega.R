@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  2 2026 (16:38) 
+## Last-Updated: okt  8 2026 (13:30) 
 ##           By: Brice Ozenne
-##     Update #: 413
+##     Update #: 420
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,14 +22,15 @@
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters (transformed).
-##' @param dOmega [list of matrices] first derivative of the residual Variance-Covariance Matrix for each pattern.
-##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
-##' @param Upattern [data.frame] Optional, used to only evaluate the derivative of the residual variance-covariance with respect to a subset of patterns.
+##' @param Omega [list of matrices] residual Variance-Covariance Matrix for each pattern.
+##' @param transform.sigma,transform.k,transform.rho [character] transformation used on the variance/correlation coefficients.
+##' @param Upattern [data.frame] optional, used to only evaluate the derivative of the residual variance-covariance with respect to a subset of patterns.
 ##' 
 ##' @keywords internal
 ##' 
 `.calc_dOmega` <-
-    function(object, param, Omega, transform.sigma, transform.k, transform.rho, Upattern) UseMethod(".calc_dOmega")
+    function(object, param, Omega, transform.sigma, transform.k, transform.rho,
+             Upattern) UseMethod(".calc_dOmega")
 
 ## * calc_dOmega.ID
 .calc_dOmega.ID <- function(object, param, Omega = NULL, transform.sigma, transform.k, transform.rho,
@@ -45,11 +46,9 @@
     X.cor <- object$cor$Xpattern
     
     ## param
-    type <- object$param$type
-
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
+    name.sigma <- object$param[object$param$type=="sigma" & is.na(object$param$constraint),"name"]
+    name.k <- object$param[object$param$type=="k" & is.na(object$param$constraint),"name"]
+    name.rho <- object$param[object$param$type=="rho" & is.na(object$param$constraint),"name"]
 
     ## Omega
     if(is.null(Omega)){
@@ -81,7 +80,7 @@
         iParam.sigma <- intersect(iName.param, name.sigma)
         iParam.k <- intersect(iName.param, name.k)
         iParam.rho <- intersect(iName.param, name.rho)
-        
+
         ## *** sigma & k parameter
         if(length(iParam.sigma)+length(iParam.k)>0){
             iX.var <- X.var[[Upattern[iPattern,"var"]]]

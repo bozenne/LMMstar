@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: sep 26 2025 (16:02) 
+## Last-Updated: okt  8 2026 (14:12) 
 ##           By: Brice Ozenne
-##     Update #: 430
+##     Update #: 431
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -199,7 +199,7 @@ iid.lmm <- function(x,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                logLik = FALSE, score = TRUE, information = keep.grad || iid.dVcov, vcov = recompute.vcov, df = recompute.vcov && (keep.grad || iid.dVcov),
                                indiv = TRUE, effects = effects2, robust = FALSE,
-                               trace = FALSE, precompute.moments = !is.null(x$design$precompute.XX), method.numDeriv = options$method.numDeriv, transform.names = transform.names)
+                               trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
     x.score <- outMoments$score
     if(recompute.vcov){

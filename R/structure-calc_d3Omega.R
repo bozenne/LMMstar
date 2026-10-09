@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  2 2026 (17:12) 
+## Last-Updated: okt  8 2026 (13:30) 
 ##           By: Brice Ozenne
-##     Update #: 519
+##     Update #: 545
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -22,10 +22,12 @@
 ##'
 ##' @param structure [structure]
 ##' @param param [named numeric vector] values of the parameters (transformed).
-##' @param Omega [list of matrices] Residual Variance-Covariance Matrix for each pattern.
-##' @param transform.sigma,transform.k,transform.rho [character] Transformation used on the variance/correlation coefficients.
+##' @param Omega [list of matrices] residual Variance-Covariance Matrix for each pattern.
+##' @param triplet [list of data.frame] first three columns contain triplets of variance-covaraince parameters.
+##' Following columns indicate whether the triplet is present in each covariance pattern.
+##' @param transform.sigma,transform.k,transform.rho [character] transformation used on the variance/correlation coefficients.
 ##' Only active if \code{"log"}, \code{"log"}, \code{"atanh"}: then the derivative is directly computed on the transformation scale instead of using the Jacobian.
-##' @param Upattern [data.frame] Optional, used to only evaluate the second derivative of the residual variance-covariance with respect to a subset of patterns.
+##' @param Upattern [data.frame] optional, used to only evaluate the third derivative of the residual variance-covariance with respect to a subset of patterns.
 ##' 
 ##' @keywords internal
 ##' 
@@ -65,12 +67,12 @@
 ##' .calc_d3Omega(Sun4, param = param4)
 ##' .calc_d3Omega(Sun24, param = param24)
 `.calc_d3Omega` <-
-    function(object, param, Omega, 
-             transform.sigma, transform.k, transform.rho) UseMethod(".calc_d3Omega")
+    function(object, param, Omega, triplet, transform.sigma, transform.k, transform.rho,
+             Upattern) UseMethod(".calc_d3Omega")
 
 ## * calc_d3Omega.ID
-.calc_d3Omega.ID <- function(object, param, Omega, 
-                             transform.sigma = NULL, transform.k = NULL, transform.rho = NULL){
+.calc_d3Omega.ID <- function(object, param, Omega, triplet, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL,
+                             Upattern = NULL){
 
     ## ** prepare
     ## pattern
@@ -80,11 +82,10 @@
     X.cor <- object$cor$Xpattern
     
     ## param
-    type <- stats::setNames(object$param$type, object$param$name)
-    
-    name.sigma <- object$param$name[type=="sigma"]
-    name.k <- object$param$name[type=="k"]
-    name.rho <- object$param$name[type=="rho"]
+    type <- stats::setNames(object$param$type,object$param$name)
+    name.sigma <- object$param[type=="sigma" & is.na(object$param$constraint),"name"]
+    name.k <- object$param[type=="k" & is.na(object$param$constraint),"name"]
+    name.rho <- object$param[type=="rho" & is.na(object$param$constraint),"name"]
     
     ## Omega
     if(is.null(Omega)){
@@ -112,19 +113,19 @@
         if(is.null(iName.param)){
             return(NULL)
         }else{
-            test.triplet <- colSums(matrix(object$triplet.vcovvcov %in% iName.param, nrow = 3, ncol = NCOL(object$triplet.vcovvcov)))==3
-            iTriplet <- object$triplet.vcovvcov[,which(test.triplet),drop=FALSE]
-            n.iTriplet <- sum(test.triplet)
+            iTriplet <- triplet[which(triplet[[Upattern[iPattern,"name"]]]),c("name","param1","param2","param3"),drop=FALSE]
+            n.iTriplet <- NROW(iTriplet)
             iOut <- replicate(n = n.iTriplet, matrix(0, nrow = iNtime, ncol = iNtime), simplify = FALSE)
+            names(iOut) <- iTriplet$name            
         }
 
         ## *** loop over all pairs of parameters
         for(iiTrip in 1:n.iTriplet){ ## iiTriplet <- 4
 
             ## name of parameters
-            iCoef1 <- iTriplet[1,iiTrip]
-            iCoef2 <- iTriplet[2,iiTrip]
-            iCoef3 <- iTriplet[3,iiTrip]
+            iCoef1 <- iTriplet[iiTrip,"param1"]
+            iCoef2 <- iTriplet[iiTrip,"param2"]
+            iCoef3 <- iTriplet[iiTrip,"param3"]
 
             ## type of parameters
             iType1 <- type[iCoef1]

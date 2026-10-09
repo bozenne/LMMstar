@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: sep 30 2026 (10:30) 
+## Last-Updated: okt  8 2026 (14:15) 
 ##           By: Brice Ozenne
-##     Update #: 815
+##     Update #: 823
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -290,7 +290,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     for(iCluster in names(index.cluster)){
         names(index.cluster[[iCluster]]) <- rep(iCluster, length(index.cluster[[iCluster]]))
     }
-    precompute.moments <- !is.null(object$design$precompute.XX)
     
     var.all <- stats::variable.names(object, effects = "all")
     var.mean <- stats::variable.names(object, effects = "mean")
@@ -420,8 +419,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iStructure$param <- NULL
             iStructure$pattern <- NULL
             iStructure$Upattern <- NULL
-            iStructure$pair.vcov <- NULL
-            iStructure$pair.meanvcov <- NULL
+            iStructure$pair.vcovvcov <- NULL
 
             iData2 <- .lmmNormalizeData(iData[,var.all,drop=FALSE],
                                         var.outcome = var.outcome,
@@ -438,7 +436,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                          data = iData2,
                                          var.outcome = object$outcome$var,
                                          var.weights = object$weights$var,
-                                         precompute.moments = precompute.moments,
                                          drop.X = object$design$drop.X,
                                          options = options)
 
@@ -448,7 +445,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iDesign$Y <- iData[[var.outcome]]
 
             ## update pre-computation              
-            if(precompute.moments && NCOL(iDesign$mean)>0){
+            if(NCOL(iDesign$mean)>0){
                 if(is.na(var.weights[1])){
                     iwY <- cbind(iData[[var.outcome]])
                 }else{
@@ -469,7 +466,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             attr(iDesign$mean, "terms") <- attr(object$design$mean, "terms")
 
             ## update pre-computation                
-            if(precompute.moments && NCOL(iDesign$mean)>0){
+            if(NCOL(iDesign$mean)>0){
                 if(is.na(var.weights[1])){
                     iwX.mean <- iDesign$mean
                     iwY <- cbind(iData[[var.outcome]])
@@ -495,7 +492,6 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                     transform.sigma = object$reparametrize$transform.sigma,
                                     transform.k = object$reparametrize$transform.k,
                                     transform.rho = object$reparametrize$transform.rho,
-                                    precompute.moments = precompute.moments, 
                                     optimizer = object$args$control$optimizer,
                                     init = param.init,
                                     n.iter = object$opt$control[["n.iter"]],
@@ -516,7 +512,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                   transform.rho = "none", ## object$reparametrize$transform.rho,
                                   logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = FALSE, indiv = FALSE,
                                   effects = list("mean",c("mean","variance"))[[effects.vcov+1]], robust = FALSE,
-                                  trace = FALSE, precompute.moments = precompute.moments, method.numDeriv = "simple", transform.names = FALSE)$vcov
+                                  trace = FALSE, method.numDeriv = "simple", transform.names = FALSE)$vcov
             
         }
 
