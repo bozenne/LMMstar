@@ -1,3 +1,7 @@
 /inst/dataTXT
 /inst/POO.svg
 /inst/use-case
+*.aux
+*.fdb_latexmk
+*.log
+*.out

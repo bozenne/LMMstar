@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:39) 
+## Last-Updated: okt 13 2026 (10:13) 
 ##           By: Brice Ozenne
-##     Update #: 3372
+##     Update #: 3380
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1154,14 +1154,21 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     }
 
     ## ** check that time and cluster are appropriately defined with respect to structure
-    if(all(is.na(var.cluster.original)) && structure %in% c("CS","TOEPLITZ","UN")){
+    if(is.character(structure)){
+        structure.class <- structure
+    }else{
+        structure.class <- na.omit(structure$class)
+    }
+    if(all(is.na(var.cluster.original)) && any(structure.class %in% c("CS","AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
         stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
              "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
-    if(all(is.na(var.time.original)) && structure %in% c("IND","TOEPLITZ","UN")){
+    if(all(is.na(var.time.original)) && any(structure.class %in% c("IND","AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
         stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
              "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
     }
+
+    
 
     ## ** update structure with cluster/time/strata variables
     var.clusterS <- "XXcluster.indexXX"

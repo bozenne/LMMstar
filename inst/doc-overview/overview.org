@@ -13,7 +13,7 @@ library(ggpubr, quietly = TRUE, verbose = FALSE, warn.conflicts = FALSE)
 This vignette describes the main functionalities of the *LMMstar*
 package.
 
-* Statistical background 
+* Statistical background                                           :noexport:
 
 The LMMstar package implements a specific class of linear mixed models,
 mainly useful when having repeated observations over a discrete
@@ -112,7 +112,7 @@ The influence function is computed as \(\Information^{-1}
 
 \clearpage
 
-* Summary of the user-interface 
+* Summary of the user-interface  :noexport:
 
 To get start, one should load the *LMMstar* package in the \Rlogo session:
 #+BEGIN_SRC R :exports code :results silent :session *R* :cache no
@@ -194,7 +194,7 @@ functions:
 
 \clearpage
 
-* Illustrative dataset 
+* Illustrative dataset  :noexport: 
 
 To illustrate the functionalities of the package, we will use the
 gastricbypass dataset. The long format can be imported using:
@@ -267,7 +267,7 @@ gastricbypassL.NNA <- gastricbypassL[!is.na(gastricbypassL$glucagonAUC),]
 
 \clearpage
 
-* Visualization & descriptive statistics  
+* Visualization & descriptive statistics  :noexport:  
 ** Correlation and partial correlations
 
 The =partialCor= function can be used to evaluate group-specific
@@ -337,7 +337,7 @@ used to estimated them.
 
 \clearpage
 
-* Multiple Student's t-tests 
+* Multiple Student's t-tests   :noexport:
 
 When working with multiple outcomes and having no missing data, mean
 comparisons between exposure groups can be carried out using Student's
@@ -395,7 +395,7 @@ mt.test(weight1+weight2+weight3+weight4~group, data = gastricbypassW, method = "
 
 \clearpage
 
-* Linear mixed model (LMM) 
+* Linear mixed model (LMM)   :noexport:
 ** Classical covariance patterns
 
 Several build-in covariance patterns can be used when specifying the
@@ -2708,7 +2708,7 @@ as.double(mu3 + Omega_31 * (50 - mu1) / Omega_11)
 
 \clearpage
 
-* Equivalence with other statistical methods 
+* Equivalence with other statistical methods  :noexport:
 ** Welch two sample t-test
 
 A two sample t-test:
@@ -3061,7 +3061,7 @@ technic.
 
 \clearpage
 
-* Missing values and imputation 
+* Missing values and imputation  :noexport:
 
 We reconsider the example of the previous section, but now in presence
 of missing values. The =summarize= function can be used to describe
@@ -3418,7 +3418,7 @@ ggsave(autoplot(e.mlmm, method = c("pool.rubin","none"))$plot + theme(text = ele
 
 \clearpage
 
-* Data generation
+* Data generation :noexport:
 Simulate some data in the wide format:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 set.seed(10) ## ensure reproductibility
@@ -3458,7 +3458,7 @@ head(dL)
 
 \clearpage
 
-* Modifying default options
+* Modifying default options :noexport:
 The =LMMstar.options= method enable to get and set the default options
 used by the package. For instance, the default option for the information matrix is:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
@@ -3485,7 +3485,7 @@ LMMstar.options(reinitialise = TRUE)
 
 \clearpage
 
-* R session
+* R session :noexport:
 Details of the R session used to generate this document:
 #+BEGIN_SRC R :exports both :results output :session *R* :cache no
 sessionInfo()
@@ -3550,7 +3550,7 @@ loaded via a namespace (and not attached):
 
 \clearpage
 
-* References
+* References :noexport:
 :PROPERTIES:
 :UNNUMBERED: t
 :END:
@@ -3647,6 +3647,8 @@ variable.names x                          x
 vcov           x   x        x             x                          
 weights            x
 #+end_example
+
+\clearpage
 					
 * Likelihood and derivatives in a linear mixed model
 :PROPERTIES:
@@ -3662,9 +3664,11 @@ In =lmm=:
   for which we observe independent replicates (across =id=).
 - the argument =structure= define a model for the residual
   variance-covariance \(\Omega(\Vparam,\VX)\).
-- the right-hand side of argument =weights= defined a vector of
-  weights \(\omega=(w_1,\ldots,w_n)\). The left hand side defines the
-  number of replicates \(\mathbf{r}=(r_{1},\ldots,r_{T})\) which were
+- the argument =weights= (typically equal to =r~w=) has on its
+  right-hand side a variable defining a vector of weights
+  \(\omega=(w_1,\ldots,w_n)\) - which should be constant within
+  cluster - and on its left hand side a variable defining the number
+  of replicates \(\mathbf{r}=(r_{1},\ldots,r_{T})\) which were
   averaged to obtain the outcome \(\VY\). When left un-specified, the
   weights and number of replicates are considered equal to 1.
 
@@ -3705,54 +3709,22 @@ where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\) denotes
 
 \bigskip
 
-_Note:_ when having technical replicates \(\VY^*\) and averaging over
-those to obtain \(\VY\) rescales the residual variance-covariance
-matrix. Denote by \(\Omega^*_i(\Vparam)\) the 'single replicate'
-residual variance-covariance matrix which is to be specified in
-argument =structure=. Assuming independent replicates, i.e.
-for two replicates \(r\) and \(r^{\prime}\): \(\Cov(\VY^*_{ir},\VY^*_{ir^{\prime}})=\Omega^*_i(\Vparam)
-\Ind[r=r^{\prime}]\), we
-can relate \(\Omega_i(\Vparam)\) to \(\Omega^*_i(\Vparam)\):
+_Note:_ the implementation uses that within a subset of subject sharing the same covariance pattern:
 #+BEGIN_EXPORT latex
 \begin{align*}
-\Omega_{itt^{\prime}}(\Theta) = \Cov\left(Y_{it},Y_{it^{\prime}}\right)=\frac{1}{r_{it}r_{it^{\prime}}}\sum_{r=1}^{r_{it}}\sum_{r^{\prime}=1}^{r_{it^{\prime}}}\Cov\left(Y^*_{itr},Y^*_{it^{\prime}r^{\prime}}\right)
-=\frac{\min(r_{it},r_{it^{\prime}})}{r_{it}r_{it^{\prime}}}\Omega^*_{itt^{\prime}}(\Theta)
-=\frac{1}{\max(r_{it},r_{it^{\prime}})}\Omega^*_{itt^{\prime}}(\Theta)
+\sum_{i} w_i \VX_i \Omega(\Vparam)^{-1} \trans{\VX_i}
+&= \trans{\left(\sum_{i} w_i \VX_i \otimes \VX_i\right)} \text{vec}\left(\Omega(\Vparam)^{-1}\right) \\
+\sum_{i} w_i \Vvarepsilon_i(\Vparam) \Omega(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}
+&= \trans{\left(\sum_{i} w_i \Vvarepsilon_i(\Vparam) \otimes \Vvarepsilon_i(\Vparam)\right)} \text{vec}\left(\Omega(\Vparam)^{-1}\right) 
 \end{align*}
 #+END_EXPORT
-which reduces to dividing by the number of replicates in the special
-case where the number of replicates only varies across subjects but is
-the same across outcomes within a subject. Even in this case having
-technical replicate is not equivalent to re-weighting the
-log-likelihood, e.g. the 'replication' weight creates an additional
-additive for the ML \(\log\) term (i.e. will cancel out after
-differentiation) while it rescales the REML and the residual term
-(i.e. will contribute even after differentiation).
+where \(\otimes\) denotes the kronecker product \(vec\) the
+vectorization of a matrix. \(\sum_{i} w_i \VX_i
+\otimes \VX_i = \sum_{i} \VX^*_i
+\otimes \VX^*_i\) can then be pre-computed with \(\VX^*_i=\sqrt{w_i}\VX_i\) and
+does not need to be updated during the optimization process.
 
-# When the outcomes are ordered by number of replicates (from most to
-# least), the implied residual variance-covariance matrix after
-# averaging can be re-expressed as the Hadamard product
-# \(\Omega_i^*(\Vparam)=\Omega_i(\Vparam) \odot T
-# diag(r_{i1},r_{i2}-r_{i1},r_{i3}-r_{i2},\ldots) \trans{T} \) where
-# \(T\) denotes the lower triangular matrix (including diagonal) with
-# only 1 (or 0) and \(diag(\bullet)\) a diagonal matrix.
-
-#+BEGIN_SRC R :exports none :results output :session *R* :cache no
-pmax(matrix(c(1000,100,10), byrow = TRUE,3,3),matrix(c(1000,100,10), byrow = FALSE,3,3))
-
-L <- lower.tri(matrix(0,3,3), diag = TRUE)*1
-L %*% diag(c(1000,100-1000,10-100)) %*% t(L)
-#+END_SRC
-
-#+RESULTS:
-:      [,1] [,2] [,3]
-: [1,] 1000 1000 1000
-: [2,] 1000  100  100
-: [3,] 1000  100   10
-:      [,1] [,2] [,3]
-: [1,] 1000 1000 1000
-: [2,] 1000  100  100
-: [3,] 1000  100   10
+\clearpage
 
 ** Score
 
@@ -3851,6 +3823,8 @@ when \(\Esp[\VY_i-\mu(\Vparam,\VX_i)]=0\). This leads to:
 which is what =information= output when the argument
 =type.information= is set to ="expected"= (up to a factor *-1*). A
 similar simplification is used when =indiv= is set to =TRUE=.
+
+\clearpage
 
 ** Degrees of freedom
 
@@ -3962,11 +3936,115 @@ D_{\theta\theta^{\prime}\theta^{\prime\prime}} + B_{\theta^{\prime\prime}} A^{-1
 \end{align*}
 #+END_EXPORT
 
+** Averaging over replicates
 
+Aeraging over technical replicates \(\VY^*\) to obtain \(\VY\)
+rescales the residual variance-covariance matrix. Denote by
+\(\Omega_i(\Vparam)\) the 'single replicate' residual
+variance-covariance matrix which is to be specified in argument
+=structure= and by \(\overline{\Omega}_i(\Vparam)\) the
+variance-covariance matrix of the average replicate. Assuming
+independent replicates, i.e.  for two replicates \(r\) and
+\(r^{\prime}\):
+\(\Cov(\VY^*_{ir},\VY^*_{ir^{\prime}})=\Omega_i(\Vparam)
+\Ind[r=r^{\prime}]\), we can relate \(\overline{\Omega}_i(\Vparam)\)
+to \(\Omega_i(\Vparam)\):
+#+BEGIN_EXPORT latex
+\begin{align*}
+\overline{\Omega}_{itt^{\prime}}(\Theta) = \Cov\left(Y_{it},Y_{it^{\prime}}\right)=\frac{1}{r_{it}r_{it^{\prime}}}\sum_{r=1}^{r_{it}}\sum_{r^{\prime}=1}^{r_{it^{\prime}}}\Cov\left(Y^*_{itr},Y^*_{it^{\prime}r^{\prime}}\right)
+=\frac{\min(r_{it},r_{it^{\prime}})}{r_{it}r_{it^{\prime}}}\Omega_{itt^{\prime}}(\Theta)
+=\frac{1}{\max(r_{it},r_{it^{\prime}})}\Omega_{itt^{\prime}}(\Theta)
+\end{align*}
+#+END_EXPORT
+
+Denote by \(r_{i\pi(1)},\ldots,r_{i\pi(T)}\) the number of replicates
+per outcome for subject \(i\) sorted in decreasing order. Introduce:
+- \(\tau=\begin{bmatrix}1 & 0 & \ldots & 0 & 0 \\ 1 & 1 & \ldots & 0 &
+  0 \\ \vdots & \vdots & \ddots & \vdots & \vdots \\ 1 & 1 & \ldots &
+  1 & 0 \\ 1 & 1 & \ldots & 1 & 1 \\ \end{bmatrix}\) the 'unit' lower
+  triangular matrix
+- \(\delta(\mathbf{r}_i)=\begin{bmatrix}r_{i\pi(1)} & 0 & \ldots & 0 &
+  0 \\ 0 & r_{i\pi(2)} - r_{i\pi(1)} & \ldots & 0 & 0 \\ \vdots &
+  \vdots & \ddots & \vdots & \vdots \\ 0 & 0 & \ldots &
+  r_{i\pi(T-2)} - r_{i\pi(T-1)} & 0 \\ 0 & 0 & \ldots & 0 &
+  r_{i\pi(T-1)} - r_{i\pi(T)} \\ \end{bmatrix}\) the diagonal matrix
+  of the difference in number of replicates
+- \(P\) the permutation matrix with element \(P_{st}=\Ind[s=\pi(t)]\)
+  # PP <- do.call(cbind,lapply(c(1000,100,10), function(ii){(ii==c(10,1000,100))}))
+Then, denoting by \(\odot\) the element-wise product (also called Hadamard product):  
+#+BEGIN_EXPORT latex
+\begin{align*}
+\overline{\Omega}_{i}(\Vparam) = \Omega_i(\Vparam) \odot (P \tau)  \delta(\mathbf{r}_i) \trans{(P \tau)}
+\end{align*}
+#+END_EXPORT
+leading to following log-likelihood:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n w_i \VX_i \overline{\Omega}_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \notag \\
+& + \sum_{i=1}^{n} w_i \left(\textcolor{\darkblue}{-\frac{m}{2} \log(2\pi) - \frac{1}{2} \log\left|\overline{\Omega}_i(\Vparam)\right| - \frac{1}{2} \Vvarepsilon_i(\Vparam) \overline{\Omega}_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}} \right) 
+\end{align*}
+ #+END_EXPORT
+The expression of the score, Hessian, degrees of freedom can be
+modified similarly substituting \(\overline{\Omega}\) to \(\Omega\)
+where for the derivatives one should take the element-wise product with
+the replication factor, e.g.:
+#+BEGIN_EXPORT latex
+\begin{align*}
+\dpartial[\overline{\Omega}_{i}(\Vparam)][\theta] = \dpartial[\Omega_{i}(\Vparam)][\theta] \odot (P \tau)  \delta(\mathbf{r}_i) \trans{(P \tau)}
+\end{align*}
+#+END_EXPORT
+
+
+*Special case* (\(r_{it}=r_{i}\)): number of replicates is constant
+within subjects across outcomes (but may vary across subjects). Then
+\(\overline{\Omega}_{i}(\Vparam) =
+\frac{\Omega_i(\Vparam)}{r_{i}}\). With \(w_i^*=w_i r_i\), the log-likelihood becomes:
+#+BEGIN_EXPORT LaTeX
+\begin{align*}
+\Likelihood(\Vparam|\VY,\VX) =& \textcolor{\darkred}{ \frac{p}{2} \log(2\pi)-\frac{1}{2} \log\left(\left|\sum_{i=1}^n w^*_i \VX_i \Omega_i^{-1}(\Vparam) \trans{\VX}_i\right|\right)} \notag \\
+& + \sum_{i=1}^{n}  \left(\textcolor{\darkblue}{-\frac{m}{2}w_i\log\left(\frac{2\pi}{r_i}\right)- \frac{w_i}{2} \log\left|\Omega_i(\Vparam)\right| - \frac{w_i^*}{2} \Vvarepsilon_i(\Vparam) \Omega_i(\Vparam)^{-1} \trans{\Vvarepsilon_i(\Vparam)}} \right) 
+\end{align*}
+ #+END_EXPORT
+The expression of the score, Hessian, degrees of freedom can be
+modified similarly by using the modified \(w_i^*\) weight for the REML
+and residual terms (but not for the ML trace terms).
+
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+pmax(matrix(c(1000,100,10), byrow = TRUE,3,3),matrix(c(1000,100,10), byrow = FALSE,3,3))
+L <- lower.tri(matrix(0,3,3), diag = TRUE)*1
+L %*% diag(c(1000,100-1000,10-100)) %*% t(L)
+#+END_SRC
+
+#+RESULTS:
+:      [,1] [,2] [,3]
+: [1,] 1000 1000 1000
+: [2,] 1000  100  100
+: [3,] 1000  100   10
+:      [,1] [,2] [,3]
+: [1,] 1000 1000 1000
+: [2,] 1000  100  100
+: [3,] 1000  100   10
+
+#+BEGIN_SRC R :exports none :results output :session *R* :cache no
+PP <- do.call(cbind,lapply(c(1000,100,10), function(ii){(ii==c(10,1000,100))}))
+PP %*% L %*% diag(c(1000,100-1000,10-100)) %*% t(L) %*% t(PP)
+pmax(matrix(c(10,1000,100), byrow = TRUE,3,3),matrix(c(10,1000,100), byrow = FALSE,3,3))
+#+END_SRC
+
+#+RESULTS:
+:      [,1] [,2] [,3]
+: [1,]   10 1000  100
+: [2,] 1000 1000 1000
+: [3,]  100 1000  100
+:      [,1] [,2] [,3]
+: [1,]   10 1000  100
+: [2,] 1000 1000 1000
+: [3,]  100 1000  100
 
 \clearpage
   
-* Likelihood ratio test with the REML criterion 
+* Likelihood ratio test with the REML criterion  :noexport:
 :PROPERTIES:
 :CUSTOM_ID: SM:LRT-REML
 :END:
@@ -4043,7 +4121,7 @@ parameters in mixed models estimated with REML.
 
 \clearpage
 
-* Sum of squares in a linear mixed model 
+* Sum of squares in a linear mixed model  :noexport:
 :PROPERTIES:
 :CUSTOM_ID: SM:sumSquares
 :END:
@@ -4269,7 +4347,7 @@ summary(partialCor(e.lmm, R2 = TRUE))
 
 \clearpage
 
-* Equivalence with other R packages 
+* Equivalence with other R packages  :noexport:
 
 ** nlme package
 

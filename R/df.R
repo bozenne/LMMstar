@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:12) 
+## Last-Updated: okt 12 2026 (17:53) 
 ##           By: Brice Ozenne
-##     Update #: 396
+##     Update #: 400
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -407,7 +407,7 @@ browser()
     ## find which triplet appears in which pattern
     for(iPattern in structure$Upattern$name){ ## iP <- structure$Upattern$name[1]
         ## put parameter from the pattern first
-        iParam.pattern <- structure$Upattern$param[[structure$Upattern$name == iPattern]]
+        iParam.pattern <- structure$Upattern$param[[which(structure$Upattern$name == iPattern)]]
         iParam.active <- c(iParam.pattern,setdiff(activeparam,iParam.pattern))
         ## convert to numeric
         iUtriplet.vcov3.num <- matrix(as.numeric(factor(Utriplet.vcovvcov, levels = iParam.active)), nrow = NROW(Utriplet.vcovvcov), ncol = NCOL(Utriplet.vcovvcov))

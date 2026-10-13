@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:27) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:15) 
+## Last-Updated: okt 13 2026 (17:07) 
 ##           By: Brice Ozenne
-##     Update #: 101
+##     Update #: 134
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -72,10 +72,10 @@
     param.Omega2 <- setdiff(param.Omega,param.fixed)
     param.mu2 <- setdiff(param.mu,param.fixed)
     param.fixed.mu <- setdiff(param.mu,param.mu2)
-    
+
     n.param <- length(param.name)
-    Upattern <- design$vcov$Upattern
-    n.Upattern <- NROW(Upattern)
+    Upattern <- design$precompute.weights$pattern
+    n.Upattern <- length(Upattern)
 
     if(length(param.fixed.mu)>0){
         partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
@@ -157,18 +157,18 @@
             param.value[param.mu2] <- init.mu[param.mu2]
         }else if(length(param.mu2)>0){
             if(!is.null(init.Omega)){
-                start.OmegaM1 <- stats::setNames(lapply(1:NROW(Upattern), function(iP){ ## iP <- 1
-                    iCluster <- unlist(design$vcov$Upattern[iP,"index.cluster"])
+                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iP){ ## iP <- 1
+                    iCluster <- design$vcov$Upattern[design$vcov$Upattern$name == design$precompute.weights$vcov[iP],"index.cluster"]
                     iTime <- design$index.clusterTime[[iCluster[1]]]
                     return(solve(init.Omega[iTime,iTime,drop=FALSE]))
-                }), Upattern$name)
+                }), Upattern)
             }else{
-                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iPattern){ ## iPattern <- 1
-                    diag(1, nrow = Upattern[iPattern,"n.time"], ncol = Upattern[iPattern,"n.time"])
-                }), Upattern$name)
+                start.OmegaM1 <- stats::setNames(lapply(1:n.Upattern, function(iP){ ## iP <- 1
+                    iN.time <- design$vcov$Upattern[design$vcov$Upattern$name == design$precompute.weights$vcov[iP],"n.time"]
+                    return(diag(1, nrow = iN.time, ncol = iN.time))
+                }), Upattern)
             }
-            param.value[param.mu2] <- .optimGLS(OmegaM1 = start.OmegaM1, pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                                Y = partialY, design = design, param.mu = param.mu2)
+            param.value[param.mu2] <- .optimGLS(OmegaM1 = start.OmegaM1, precompute.XY = design$precompute.XY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)
         }
         ## vcov values
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
@@ -308,7 +308,7 @@
                                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, Upattern = Upattern, simplify = FALSE)
                 }
                 paramTrans.value[param.mu2] <- .optimGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                                         pattern = Upattern$name, precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
+                                                         precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
                                                          Y = partialY, design = design,
                                                          param.mu = param.mu2)
             }
@@ -438,35 +438,24 @@
 
 ## * .optimGLS
 ## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
-.optimGLS <- function(OmegaM1, pattern, precompute.XY, precompute.XX, key.XX, Y, design, param.mu){
+.optimGLS <- function(OmegaM1, precompute.XY, precompute.XX, precompute.weights){
 
-    name.param <- param.mu
-    n.param <- length(name.param)
+    param.mu <- colnames(precompute.XX$key)
+    n.param <- length(param.mu)
     numerator <- matrix(0, nrow = n.param, ncol = 1)
     denominator <- matrix(0, nrow = n.param, ncol = n.param)
 
-    if(!is.null(key.XX)){
-        max.key <- key.XX[n.param,n.param]
-    }
+    for(iG in 1:NROW(precompute.weights)){ ## loop over covariance and replication patterns
 
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
-        if(!is.null(precompute.XX) && !is.null(precompute.XY)){
-            iVec.Omega <- as.double(OmegaM1[[iPattern]])
-            numerator <- numerator + t(iVec.Omega %*%  precompute.XY[[iPattern]])
-            denominator <- denominator + as.double(iVec.Omega %*%  precompute.XX[[iPattern]])[key.XX]
-        }else{
-            iIndexCluster <- unlist(design$vcov$Upattern[design$vcov$Upattern$name==iPattern,"index.cluster"])
-            for(iId in 1:length(iIndexCluster)){ ## iId <- 2
-                iX <- design$mean[iIndexCluster[[iId]],param.mu,drop=FALSE]
-                numerator  <- numerator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% Y[iIndexCluster[[iId]]])
-                denominator  <- denominator + design$weights[iId] * (t(iX) %*% OmegaM1[[iPattern]] %*% iX)
-            }
+        iPattern <- precompute.weights[iG,"pattern"]
+        iVec.OmegaM1 <- as.double(OmegaM1[[iPattern]])
+        numerator <- numerator + t(iVec.OmegaM1 %*%  precompute.XY[[iPattern]])
+        denominator <- denominator + as.double(iVec.OmegaM1 %*%  precompute.XX$pattern[[iPattern]])[precompute.XX$key]
 
-        }
     }
 
     out <- solve(denominator, numerator)    
-    return(stats::setNames(as.double(out), name.param))
+    return(stats::setNames(as.double(out), param.mu))
 }
 
 ## * .wolfe

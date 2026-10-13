@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt  8 2026 (15:32) 
+## Last-Updated: okt 13 2026 (17:38) 
 ##           By: Brice Ozenne
-##     Update #: 367
+##     Update #: 486
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -103,94 +103,154 @@
 
 ## * .precomputeOmega
 ## Precompute product between the residual variance-covariance matrix and its derivative
-.precomputeOmega <- function(precision, dOmega, d2Omega, d3Omega,
-                             effects, pair.vcov, triplet.vcov,
+.precomputeOmega <- function(Omega, dOmega, d2Omega, d3Omega, multiplier, 
+                             effects, pair.vcov, triplet.vcov, precompute,
                              REML, type.information, logLik, score, information, vcov, df){
 
     ## ** extract information
-    pattern <- names(precision)
-    n.pattern <- length(pattern)
-    time.pattern <- lapply(precision, NROW)
-    param.pattern <- lapply(dOmega,names)
+    name.pattern <- precompute$weights$pattern
+    n.pattern <- length(name.pattern)
+    time.pattern <- sapply(Omega, NROW)[precompute$weights$vcov]
+    param.pattern <- lapply(dOmega,names)[precompute$weights$vcov]
     nparam.pattern <- sapply(param.pattern,length)    
-    npair.vcov <- colSums(pair.vcov[,pattern,drop=FALSE])
-    namepair.vcov <- stats::setNames(lapply(pattern, function(iPattern){pair.vcov[pair.vcov[[iPattern]],"name"]}),pattern)
-    ntriplet.vcov <- colSums(triplet.vcov[,pattern,drop=FALSE])
-    nametriplet.vcov <- stats::setNames(lapply(pattern, function(iPattern){triplet.vcov[triplet.vcov[[iPattern]],"name"]}),pattern)
+    npair.vcov <- colSums(pair.vcov[,precompute$weights$vcov,drop=FALSE])
+    namepair.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){pair.vcov[pair.vcov[[iPattern]],"name"]}),name.pattern)
+    ntriplet.vcov <- colSums(triplet.vcov[,precompute$weights$vcov,drop=FALSE])
+    nametriplet.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){triplet.vcov[triplet.vcov[[iPattern]],"name"]}),name.pattern)
 
-    ## ** special case
-    if(((score==FALSE) && (information==FALSE) && (vcov==FALSE) && (df==FALSE)) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
-        return(list()) ## empty list
+    ## ** special case 1: no parameter to take derivative 
+    if(all(nparam.pattern==0) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
+        score <- FALSE
+        information <- FALSE
+        vcov <- FALSE
+        df <- FALSE
     }else if(df && identical(attr(df,"method"),"numeric")){
         df <- FALSE
     }
     
     ## ** prepare output
-    out <- list(dOmegaM1 = lapply(pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = nparam.pattern[iP], dimnames = list(NULL, param.pattern[[iP]]))}))
-    names(out$dOmegaM1) <- pattern
+    out <- list(OmegaM1 = lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]], ncol = time.pattern[[iP]])}))
+    names(out$OmegaM1) <- name.pattern
+    if(logLik){
+        out$logdetOmega <- stats::setNames(rep(NA, times = n.pattern), name.pattern)
+    }
     
-    if(score){
-        out$dTrace <- lapply(pattern, function(iP){stats::setNames(rep(NA, nparam.pattern[iP]), param.pattern[[iP]])})
-        names(out$dTrace) <- pattern
+    if(score || information || vcov || df){
+        out$dOmegaM1 <- lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = nparam.pattern[iP], dimnames = list(NULL, param.pattern[[iP]]))})
+        names(out$dOmegaM1) <- name.pattern
+        if(score){
+            out$dTrace <- lapply(name.pattern, function(iP){stats::setNames(rep(NA, times = nparam.pattern[iP]), param.pattern[[iP]])})
+            names(out$dTrace) <- name.pattern
+        }
     }
 
     if((information || vcov || df)){
         if(type.information=="observed" || REML){
-            out$d2OmegaM1 <- lapply(pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = npair.vcov[iP], dimnames = list(NULL,namepair.vcov[[iP]]))})
-            names(out$d2OmegaM1) <- pattern
+            out$d2OmegaM1 <- lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = npair.vcov[iP], dimnames = list(NULL, namepair.vcov[[iP]]))})
+            names(out$d2OmegaM1) <- name.pattern
         }
         if(information || vcov){
-            out$d2Trace <- lapply(pattern, function(iP){stats::setNames(rep(NA, npair.vcov[iP]),namepair.vcov[[iP]])})
-            names(out$d2Trace) <- pattern
+            out$d2Trace <- lapply(name.pattern, function(iP){stats::setNames(rep(NA, times = npair.vcov[iP]), namepair.vcov[[iP]])})
+            names(out$d2Trace) <- name.pattern
         }
     }
     
     if(df){
         if(type.information=="observed" || REML){
-            out$d3OmegaM1 <- lapply(pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = ntriplet.vcov[iP], dimnames = list(NULL,nametriplet.vcov[[iP]]))})
-            names(out$d3OmegaM1) <- pattern
+            out$d3OmegaM1 <- lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = ntriplet.vcov[iP], dimnames = list(NULL,nametriplet.vcov[[iP]]))})
+            names(out$d3OmegaM1) <- name.pattern
         }
-        out$d3Trace <- lapply(pattern, function(iP){stats::setNames(rep(NA, ntriplet.vcov[iP]),nametriplet.vcov[[iP]])})
-        names(out$d3Trace) <- pattern
-        
+        out$d3Trace <- lapply(name.pattern, function(iP){stats::setNames(rep(NA, times = ntriplet.vcov[iP]), nametriplet.vcov[[iP]])})
+        names(out$d3Trace) <- name.pattern        
     }
     
     ## ** pre-compute
-    for(iPattern in pattern){ ## iPattern <- pattern[1]
+    for(iP in 1:n.pattern){ ## iP <- 1
 
-        ## *** handle special case: inverse not defined or no covariance parameter
-        if (inherits(precision[[iPattern]], "try-error") || nparam.pattern[iPattern]==0) {
+        iPattern <- name.pattern[iP]
+        iPattern.vcov <- precompute$weights[iP,"vcov"]
+        iPattern.rep <- precompute$weights[iP,"replicate.num"]
+        
+        ## *** handle special case: no covariance parameter
+        if (nparam.pattern[iPattern]==0) {
             next
         }
 
-        ## *** first derivative
-        iLS_dOmega.OmegaM1 <- lapply(dOmega[[iPattern]], function(iO){iO %*% precision[[iPattern]]})
-        iLS_OmegaM1.dOmega.OmegaM1 <- lapply(iLS_dOmega.OmegaM1, function(iO){precision[[iPattern]] %*% iO})
+        ## *** matrix inverse
+        if(!is.null(multiplier)){
+            iOmega <- Omega[[iPattern.vcov]] * multiplier[[iPattern.vcov]][,,iRep]
+        }else{
+            iOmega <- Omega[[iPattern.vcov]]
+        }
 
-        for(iP in param.pattern[[iPattern]]){ ## iP <- param.pattern[[iPattern]][1]
-            if(score){
-                out$dTrace[[iPattern]][iP] <- tr(iLS_dOmega.OmegaM1[[iP]])
+        ## choleski decomposition
+        iOmega.chol <- try(chol(iOmega),silent=TRUE)
+        if(inherits(iOmega.chol,"try-error")){
+            iDet <- det(iOmega)
+            if(!is.na(iDet) && iDet>0){ ## handle negative determinant
+                out$logdetOmega[iPattern] <- log(iDet)
+            }else{
+                out$logdetOmega[iPattern] <- NA
             }
-            out$dOmegaM1[[iPattern]][,iP] <- as.vector(iLS_OmegaM1.dOmega.OmegaM1[[iP]])
+            iOmegaM1 <- try(solve(iOmega,silent=TRUE)) ## matrix may be negative definite, i.e., invertible but with negative eigenvalues
+            if(inherits(iOmegaM1,"try-error")){
+                attr(out,"error") <- c(paste0("Residuals variance-covariance matrix for pattern ",iPattern," is not positive definite. Original error message:\n"),
+                                       iOmegaM1)
+                next
+            }else{
+                out$OmegaM1[[iPattern]] <- iOmegaM1
+            }                        
+        }else{
+            iOmegaM1 <- chol2inv(iOmega.chol)
+            out$OmegaM1[[iPattern]] <- iOmegaM1
+            if(all(diag(iOmega.chol)>0)){
+                out$logdetOmega[iPattern] <- 2*sum(log(diag(iOmega.chol)))
+            }else{
+                out$logdetOmega[iPattern] <- NA
+            }
+            
+        }
+        
+        ## *** first derivative
+        if(score || information || vcov || df){
+            if(!is.null(multiplier)){            
+                idOmega <- lapply(dOmega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+            }else{
+                idOmega <- dOmega[[iPattern.vcov]]
+            }
+            iLS_dOmega.OmegaM1 <- lapply(idOmega, function(iO){iO %*% iOmegaM1})
+            iLS_OmegaM1.dOmega.OmegaM1 <- lapply(iLS_dOmega.OmegaM1, function(iO){iOmegaM1 %*% iO})
+
+            for(iParam in param.pattern[[iPattern]]){ ## iParam <- param.pattern[[iPattern]][1]
+                if(score){
+                    out$dTrace[[iPattern]][iParam] <- tr(iLS_dOmega.OmegaM1[[iParam]])
+                }
+                out$dOmegaM1[[iPattern]][,iParam] <- as.vector(iLS_OmegaM1.dOmega.OmegaM1[[iParam]])
+            }
         }
 
         ## *** second derivative
         if((information || vcov || df)){
-            iPair.vcov <- pair.vcov[pair.vcov[,iPattern],c("param1","param2")]
+            if(!is.null(multiplier)){            
+                id2Omega <- lapply(d2Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+            }else{
+                id2Omega <- d2Omega[[iPattern.vcov]]
+            }
+            iPair.vcov <- pair.vcov[pair.vcov[,iPattern.vcov],c("param1","param2")]
 
-            for(iP2 in 1:npair.vcov[iPattern]){ ## iP2 <- 29
-                iParam2.1 <- iPair.vcov[iP2,"param1"]
-                iParam2.2 <- iPair.vcov[iP2,"param2"]
+            for(iPair in 1:npair.vcov[iPattern.vcov]){ ## iP2 <- 29
+                iParam2.1 <- iPair.vcov[iPair,"param1"]
+                iParam2.2 <- iPair.vcov[iPair,"param2"]
 
                 if(type.information=="observed" || REML){
-                    idOmega.OmegaM1.dOmega <- iLS_dOmega.OmegaM1[[iParam2.2]] %*% dOmega[[iPattern]][[iParam2.1]]                    
-                    out$d2OmegaM1[[iPattern]][,iP2] <- as.double(precision[[iPattern]] %*% (d2Omega[[iPattern]][[iP2]] - idOmega.OmegaM1.dOmega - t(idOmega.OmegaM1.dOmega)) %*% precision[[iPattern]])
+                    idOmega.OmegaM1.dOmega <- iLS_dOmega.OmegaM1[[iParam2.2]] %*% idOmega[[iParam2.1]]                    
+                    out$d2OmegaM1[[iPattern]][,iPair] <- as.double(iOmegaM1 %*% (id2Omega[[iPair]] - idOmega.OmegaM1.dOmega - t(idOmega.OmegaM1.dOmega)) %*% iOmegaM1)
                 }
                 if(information || vcov){                    
                     if(type.information == "expected"){
-                        out$d2Trace[[iPattern]][iP2] <- -sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam2.2]] * dOmega[[iPattern]][[iParam2.1]])
+                        out$d2Trace[[iPattern]][iPair] <- -sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam2.2]] * idOmega[[iParam2.1]])
                     }else if(type.information == "observed"){
-                        out$d2Trace[[iPattern]][iP2] <- sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam2.2]] * dOmega[[iPattern]][[iParam2.1]]) - sum(precision[[iPattern]] * d2Omega[[iPattern]][[iP2]]) 
+                        out$d2Trace[[iPattern]][iPair] <- sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam2.2]] * idOmega[[iParam2.1]]) - sum(iOmegaM1 * id2Omega[[iPair]]) 
                     }
                 }
             }
@@ -198,34 +258,39 @@
 
         ## *** third derivative
         if(df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")){
-            iTriplet.vcov <- triplet.vcov[triplet.vcov[,iPattern],c("name","param1","param2","param3")]
+            iTriplet.vcov <- triplet.vcov[triplet.vcov[,iPattern.vcov],c("name","param1","param2","param3")]
+            if(!is.null(multiplier)){            
+                id3Omega <- lapply(d3Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+            }else{
+                id3Omega <- d3Omega[[iPattern.vcov]]
+            }
 
-            for(iP3 in 1:ntriplet.vcov[iPattern]){ ## iP3 <- 1
-                iName <- iTriplet.vcov[iP2,"name"]
+            for(iTriplet in 1:ntriplet.vcov[iPattern.vcov]){ ## iP3 <- 1
+                iName <- iTriplet.vcov[iTriplet,"name"]
                 
-                iParam3.1 <- iTriplet.vcov[iP2,"param1"]
-                iParam3.2 <- iTriplet.vcov[iP2,"param2"]
-                iParam3.3 <- iTriplet.vcov[iP2,"param3"]
+                iParam3.1 <- iTriplet.vcov[iTriplet,"param1"]
+                iParam3.2 <- iTriplet.vcov[iTriplet,"param2"]
+                iParam3.3 <- iTriplet.vcov[iTriplet,"param3"]
 
-                Upsilon <- list(iLS_OmegaM1.dOmega.OmegaM1[[iParam3.1]] %*% (iLS_dOmega.OmegaM1[[iParam3.2]] %*% dOmega[[iPattern]][[iParam3.3]] - d2Omega[[iPattern]][[paste(iParam3.2,iParam3.3,sep="_")]]),
-                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.1]] %*% (iLS_dOmega.OmegaM1[[iParam3.3]] %*% dOmega[[iPattern]][[iParam3.2]] - d2Omega[[iPattern]][[paste(iParam3.2,iParam3.3,sep="_")]]),
-                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.2]] %*% (iLS_dOmega.OmegaM1[[iParam3.1]] %*% dOmega[[iPattern]][[iParam3.3]] - d2Omega[[iPattern]][[paste(iParam3.1,iParam3.3,sep="_")]]),
-                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.2]] %*% (iLS_dOmega.OmegaM1[[iParam3.3]] %*% dOmega[[iPattern]][[iParam3.1]] - d2Omega[[iPattern]][[paste(iParam3.1,iParam3.3,sep="_")]]),
-                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] %*% (iLS_dOmega.OmegaM1[[iParam3.1]] %*% dOmega[[iPattern]][[iParam3.2]] - d2Omega[[iPattern]][[paste(iParam3.1,iParam3.2,sep="_")]]),
-                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] %*% (iLS_dOmega.OmegaM1[[iParam3.2]] %*% dOmega[[iPattern]][[iParam3.1]] - d2Omega[[iPattern]][[paste(iParam3.1,iParam3.2,sep="_")]])
+                Upsilon <- list(iLS_OmegaM1.dOmega.OmegaM1[[iParam3.1]] %*% (iLS_dOmega.OmegaM1[[iParam3.2]] %*% idOmega[[iParam3.3]] - id2Omega[[paste(iParam3.2,iParam3.3,sep="_")]]),
+                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.1]] %*% (iLS_dOmega.OmegaM1[[iParam3.3]] %*% idOmega[[iParam3.2]] - id2Omega[[paste(iParam3.2,iParam3.3,sep="_")]]),
+                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.2]] %*% (iLS_dOmega.OmegaM1[[iParam3.1]] %*% idOmega[[iParam3.3]] - id2Omega[[paste(iParam3.1,iParam3.3,sep="_")]]),
+                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.2]] %*% (iLS_dOmega.OmegaM1[[iParam3.3]] %*% idOmega[[iParam3.1]] - id2Omega[[paste(iParam3.1,iParam3.3,sep="_")]]),
+                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] %*% (iLS_dOmega.OmegaM1[[iParam3.1]] %*% idOmega[[iParam3.2]] - id2Omega[[paste(iParam3.1,iParam3.2,sep="_")]]),
+                                iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] %*% (iLS_dOmega.OmegaM1[[iParam3.2]] %*% idOmega[[iParam3.1]] - id2Omega[[paste(iParam3.1,iParam3.2,sep="_")]])
                                 )
 
                 if(type.information=="observed" || REML){
-                    out$d3OmegaM1[[iPattern]][,iP3] <- as.double((precision[[iPattern]] %*% d3Omega[[iPattern]][[iP3]] + Reduce("+",Upsilon)) %*% precision[[iPattern]])
+                    out$d3OmegaM1[[iPattern]][,iTriplet] <- as.double((iOmegaM1 %*% id3Omega[[iTriplet]] + Reduce("+",Upsilon)) %*% iOmegaM1)
                 }
                 if(information || vcov){                    
                     if(type.information == "expected"){
-                        out$d3Trace[[iPattern]][iP3] <- sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[2]]))
+                        out$d3Trace[[iPattern]][iTriplet] <- sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[2]]))
                     }else if(type.information == "observed"){
-                        out$d3Trace[[iPattern]][iP3] <- sum(c(sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] * d2Omega[[iPattern]][[paste(iParam3.1,iParam3.2,sep="_")]]),
-                                                              sum(precision[[iPattern]] * d3Omega[[iPattern]][[iP3]]),
+                        out$d3Trace[[iPattern]][iTriplet] <- sum(c(sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] * id2Omega[[paste(iParam3.1,iParam3.2,sep="_")]]),
+                                                              sum(iOmegaM1 * id3Omega[[iTriplet]]),
                                                               sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[3]])))
-                                                              ) 
+                                                            ) 
                     }
                 }
             }
@@ -239,7 +304,7 @@
 ## * .precomputeREML
 ## Precompute REML terms
 ## Note: possible weights are already included in precompute$XX
-.precomputeREML <- function(precision, dOmega, d2Omega, d3Omega, 
+.precomputeREML <- function(dOmega, d2Omega, d3Omega, 
                             effects, param.vcov, pair.vcov, triplet.vcov, precompute,
                             logLik, score, information, vcov, df){
 
@@ -262,13 +327,13 @@
     }
 
     ## ** prepare
-    pattern <- names(precision)
+    pattern <- precompute$weights$pattern
     p <- NCOL(precompute$XX$key)
     param.mean <- colnames(precompute$XX$key)
     XX.key <- as.vector(precompute$XX$key)
 
     out <- list()
-    X.OmegaM1.X <- rep(0, p*(p+1)/2)
+    X.OmegaM1.X_vec <- rep(0, p*(p+1)/2)
     if(score){
         X.dOmegaM1.X <- matrix(0, nrow = p*(p+1)/2, ncol = length(param.vcov), dimnames = list(NULL,param.vcov))
     }
@@ -282,51 +347,75 @@
     }
 
     ## ** accumulate
-    for (iPattern in pattern) { ## iPattern <- pattern[1]
+    for (iP in 1:length(pattern)) { ## iPattern <- pattern[1]
 
+        iPattern <- pattern[iP]
+        iPattern.vcov <- precompute$weights[iP,"vcov"]
+        iPattern.rep <- precompute$weights[iP,"replicate.num"]
+        iOmegaM1 <- precompute$Omega$OmegaM1[[iPattern]]
+        
         ## *** handle special case
-        if (inherits(precision[[iPattern]], "try-error")) {
+        if (all(is.na(iOmegaM1))) { ## could not invert Omega
             next
         }
-        
+
         ## *** evaluate matrix products
         iXX <- t(precompute$XX$pattern[[iPattern]])
-        browser()
-        X.OmegaM1.X <- X.OmegaM1.X + (iXX %*% cbind(as.vector(precision[[iPattern]])))[,1]
+        X.OmegaM1.X_vec <- X.OmegaM1.X_vec + (iXX %*% cbind(as.vector(iOmegaM1)))[,1]
+
         if(score){
-            iParam.vcov <- names(dOmega[[iPattern]])
+            iParam.vcov <- names(dOmega[[iPattern.vcov]])
             X.dOmegaM1.X[,iParam.vcov] <- X.dOmegaM1.X[,iParam.vcov,drop=FALSE] + iXX %*% precompute$Omega$dOmegaM1[[iPattern]]
         }
 
         if(information){
-            iPair.vcov <- names(d2Omega[[iPattern]])
+            iPair.vcov <- names(d2Omega[[iPattern.vcov]])
             X.d2OmegaM1.X[,iPair.vcov] <- X.d2OmegaM1.X[,iPair.vcov,drop=FALSE] + iXX %*% precompute$Omega$d2OmegaM1[[iPattern]]
         }
         
         if(df){
-            iTriplet.vcov <- names(d3Omega[[iPattern]])
+            iTriplet.vcov <- names(d3Omega[[iPattern.vcov]])
             X.d3OmegaM1.X[,iTriplet.vcov] <- X.d3OmegaM1.X[,iTriplet.vcov,drop=FALSE] + iXX %*% precompute$Omega$d3OmegaM1[[iPattern]]
         }
         
     }
 
     ## ** global operations and reshape
+    X.OmegaM1.X <- matrix(X.OmegaM1.X_vec[XX.key], nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
+    X.OmegaM1.X_chol <- try(chol(X.OmegaM1.X),silent=TRUE) ## choleski decomposition
+    
     if(logLik){
-        X.OmegaM1.X_det <- det(matrix(X.OmegaM1.X[XX.key], nrow = p, ncol = p, dimnames = list(param.mean,param.mean)))
-        if(!is.na(X.OmegaM1.X_det) && X.OmegaM1.X_det>0){
-            out$logdet_X.OmegaM1.X <- log(X.OmegaM1.X_det)
+        if(inherits(X.OmegaM1.X_chol,"try-error")){
+            X.OmegaM1.X_det <- det(X.OmegaM1.X)
+            if(!is.na(X.OmegaM1.X_det) && X.OmegaM1.X_det>0){
+                out$logdet_X.OmegaM1.X <- log(X.OmegaM1.X_det)
+            }else{
+                out$logdet_X.OmegaM1.X <- NA
+            }
+        }else if(all(diag(X.OmegaM1.X_chol)>0)){ ## determinant of square root of the matrix, i.e., factor 2 to retrieve the original det
+            out$logdet_X.OmegaM1.X <- 2*sum(log(diag(X.OmegaM1.X_chol)))
         }else{
             out$logdet_X.OmegaM1.X <- NA
         }
     }
+
     if(score){
-        out$X.dOmegaM1.X_M1 <- solve(X.dOmegaM1.X)
+        if(inherits(X.OmegaM1.X_chol,"try-error")){
+            out$X.OmegaM1.X_M1 <- try(solve(X.OmegaM1.X,silent=TRUE)) ## matrix may be negative definite, i.e., invertible but with negative eigenvalues
+        }else{
+            out$X.OmegaM1.X_M1 <- chol2inv(X.OmegaM1.X_chol)
+        }
+        out$X.dOmegaM1.X <- apply(X.dOmegaM1.X, MARGIN = 2, function(iRow){
+            matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
+        }, simplify = FALSE)
     }
+
     if(information){        
         out$X.d2OmegaM1.X <- apply(X.d2OmegaM1.X, MARGIN = 2, function(iRow){
             matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
         }, simplify = FALSE)
     }
+
     if(df){
         out$X.d3OmegaM1.X <- apply(X.d3OmegaM1.X, MARGIN = 2, function(iRow){
             matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))

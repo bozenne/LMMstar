@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt  6 2026 (14:15) 
+## Last-Updated: okt 13 2026 (17:40) 
 ##           By: Brice Ozenne
-##     Update #: 1018
+##     Update #: 1021
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -91,7 +91,7 @@
     })
 
     ## ** export
-    structure$pattern <- as.character(pattern.var)
+    structure$pattern <- data.frame(all = as.character(pattern.var), vcov = as.character(pattern.var))
     attr(structure$pattern,"list") <- tapply(1:n.cluster, structure$pattern, base::identity)
     structure$Upattern <- Upattern
     structure$var$Xpattern <- Xpattern.var
@@ -216,7 +216,7 @@
     Upattern$param <- unname(mapply(x = UpatternVar$param[matchVar], y = UpatternCor$param[matchCor], FUN = function(x,y){unname(c(x,y))}, SIMPLIFY = FALSE))
 
     ## ** export
-    structure$pattern <- vec.pattern
+    structure$pattern <- data.frame(all = vec.pattern, vcov = vec.pattern)
     structure$Upattern <- Upattern
     attr(structure$Upattern,"sep") <- sep["pattern"]
     structure$var$Xpattern <- Xpattern.var

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt  9 2026 (16:43) 
+## Last-Updated: okt 13 2026 (17:39) 
 ##           By: Brice Ozenne
-##     Update #: 3839
+##     Update #: 3931
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -562,7 +562,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
     ## ** variance
     ## *** design matrix
-    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = outInit$index.cluster, drop.X = drop.X, sep = options$sep["lp"])
+    outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = drop.X, sep = options$sep["lp"])
     structure$xfactor <- outDesign$xfactor
     structure$var <- outDesign$var
     structure$cor <- outDesign$cor
@@ -572,63 +572,171 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
     ## *** covariance pattern
     structure <- .findUpatterns(structure, 
-                                index.clusterTime = outInit$index.clusterTime, U.time = U.time,
-                                index.cluster = outInit$index.cluster, U.cluster = U.cluster,
-                                index.clusterStrata = outInit$index.clusterStrata, U.strata = U.strata,
+                                index.clusterTime = index.clusterTime, U.time = U.time,
+                                index.cluster = index.cluster, U.cluster = U.cluster,
+                                index.clusterStrata = index.clusterStrata, U.strata = U.strata,
                                 sep = options$sep[c("rho.name","pattern")])
     n.pattern <- NROW(structure$Upattern)
+    name.pattern <- structure$Upattern$name
+    pattern.cluster <- structure$Upattern$index.cluster
 
     ## ** weights (cluster-specific)
     ## likelihood: use to rescale X and residuals when evaluating the moments in the log-likelihood, score, information, df
     ## Omega: use to rescale the residual variance covariance matrix
-    if(!is.na(var.weights["likelihood"])){
-        weights.likelihood <- data[[var.weights["likelihood"]]]
-    }else{
-        weights.likelihood <- NULL
-    }
-    if(!is.na(var.weights["Omega"])){
-        weights.Omega <- data[[var.weights["Omega"]]]
-    }else{
-        weights.Omega <- NULL
-    }
 
-    ## ** get summary statistics
-    ## first element: number of 'subjects' in each pattern
-    ## second element: contribution of the Omega weights to log|\Omega(weight)| = log|diag(w) \Omega diag(w)| = 2 log(prod(w)) \Omega
-    if(is.null(weights.likelihood)){
-        precompute.weights <- cbind(likelihood = lengths(structure$Upattern$index.cluster),
-                                    logdet = tapply(logdet_weights.Omega, structure$pattern, sum))
-    }else{
-        index.cluster1 <- sapply(index.cluster,"[",1)        
-        precompute.weights <- cbind(likelihood = tapply(weights.likelihood[index.cluster1],structure$pattern,sum),
-                                    logdet = tapply(weights.likelihood[index.cluster1]*logdet_weights.Omega, structure$pattern, sum))
-    }
-
-    if(NCOL(X.mean)>0){
-        wX.mean <- X.mean
-        wY <- cbind(data[[var.outcome]])
-        if(!is.null(weights.likelihood)){
-            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(weights.likelihood))
-            wY <- wY*sqrt(weights.likelihood)
-        }
-        if(!is.null(weights.Omega)){
-            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(weights.Omega))
-            wY <- wY*sqrt(weights.Omega)
-        }
-        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = structure$Upattern$name, 
-                                        pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                        pattern.cluster = structure$Upattern$index.cluster, index.cluster = index.cluster)
-        ## XY: for the numerator of the GLS estimator
-        precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, pattern = structure$Upattern$name,
-                                        pattern.ntime = stats::setNames(structure$Upattern$n.time, structure$Upattern$name),
-                                        pattern.cluster = structure$Upattern$index.cluster, index.cluster = index.cluster)
+    ## *** prepare
+    if(!is.na(var.weights["Omega"])){        
+        test.unique <- tapply(data[[var.weights["Omega"]]], attr(index.cluster,"vectorwise"), FUN = function(iVec){sum(duplicated(iVec)==FALSE)})
         
+        if(any(test.unique!=1)){
+
+            rep.pattern <- stats::setNames(lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
+                ## find unique repetition pattern
+                iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
+                iRep <- sapply(iIndex.cluster, function(iIndex){paste(data[[var.weights["Omega"]]][iIndex],collapse="_")})
+                
+                ## export
+                factor(iRep, levels = unique(iRep))
+
+            }), name.pattern)
+
+            structure$pattern[unlist(pattern.cluster),"replicate"] <- unlist(lapply(rep.pattern, as.character))
+            structure$pattern[unlist(pattern.cluster),"replicate.num"] <- unlist(lapply(rep.pattern, as.numeric))
+            structure$pattern[unlist(pattern.cluster),"all"] <- paste(structure$pattern$vcov, structure$pattern$replicate.num,sep="_")
+
+            multiplier <- stats::setNames(lapply(name.pattern, function(iPattern){ ## iPattern <- name.pattern[1]
+                ## example cluster for each repetition pattern
+                iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
+                iRep <- rep.pattern[[iPattern]] 
+                iIndex.cluster1 <- iIndex.cluster[which(duplicated(iRep)==FALSE)]
+                
+                ## number of repetitions per outcome for each repetition pattern
+                iMweights <- do.call(rbind,lapply(iIndex.cluster1, function(iIndex){data[[var.weights["Omega"]]][iIndex]}))
+                
+                ## max number repetitions per pair of outcomes
+                ## a) pmax approach
+                iNtime <- structure$Upattern[structure$Upattern$name==iPattern,"n.time"]
+                iOut <- array(NA, dim = c(iNtime,iNtime,NROW(iMweights)))
+                for(iR in 1:NROW(iMweights)){
+                    iOut[,,iR] <- pmax(matrix(iMweights[iR,], nrow = iNtime, ncol = iNtime, byrow = TRUE),
+                                       matrix(iMweights[iR,], nrow = iNtime, ncol = iNtime, byrow = FALSE))
+                }
+                ## b) matrix product approach
+                ## iMweights.sort <- do.call(rbind,apply(iMweights, MARGIN = 1, sort, simplify = FALSE)) ## same but sorted
+                ## iTau <- lower.tri(matrix(0, nrow = iNtime, ncol = iNtime), diag = TRUE)
+                ## iDelta <- apply(iMweights.sort - c(0,iMweights.sort[-iNtime]), MARGIN = 1, diag, simplify = FALSE)
+                ## iP <- apply(cbind(iMweights,iMweights.sort), MARGIN = 1, FUN = function(iRow){
+                ##     do.call(cbind,lapply(iRow[iNtime + (1:iNtime)], function(iW){(iW==iRow[(1:iNtime)])}))
+                ## }, simplify = FALSE)
+                ## lapply(1:length(levels(iRep)), function(iR){
+                ##     (iP[[iR]] %*% iTau) %*% iDelta[[iR]] %*% t(iP[[iR]] %*% iTau)
+                ## })
+                return(iOut)
+            }), name.pattern)
+
+            structure$Upattern$n.replicate <- sapply(rep.pattern, function(iPattern){length(levels(iPattern))})            
+        }
     }else{
+        test.unique <- rep(1, length(index.cluster))
+    }
+
+    ## *** pre-compute constant and store weights to be applied to X,Y,residual 
+    ## sum_w: log det Omega term in the likelihood 
+    ## sum_wmlog2pi: constant term in the likelihood
+    ## weights: REML and residual term in the likelihood
+    index.cluster1 <- sapply(index.cluster,"[",1)        
+    nTime.cluster1 <- stats::setNames(structure$Upattern$n.time,structure$Upattern$name)[structure$pattern$vcov]
+    if(all(test.unique==1)){
+        pattern <- factor(structure$pattern$vcov, levels = unique(structure$pattern$vcov))
+        precompute.weights <- data.frame(pattern = factor(structure$pattern[!duplicated(structure$pattern$vcov),"vcov"], levels = levels(pattern)),
+                                         vcov = structure$pattern[!duplicated(structure$pattern$vcov),"vcov"],
+                                         replicate.num = 1,
+                                         sum_w = NA, sum_wmlog2pi = NA)
+    }else{
+        pattern <- factor(structure$pattern$all, levels = unique(structure$pattern$all))
+        precompute.weights <- data.frame(pattern = factor(structure$pattern[!duplicated(structure$pattern$all),"all"], levels = levels(pattern)),
+                                         vcov = structure$pattern[!duplicated(structure$pattern$all),"vcov"],
+                                         replicate.num = structure$pattern[!duplicated(structure$pattern$all),"replicate.num"],
+                                         sum_w = NA, sum_wmlog2pi = NA)
+    }
+
+    if(is.na(var.weights["likelihood"])){
+        weight.likelihood <- rep(1, length(index.cluster))
+    }else{
+        weight.likelihood <- data[[var.weights["likelihood"]]][index.cluster1]
+    }
+    if(is.na(var.weights["Omega"]) || any(test.unique!=1)){
+        n.replicate <- rep(1, length(index.cluster))
+    }else{
+        n.replicate <- data[[var.weights["Omega"]]][index.cluster1]
+    }
+
+    precompute.weights$sum_w <- tapply(weight.likelihood, INDEX = pattern, FUN = sum)
+    precompute.weights$sum_wmlog2pi <- -0.5*tapply(nTime.cluster1 * weight.likelihood * log(2 * pi/n.replicate), INDEX = pattern, FUN = sum)
+    
+    if(is.na(var.weights["likelihood"]) && (is.na(var.weights["Omega"]) || any(test.unique!=1))){
+
+        weights <- list(XYR = NULL,
+                        likelihood = rep(1, length(index.cluster)),
+                        Omega = rep(1, length(index.cluster)))        
+
+    }else if(!is.na(var.weights["likelihood"]) && (is.na(var.weights["Omega"]) || any(test.unique!=1))){
+
+        weights <- list(XYR = data[[var.weights["likelihood"]]],
+                        likelihood = data[[var.weights["likelihood"]]][index.cluster1],
+                        Omega = rep(1, length(index.cluster)))
+
+    }else if(is.na(var.weights["likelihood"]) && !is.na(var.weights["Omega"]) && all(test.unique==1)){ 
+
+        weights <- list(XYR = data[[var.weights["Omega"]]],
+                        likelihood = rep(1, length(index.cluster)),
+                        Omega = data[[var.weights["Omega"]]][index.cluster1])
+        
+    }else if(!is.na(var.weights["likelihood"]) && !is.na(var.weights["Omega"]) && all(test.unique==1)){ 
+
+        weights <- list(XYR = data[[var.weights["likelihood"]]] * data[[var.weights["Omega"]]],
+                        likelihood = data[[var.weights["likelihood"]]][index.cluster1],
+                        Omega = data[[var.weights["Omega"]]][index.cluster1])
+    }
+    if(any(test.unique!=1)){
+        weights$multiplier <- multiplier
+    }
+
+    ## ** pre-compute
+    ## *** kronecher product
+    if(NCOL(X.mean)>0){ ## pre-compute kronecker product XX, XY
+
+        if(is.null(weights$multiplier)){
+            pattern.ntime <- structure$Upattern$n.time
+            pattern.cluster <- structure$Upattern$index.cluster
+        }else{
+            pattern.ntime <- stats::setNames(structure$Upattern$n.time, structure$Upattern$name)[precompute.weights$vcov]
+            pattern.cluster <- tapply(1:NROW(structure$pattern),factor(structure$pattern$all, levels = precompute.weights$pattern), FUN = identity)
+        }
+
+        if(is.null(weights$XYR)){
+            wX.mean <- X.mean
+            wY <- cbind(data[[var.outcome]])
+        }else{
+            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(weights$XYR))
+            wY <- cbind(data[[var.outcome]]*sqrt(weights$XYR))
+        }
+        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = precompute.weights$pattern, 
+                                        pattern.ntime = stats::setNames(pattern.ntime, precompute.weights$pattern),
+                                        pattern.cluster = pattern.cluster, index.cluster = index.cluster)
+        ## XY: for the numerator of the GLS estimator
+        precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, precompute.weights$pattern, 
+                                        pattern.ntime = stats::setNames(pattern.ntime, precompute.weights$pattern),
+                                        pattern.cluster = pattern.cluster, index.cluster = index.cluster)
+
+    }else{
+
         precompute.XX <- NULL
         precompute.XY <- NULL
+
     }
 
-    ## ** find all (active) pairs of covariance-covariance coefficients
+    ## *** find all (active) pairs of covariance-covariance coefficients
     ## unconstrained set of parameters
     activeparam <- c(skeleton.mu$name,structure$param[is.na(structure$param$constraint),"name"])
 
@@ -646,10 +754,10 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     structure$pair.vcovvcov <- data.frame(paste(Upairs.vcovvcov[,1],Upairs.vcovvcov[,2],sep = "_"),
                                           Upairs.vcovvcov,
                                           matrix(NA, nrow = NROW(Upairs.vcovvcov), ncol = n.pattern))
-    names(structure$pair.vcovvcov) <- c("name","param1","param2",structure$Upattern$name)
+    names(structure$pair.vcovvcov) <- c("name","param1","param2",name.pattern)
 
     ## find which pairs appears in which pattern
-    for(iPattern in structure$Upattern$name){ ## iP <- 1
+    for(iPattern in name.pattern){ ## iP <- 1
         structure$pair.vcovvcov[,iPattern] <- apply(structure$pair.vcovvcov[c("param1","param2")], MARGIN = 1, function(iRow){
             (iRow[1] %in% ls.Mparam.vcovvcov[[iPattern]]) & (iRow[2] %in% ls.Mparam.vcovvcov[[iPattern]])
         })         
@@ -685,8 +793,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 index.clusterStrata = index.clusterStrata,
                 param = skeleton.param,
                 drop.X = drop.X,
-                weights.likelihood = weights.likelihood,
-                weights.Omega = weights.Omega
+                weights = weights
                 )
 
     return(out)
@@ -1107,15 +1214,17 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 ##' @description Form all (unordered) pairs of variance-covariance parameters
 pairParamVcovVcov <- function(structure){
 
-    out <- lapply(structure$Upattern$name, function(iName){## iName <- structure$Upattern$name[1]
+    name.pattern <- structure$Upattern$name
+
+    out <- lapply(name.pattern, function(iName){## iName <- name.pattern[1]
         
-        iName.var <- structure$Upattern[structure$Upattern$name == iName,"var"]
-        iNtime <- structure$Upattern[structure$Upattern$name == iName,"n.time"]
+        iName.var <- structure$Upattern[name.pattern == iName,"var"]
+        iNtime <- structure$Upattern[name.pattern == iName,"n.time"]
 
         if(is.null(structure$cor)){
             iM.param <- structure$var$Xpattern[[iName.var]]
         }else{
-            iName.cor <- structure$Upattern[structure$Upattern$name == iName,"cor"]
+            iName.cor <- structure$Upattern[name.pattern == iName,"cor"]
             iM.param <- cbind(apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, times = iNtime), ## sigma, k1
                               apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, each = iNtime), ## sigma, k2
                               do.call(cbind, apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE))
@@ -1124,7 +1233,7 @@ pairParamVcovVcov <- function(structure){
         
         return(unique(iM.param))
     })
-    names(out) <- structure$Upattern$name
+    names(out) <- name.pattern
 
     return(out)
 }
