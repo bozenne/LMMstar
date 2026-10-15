@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:27) 
 ## Version: 
-## Last-Updated: okt 13 2026 (17:07) 
+## Last-Updated: okt 15 2026 (09:49) 
 ##           By: Brice Ozenne
-##     Update #: 134
+##     Update #: 137
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -209,6 +209,7 @@
                                        Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        transform.names = FALSE)$p
+
 
     ## ** Gradient descent
     update.param.Omega <- stats::setNames(rep(0, length(param.Omega)), param.Omega)

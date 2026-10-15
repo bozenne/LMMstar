@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt 13 2026 (17:38) 
+## Last-Updated: okt 15 2026 (09:22) 
 ##           By: Brice Ozenne
-##     Update #: 486
+##     Update #: 506
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -112,12 +112,8 @@
     n.pattern <- length(name.pattern)
     time.pattern <- sapply(Omega, NROW)[precompute$weights$vcov]
     param.pattern <- lapply(dOmega,names)[precompute$weights$vcov]
-    nparam.pattern <- sapply(param.pattern,length)    
-    npair.vcov <- colSums(pair.vcov[,precompute$weights$vcov,drop=FALSE])
-    namepair.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){pair.vcov[pair.vcov[[iPattern]],"name"]}),name.pattern)
-    ntriplet.vcov <- colSums(triplet.vcov[,precompute$weights$vcov,drop=FALSE])
-    nametriplet.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){triplet.vcov[triplet.vcov[[iPattern]],"name"]}),name.pattern)
-
+    nparam.pattern <- sapply(param.pattern,length)
+    
     ## ** special case 1: no parameter to take derivative 
     if(all(nparam.pattern==0) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
         score <- FALSE
@@ -145,6 +141,9 @@
     }
 
     if((information || vcov || df)){
+        npair.vcov <- colSums(pair.vcov[,precompute$weights$vcov,drop=FALSE])
+        namepair.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){pair.vcov[pair.vcov[[iPattern]],"name"]}),name.pattern)
+
         if(type.information=="observed" || REML){
             out$d2OmegaM1 <- lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = npair.vcov[iP], dimnames = list(NULL, namepair.vcov[[iP]]))})
             names(out$d2OmegaM1) <- name.pattern
@@ -156,6 +155,9 @@
     }
     
     if(df){
+        ntriplet.vcov <- colSums(triplet.vcov[,precompute$weights$vcov,drop=FALSE])
+        nametriplet.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){triplet.vcov[triplet.vcov[[iPattern]],"name"]}),name.pattern)
+
         if(type.information=="observed" || REML){
             out$d3OmegaM1 <- lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]]^2, ncol = ntriplet.vcov[iP], dimnames = list(NULL,nametriplet.vcov[[iP]]))})
             names(out$d3OmegaM1) <- name.pattern
@@ -401,25 +403,37 @@
 
     if(score){
         if(inherits(X.OmegaM1.X_chol,"try-error")){
-            out$X.OmegaM1.X_M1 <- try(solve(X.OmegaM1.X,silent=TRUE)) ## matrix may be negative definite, i.e., invertible but with negative eigenvalues
+            out$X.OmegaM1.X_M1 <- try(solve(X.OmegaM1.X,silent=TRUE)) ## matrix may be negative definite, i.e., invertible but with negative eigenvalues            
         }else{
             out$X.OmegaM1.X_M1 <- chol2inv(X.OmegaM1.X_chol)
         }
-        out$X.dOmegaM1.X <- apply(X.dOmegaM1.X, MARGIN = 2, function(iRow){
-            matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
-        }, simplify = FALSE)
+        if(inherits(out$X.OmegaM1.X_M1,"try-error")){
+            error_message <- out$X.OmegaM1.X_M1
+            out$X.OmegaM1.X_M1 <- NA * X.OmegaM1.X
+            attr(out$X.OmegaM1.X_M1,"message") <- out$X.OmegaM1.X_M1            
+        }else{
+            out$X.OmegaM1.X_M1 <- as.vector(out$X.OmegaM1.X_M1)
+        }
+
+        out$X.dOmegaM1.X <- X.dOmegaM1.X[XX.key,,drop=FALSE] ## vectorized output
+        ## X.dOmegaM1.X[XX.key,1] - as.vector(matrix(X.dOmegaM1.X[XX.key,1], nrow = p, ncol = p, dimnames = list(param.mean,param.mean)))
+        ## out$X.dOmegaM1.X <- do.call(cbind,apply(X.dOmegaM1.X, MARGIN = 2, function(iRow){
+        ##     matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
+        ## }, simplify = FALSE))
     }
 
     if(information){        
-        out$X.d2OmegaM1.X <- apply(X.d2OmegaM1.X, MARGIN = 2, function(iRow){
-            matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
-        }, simplify = FALSE)
+        out$X.d2OmegaM1.X <- X.d2OmegaM1.X[XX.key,,drop=FALSE]  ## vectorized output
+        ## out$X.d2OmegaM1.X <- do.call(cbind,apply(X.d2OmegaM1.X, MARGIN = 2, function(iRow){
+        ##     matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
+        ## }, simplify = FALSE))
     }
 
     if(df){
-        out$X.d3OmegaM1.X <- apply(X.d3OmegaM1.X, MARGIN = 2, function(iRow){
-            matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
-        }, simplify = FALSE)
+        out$X.d3OmegaM1.X <- X.d3OmegaM1.X[XX.key,,drop=FALSE]  ## vectorized output
+        ## out$X.d3OmegaM1.X <- do.call(cbind,apply(X.d3OmegaM1.X, MARGIN = 2, function(iRow){
+        ##     matrix(iRow[XX.key],nrow = p, ncol = p, dimnames = list(param.mean,param.mean))
+        ## }, simplify = FALSE))
     }
     
     ## ** export

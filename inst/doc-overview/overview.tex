@@ -1,4 +1,4 @@
-% Created 2026-10-13 ti 10:34
+% Created 2026-10-14 on 11:09
 % Intended LaTeX compiler: pdflatex
 \documentclass[12pt]{article}
 
@@ -269,7 +269,7 @@ and (1.75,0.4) .. cycle;
 This vignette describes the main functionalities of the \textbf{LMMstar}
 package.
 \section{S3 methods}
-\label{sec:org4604387}
+\label{sec:org375add6}
 
 \begin{lstlisting}[language=r,numbers=none]
 print(M.class2method, quote = FALSE)
@@ -372,7 +372,8 @@ where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\) denotes
 
 \bigskip
 
-\uline{Note:} the implementation uses that within a subset of subject sharing the same covariance pattern:
+\uline{Note:} the implementation uses that within a subset of subjects
+sharing the same covariance pattern:
 \begin{align*}
 \sum_{i} w_i \VX_i \Omega(\Vparam)^{-1} \trans{\VX_i}
 &= \trans{\left(\sum_{i} w_i \VX_i \otimes \VX_i\right)} \text{vec}\left(\Omega(\Vparam)^{-1}\right) \\
@@ -380,14 +381,15 @@ where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\) denotes
 &= \trans{\left(\sum_{i} w_i \Vvarepsilon_i(\Vparam) \otimes \Vvarepsilon_i(\Vparam)\right)} \text{vec}\left(\Omega(\Vparam)^{-1}\right) 
 \end{align*}
 where \(\otimes\) denotes the kronecker product \(vec\) the
-vectorization of a matrix. \(\sum_{i} w_i \VX_i
-\otimes \VX_i = \sum_{i} \VX^*_i
-\otimes \VX^*_i\) can then be pre-computed with \(\VX^*_i=\sqrt{w_i}\VX_i\) and
-does not need to be updated during the optimization process.
+vectorization of a matrix. \(\sum_{i} w_i \VX_i \otimes \VX_i =
+\sum_{i} \VX^*_i \otimes \VX^*_i\) can then be pre-computed with
+\(\VX^*_i=\sqrt{w_i}\VX_i\) and does not need to be updated during the
+optimization process. This builds upon the classical identity \(vec(AM\trans{B})=
+(B \otimes A)vec(M)\).
 
 \clearpage
 \subsection{Score}
-\label{sec:org020f7ee}
+\label{sec:orgb4ba06e}
 
  Using that \(\partial \log(\det(X))=tr(X^{-1}\partial(X))\), the
 score is obtained by derivating once the log-likelihood, i.e., for
@@ -469,7 +471,7 @@ similar simplification is used when \texttt{indiv} is set to \texttt{TRUE}.
 
 \clearpage
 \subsection{Degrees of freedom}
-\label{sec:orgbda6280}
+\label{sec:org61cd2e2}
 
 Degrees of freedom are computed using a Satterthwaite approximation,
 i.e. for an estimate coefficient \(\widehat{\beta}\in\widehat{\Vparam}\) with standard
@@ -565,9 +567,9 @@ D_{\theta\theta^{\prime}\theta^{\prime\prime}} + B_{\theta^{\prime\prime}} A^{-1
 \right)\Omega_i(\Vparam)^{-1}  \trans{\VX}_i }
 \end{align*}
 \subsection{Averaging over replicates}
-\label{sec:org27a3135}
+\label{sec:orga815eba}
 
-Aeraging over technical replicates \(\VY^*\) to obtain \(\VY\)
+Averaging over technical replicates \(\VY^*\) to obtain \(\VY\)
 rescales the residual variance-covariance matrix. Denote by
 \(\Omega_i(\Vparam)\) the 'single replicate' residual
 variance-covariance matrix which is to be specified in argument

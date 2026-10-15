@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt 12 2026 (17:53) 
+## Last-Updated: okt 15 2026 (09:38) 
 ##           By: Brice Ozenne
-##     Update #: 400
+##     Update #: 465
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,102 +57,158 @@ df.residual.mlmm <- function(object, ...){
 }
 
 ## * .df_analytic
-.df_analytic <- function(param, residuals, Omega, precision, dOmega, d2Omega, vcov, Upattern.ncluster,
-                         name.allcoef,
-                         indiv, REML, type.information, name.effects, robust, diag, precompute){
-    
+.df_analytic <- function(X, residuals, weights, vcov, robust,
+                         pattern, index.cluster, name.allcoef, pair.vcov, triplet.vcov,
+                         REML, type.information, effects, precompute){
+
     ## ** extract information
-    n.obs <- length(index.cluster)
-    pattern <- structure$pattern
     n.cluster <- length(pattern)
-    n.allcoef <- length(name.allcoef)
-    name.varcoef <- structure$param$name
-    n.allvarcoef <- length(name.varcoef)
-    name.mucoef <- setdiff(name.allcoef, name.varcoef)
-    n.mucoef <- length(name.mucoef)
-    U.pattern <- structure$Upattern$name
-    n.pattern <- length(U.pattern)
-
-    param.constraint <- c("one",structure$param$name[!is.na(structure$param$constraint)]) ## derivative = 0 when relative to a fixed parameter
-
-    ## ** prepare
-    ## *** triplet of parameters (vcov,vcov,vcov), (mean,vcov,vcov), (mean,mean,vcov)
-    triplet <- .meanCovTriplet(structure = structure, X = X, index.cluster = index.cluster, index.clusterTime = index.clusterTime)
-
-    ## *** third derivative of the residual covariance matrix
-    d3Omega <- .calc_d3Omega(object = structure, param = param, Omega = Omega, triplet = triplet$vcov3,
-                             transform.sigma = transform.sigma,
-                             transform.k = transform.k,
-                             transform.rho = transform.rho)
-
-    ## *** precompute
-    precompute$Omega
-browser()
-
-    ## ** derivative of the hessian
-    dhessian <- array(0, dim = rep(n.allcoef,3), dimnames = list(name.allcoef, name.allcoef, name.allcoef))
+    n.mucoef <- NCOL(X)
     
-    for (iPattern in U.pattern) { ## iPattern <- name.pattern[1]
+    name.mucoef <- colnames(X)
+    name.vcovcoef <- intersect(setdiff(name.allcoef,name.mucoef), unlist(lapply(precompute$Omega$dOmegaM1,function(iA){dimnames(iA)[[2]]})))
+    n.vcovcoef <- length(name.vcovcoef)
+    npair.vcov <- NROW(pair.vcov) ## number of pairs of variance parameters
+    ntriplet.vcov <- NROW(triplet.vcov) ## number of triplet of variance parameters
 
-        iOmega <- precision[[iPattern]]
-        iTime <- NCOL(iOmega)
-        iTime2 <- length(iOmega)
-        iX <- precompute$XX$pattern[[iPattern]]
+    ## ** prepare output
+    test.mean <- (n.mucoef>0) && ("mean" %in% effects)
+    test.vcov <- (n.vcovcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
+
+    name.effects <- c(name.mucoef, name.vcovcoef)
+    n.effects <- length(name.effects)
+    dInformation <- array(0, dim = rep(n.mucoef + n.vcovcoef, 3), dimnames = list(name.allcoef, name.allcoef, name.allcoef))
+
+    ## ** compute derivative of the information matrix
+    if(REML && test.vcov){
+        n.time <- sqrt(length(precompute$REML$X.OmegaM1.X_M1))
+        M.REML.denom <- matrix(precompute$REML$X.OmegaM1.X_M1, ncol = n.time, nrow = n.time)
+        REML.num1 <- do.call(cbind,apply(precompute$REML$X.dOmegaM1.X, MARGIN = 2, function(iVec){as.vector(M.REML.denom %*% matrix(iVec, ncol = n.time, nrow = n.time))}, simplify = FALSE))
+        REML.num2 <- do.call(cbind,apply(precompute$REML$X.d2OmegaM1.X, MARGIN = 2, function(iVec){as.vector(M.REML.denom %*% matrix(iVec, ncol = n.time, nrow = n.time))}, simplify = FALSE))
+
+        REML.num11 <- do.call(cbind,apply(REML.num1, MARGIN = 2, FUN = function(iCol){
+            as.numeric(matrix(iCol, n.time, n.time) %*% M.REML.denom)
+        }, simplify = FALSE))
+        ## matrix(REML.num1[,5], n.time, n.time) - t(matrix(REML.num1[,5], n.time, n.time))
+        ## matrix(REML.num11[,5], n.time, n.time) - t(matrix(REML.num11[,5], n.time, n.time))
+        REML.num22 <- do.call(cbind,stats::setNames(lapply(1:NROW(pair.vcov), FUN = function(iP){
+            as.numeric(matrix(precompute$REML$X.dOmegaM1.X[,pair.vcov$param1[iP]], n.time, n.time) %*% matrix(REML.num1[,pair.vcov$param2[iP]], n.time, n.time))
+        }),pair.vcov$name))
         
-        iName.varcoef <- names(dOmega[[iPattern]])
-
-        ## *** mean,vcov,vcov
-        if(type.information=="observed"){
-            for(iParam in name.varcoef[[iPattern]]){ ## iParam <- name.varcoef[[iPattern]][1]
-            }
-        }
-        
-        ## *** mean,mean,vcov
-        if(type.information=="expected"){
-            iX.OmegaM1.dOmega.OmegaM1.X <- t(iX) %*% precompute$Omega$OmegaM1.dOmega.OmegaM1[[iPattern]]
-            for(iParam in iName.varcoef){ ## iParam <- iName.varcoef[1]
-                dhessian[name.mucoef,name.mucoef,iParam] <- dhessian[name.mucoef,name.mucoef,iParam] - iX.OmegaM1.dOmega.OmegaM1.X[as.double(precompute$XX$key),iParam]
-            }
-        }
-        browser()
-
-        ## *** vcov,vcov,vcov
-        for(iTriplet in 1:NCOL(triplet.varcoef[[iPattern]])){ ## iTriplet <- 1
-            iParam <- triplet.varcoef[[iPattern]][,iTriplet]
-            termA <- precision[[iPattern]] %*% dOmega[[iPattern]][[iParam[3]]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iParam[2]]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iParam[1]]]
-            index.pairB1 <- unique(c(which((pair.varcoef[[iPattern]][1,]==iParam[[2]])*(pair.varcoef[[iPattern]][2,]==iParam[[3]])>0),
-                                     which((pair.varcoef[[iPattern]][1,]==iParam[[3]])*(pair.varcoef[[iPattern]][2,]==iParam[[2]])>0)))
-            index.pairB2 <- unique(c(which((pair.varcoef[[iPattern]][1,]==iParam[[1]])*(pair.varcoef[[iPattern]][2,]==iParam[[3]])>0),
-                                     which((pair.varcoef[[iPattern]][1,]==iParam[[3]])*(pair.varcoef[[iPattern]][2,]==iParam[[1]])>0)))
-            termB <- precision[[iPattern]] %*% d2Omega[[iPattern]][[index.pairB1]] %*% precision[[iPattern]] %*% dOmega[[iPattern]][[iParam[1]]]
-            termC <- precision[[iPattern]] %*% dOmega[[iPattern]][[iParam[2]]] %*% precision[[iPattern]] %*% d2Omega[[iPattern]][[index.pairB2]]
-            iValue <- -0.5 * Upattern.ncluster[iPattern] * tr(-2*termA + termB + termC)
-
-            dhessian[iParam[1],iParam[2],iParam[3]] <- dhessian[iParam[1],iParam[2],iParam[3]] + iValue ## a b c
-            if(iParam[1]!=iParam[2]){ 
-                dhessian[iParam[2],iParam[1],iParam[3]] <- dhessian[iParam[2],iParam[1],iParam[3]] + iValue ## b a c
-            }
-            if(iParam[1]!=iParam[3] && type.information == "observed"){
-                dhessian[iParam[3],iParam[2],iParam[1]] <- dhessian[iParam[3],iParam[2],iParam[1]] + iValue ## c b a
-            }
-            if(iParam[2]!=iParam[3] && type.information == "observed"){
-                dhessian[iParam[1],iParam[3],iParam[2]] <- dhessian[iParam[1],iParam[3],iParam[2]] + iValue ## a c b
-            }
-            if(iParam[1]!=iParam[2] && iParam[2]!=iParam[3] && type.information == "observed"){
-                dhessian[iParam[2],iParam[3],iParam[1]] <- dhessian[iParam[2],iParam[3],iParam[1]] + iValue ## b c a
-                dhessian[iParam[3],iParam[1],iParam[2]] <- dhessian[iParam[3],iParam[1],iParam[2]] + iValue ## c a b
-            }
-        }
     }
+    ## ** derivative of the hessian (looping over covariance patterns)
+    for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
+
+        iPattern <- precompute$weights[iG,"pattern"]
+        browser()
+        ## *** mean,mean,vcov
+        if(test.mean & test.vcov){
+
+            idOmegaM1 <- precompute$Omega$dOmegaM1[[iPattern]]
+            iXX <- precompute$XX$pattern[[iPattern]]
+            iX.dOmegaM1.X <- - t(iXX) %*% idOmegaM1 ## single covariance pattern
+            ## precompute$REML$X.dOmegaM1.X ## over the whole dataset
+
+            for(iParam in colnames(idOmegaM1)){ ## iParam <- colnames(idOmegaM1)[1]
+                dInformation[name.mucoef,name.mucoef,iParam] <- dInformation[name.mucoef,name.mucoef,iParam] + iX.dOmegaM1.X[as.double(precompute$XX$key),iParam]
+                dInformation[iParam,name.mucoef,name.mucoef] <- dInformation[iParam,name.mucoef,name.mucoef] + iX.dOmegaM1.X[as.double(precompute$XX$key),iParam]
+                dInformation[name.mucoef,iParam,name.mucoef] <- dInformation[name.mucoef,iParam,name.mucoef] + iX.dOmegaM1.X[as.double(precompute$XX$key),iParam]
+            }
+
+        }
+        ## *** mean,vcov,vcov
+        if(test.mean & test.vcov & type.information=="observed"){
+
+            id2OmegaM1 <- precompute$Omega$d2OmegaM1[[iPattern]]
+            iXR <- precompute$XR[[iPattern]]
+            iX.d2OmegaM1.R <- - t(iXR) %*% id2OmegaM1
+            
+            for(iPair in colnames(id2OmegaM1)){ ## iPair <- colnames(id2OmegaM1)[1]
+                iParam <- pair.vcov[pair.vcov$name == iPair, c("param1","param2")]
+                dInformation[iParam[1],iParam[2],name.mucoef] <- dInformation[iParam[1],iParam[2],name.mucoef] + iX.d2OmegaM1.R[,iPair]                
+                dInformation[name.mucoef,iParam[1],iParam[2]] <- dInformation[name.mucoef,iParam[1],iParam[2]] + iX.d2OmegaM1.R[,iPair]                
+                dInformation[iParam[2],name.mucoef,iParam[1]] <- dInformation[iParam[2],name.mucoef,iParam[1]] + iX.d2OmegaM1.R[,iPair]                
+                if(iParam[1]!=iParam[2]){
+                    dInformation[iParam[2],iParam[1],name.mucoef] <- dInformation[iParam[2],iParam[1],name.mucoef] + iX.d2OmegaM1.R[,iPair]
+                    dInformation[name.mucoef,iParam[2],iParam[1]] <- dInformation[name.mucoef,iParam[2],iParam[1]] + iX.d2OmegaM1.R[,iPair]                
+                    dInformation[iParam[1],name.mucoef,iParam[2]] <- dInformation[iParam[1],name.mucoef,iParam[2]] + iX.d2OmegaM1.R[,iPair]                
+                }
+            }
+        }
+
+        ## *** vcov,vcov,vcov (residual)
+        if(test.vcov && type.information=="observed"){
+
+            id3OmegaM1 <- precompute$Omega$d3OmegaM1[[iPattern]]
+            iRR <- precompute$RR[[iPattern]]
+            iR.d3OmegaM1.R <- - 0.5 * t(iRR) %*% id3OmegaM1
+            
+            for(iTriplet in colnames(id3OmegaM1)){ ## iTriplet <- colnames(id2OmegaM1)[1]
+                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+                dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] + iR.d3OmegaM1.R[iTriplet]                                
+            }
+        }
+
+        ## *** vcov,vcov,vcov (trace)
+        if(test.vcov){
+
+            iKey <- c(stats::setNames(triplet.vcov$key1,triplet.vcov$name)[which(pair.vcov[[iPattern.vcov]])],
+                      stats::setNames(triplet.vcov$key2,triplet.vcov$name)[intersect(which(pair.vcov[[iPattern.vcov]]),which(!is.na(pair.vcov$key2)))])
+            
+            iWeight <- precompute$weights[iG,"sum_w"]
+            id3Trace <- precompute$Omega$d3Trace[[iPattern]]
+            
+            for(iTriplet in names(id3Trace)){ ## iTriplet <- names(id3Trace)[1]
+                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+                dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] - 0.5 * iWeight * id3Trace[iTriplet]                
+            }
+            
+        }
+
+        ## *** REML
+        if(REML && test.vcov){
+            
+            REML.denom <- precompute$REML$X.OmegaM1.X_M1
+            REML.num3 <- precompute$REML$X.d3OmegaM1.X[,triplet.vcov$name,drop=FALSE]
+            
+            REML.trace3 <- colSums(sweep(REML.num3, FUN = "*", MARGIN = 1, STATS = REML.denom))
+            REML.trace2a <- colSums(REML.num1[,triplet.vcov$param3,drop=FALSE] * REML.num2[,paste(triplet.vcov$param1,triplet.vcov$param2,sep="_"),drop=FALSE])
+            REML.trace2b <- colSums(REML.num2[,paste(triplet.vcov$param1,triplet.vcov$param3,sep="_"),drop=FALSE] * REML.num1[,triplet.vcov$param2,drop=FALSE])
+            REML.trace2c <- colSums(REML.num1[,triplet.vcov$param1,drop=FALSE] * REML.num2[,paste(triplet.vcov$param2,triplet.vcov$param3,sep="_"),drop=FALSE])
+            ## WARNING: tr(AB) = sum(A B^T) which may not be equal to sum(A B) when B is not symmetric like here B= M_1 M_2 which generally differs from M_2 M_1
+            REML.trace1a <- colSums(REML.num11[,triplet.vcov$param3,drop=FALSE]  * REML.num22[,paste(triplet.vcov$param1,triplet.vcov$param2,sep="_"),drop=FALSE])
+            ## GS3a <- apply(triplet.vcov[,c("param1","param2","param3")], MARGIN = 1, FUN = function(iParam){
+            ##     tr(matrix(REML.num1[,iParam[3]], n.time, n.time) %*% matrix(REML.num1[,iParam[1]], n.time, n.time) %*% matrix(REML.num1[,iParam[2]], n.time, n.time))
+            ## })
+            ## range(REML.trace1a - GS3a)
+            REML.trace1b <- colSums(REML.num11[,triplet.vcov$param2,drop=FALSE]  * REML.num22[,paste(triplet.vcov$param1,triplet.vcov$param3,sep="_"),drop=FALSE])
+            ## GS3b <- apply(triplet.vcov[,c("param1","param2","param3")], MARGIN = 1, FUN = function(iParam){
+            ##     tr(matrix(REML.num1[,iParam[1]], n.time, n.time) %*% matrix(REML.num1[,iParam[3]], n.time, n.time) %*% matrix(REML.num1[,iParam[2]], n.time, n.time))
+            ## })
+            ## GS3c <- apply(triplet.vcov[,c("param1","param2","param3")], MARGIN = 1, FUN = function(iParam){
+            ##     tr(matrix(REML.num1[,iParam[2]], n.time, n.time) %*% matrix(REML.num1[,iParam[1]], n.time, n.time) %*% matrix(REML.num1[,iParam[3]], n.time, n.time))
+            ## })
+            ## range(REML.trace1b - GS3b)
+            ## range(GS3c - GS3b)
+            REML.trace <- stats::setNames(REML.trace1a + REML.trace1b + REML.trace2a + REML.trace2b + REML.trace2c + REML.trace3, triplet.vcov$name)
+            
+            for(iTriplet in triplet.vcov$name){ ## iTriplet <- triplet.vcov$name[1]
+                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+                dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] - 0.5 * REML.trace[iTriplet]
+            }
+        }
+        
+    }
+
     
     ## ** derivative of the variance covariance matrix
     n.effects <- length(name.effects)
     vcov.effects <- vcov[name.effects,name.effects,drop=FALSE]
-    ## print(dhessian)
+    ## print(dInformation)
     
     A.dVcov <- array(0, dim = c(n.effects,n.effects,n.allcoef), dimnames = list(name.effects,name.effects,name.allcoef))
     for(iParam in 1:n.allcoef){ ## iParam <- 1
-        A.dVcov[,,iParam] <- vcov.effects %*% dhessian[name.effects,name.effects,iParam] %*% vcov.effects
+        A.dVcov[,,iParam] <- vcov.effects %*% dInformation[name.effects,name.effects,iParam] %*% vcov.effects
     }
 
     ## solve(crossprod(model.matrix(e.lmm, effects = "mean")))
@@ -179,51 +235,23 @@ browser()
     return(df)    
 }
 ## * .df_numDeriv
-.df_numDeriv <- function(reparametrize,
-                         value,  design, time, method.fit, type.information,
+.df_numDeriv <- function(param, design, time, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
-                         effects, robust, 
-                         method.numDeriv){
+                         effects, robust, vcov, method.numDeriv){  ## if robust is 1 then robust s.e. are computed but df are relative to model-based s.e.
 
     ## ** prepare vector of parameters
-    param.value <- value
-    param.type <- stats::setNames(design$param$type, design$param$name)
-    sigma <- stats::setNames(design$param$sigma, design$param$name)
-    k.x <- stats::setNames(design$param$k.x, design$param$name)
-    k.y <- stats::setNames(design$param$k.y, design$param$name)
     name.allcoef <- design$param$name
-    n.allcoef <- length(param.type)
-
-    param.nameVar <- name.allcoef[param.type %in% c("sigma","k","rho")]
-    param.nameMean <- name.allcoef[param.type %in% c("mu")]
-
-    test.transform <- (transform.sigma != "none") || (transform.k != "none") || (transform.rho != "none")
-
-    param.trans.value <- c(param.value[param.nameMean],reparametrize$p)[name.allcoef]
-    name.effects <- attr(effects,"original.output")
+    n.allcoef <- length(name.allcoef)
+    name.effects <- names(param)
     n.effects <- length(name.effects)
 
     ## ** warper for computing information
     get.element <- ifelse(robust,"vcov","information")
     FUN_element <- function(p, as.double){
-
-        if(test.transform){ ## back-transform
-            backp <- .reparametrize(p = p[param.nameVar],
-                                    type = param.type[param.nameVar],
-                                    sigma = sigma[param.nameVar], 
-                                    k.x = k.x[param.nameVar], 
-                                    k.y = k.y[param.nameVar], 
-                                    Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                    transform.sigma = transform.sigma,
-                                    transform.k = transform.k,
-                                    transform.rho = transform.rho,
-                                    transform.names = FALSE)
-            p[param.nameVar] <- backp$p
-        }
-
+        
         iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                logLik = FALSE, score = FALSE, information = !robust, vcov = robust, df = FALSE, indiv = FALSE, effects = effects, robust = robust,
+                                logLik = FALSE, score = FALSE, information = (robust!=2), vcov = (robust==2), df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, method.numDeriv = method.numDeriv, transform.names = FALSE)
 
         if(as.double){
@@ -234,15 +262,17 @@ browser()
     }
 
     ## ** variance-covariance matrix
-    if(robust){
-        vcov.all <- FUN_element(param.trans.value, as.double = FALSE)
-    }else{
-        vcov.all <- solve(FUN_element(param.trans.value, as.double = FALSE))
+    if(is.null(vcov) || (robust == 1)){ ## should be recomputed when robust equals 1 as df are relative to model-based s.e.
+        if(robust){ 
+            vcov <- FUN_element(param, as.double = FALSE)
+        }else{
+            vcov <- solve(FUN_element(param, as.double = FALSE))
+        }
     }
-    vcov <- vcov.all[name.effects,name.effects,drop=TRUE]
+    
 
     ## ** derivative of the information using numerical derivative
-    M.dElement <- numDeriv::jacobian(func = function(p){FUN_element(p, as.double = TRUE)}, x = param.trans.value, method = method.numDeriv)
+    M.dElement <- numDeriv::jacobian(func = function(p){FUN_element(p, as.double = TRUE)}, x = param, method = method.numDeriv)
     colnames(M.dElement) <- name.allcoef
     
     ## ** reshape into an array (model-based vcov: chain rule with inversion)
@@ -251,12 +281,12 @@ browser()
         if(robust){
             A.dVcov[,,iParam] <- matrix(M.dElement[,iParam], nrow = n.allcoef, ncol = n.allcoef, dimnames = list(name.allcoef,name.allcoef))[name.effects,name.effects,drop=FALSE]
         }else{
-            A.dVcov[,,iParam] <- - (vcov.all %*% matrix(M.dElement[,iParam], nrow = n.allcoef, ncol = n.allcoef) %*% vcov.all)[name.effects,name.effects,drop=FALSE]
+            A.dVcov[,,iParam] <- - (vcov %*% matrix(M.dElement[,iParam], nrow = n.allcoef, ncol = n.allcoef) %*% vcov)[name.effects,name.effects,drop=FALSE]
         }
     }
 
     ## ** degrees-of-freedom
-    df <- .df_contrast(contrast = NULL, vcov.param = vcov.all, dVcov.param = A.dVcov)
+    df <- .df_contrast(contrast = NULL, vcov.param = vcov, dVcov.param = A.dVcov)
     
     ## ** export
     attr(df,"dVcov") <- A.dVcov

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Apr 16 2021 (12:01) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:12) 
+## Last-Updated: okt 15 2026 (09:24) 
 ##           By: Brice Ozenne
-##     Update #: 190
+##     Update #: 192
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -157,7 +157,7 @@ LMMstar.options <- function(..., reinitialise = FALSE){
             if("columns.summarize" %in% names(args) && any(args$columns.summarize %in% c(ok.column2,"") == FALSE)){
                 stop("Argument \'columns.summarize\' must be a character vector with values among \"",paste(c(ok.column2,""), collapse = "\" \""),"\". \n")
             }
-            if("df" %in% names(args) && !is.logical(args$df) && (df %in% c("analytic","numeric") == FALSE)){
+            if("df" %in% names(args) && !is.logical(args$df) && (args$df %in% c("analytic","numeric") == FALSE)){
                 stop("Argument \'df\' must be of type logical or \"analytic\" or \"numeric\". \n")
             }
             if("drop.X" %in% names(args) && !is.logical(args$drop.X)){

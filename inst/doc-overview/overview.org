@@ -3709,7 +3709,8 @@ where \(\Vvarepsilon_i(\Vparam) = \VY_i-\mu(\Vparam,\VX_i)\) denotes
 
 \bigskip
 
-_Note:_ the implementation uses that within a subset of subject sharing the same covariance pattern:
+_Note:_ the implementation uses that within a subset of subjects
+sharing the same covariance pattern:
 #+BEGIN_EXPORT latex
 \begin{align*}
 \sum_{i} w_i \VX_i \Omega(\Vparam)^{-1} \trans{\VX_i}
@@ -3719,10 +3720,11 @@ _Note:_ the implementation uses that within a subset of subject sharing the same
 \end{align*}
 #+END_EXPORT
 where \(\otimes\) denotes the kronecker product \(vec\) the
-vectorization of a matrix. \(\sum_{i} w_i \VX_i
-\otimes \VX_i = \sum_{i} \VX^*_i
-\otimes \VX^*_i\) can then be pre-computed with \(\VX^*_i=\sqrt{w_i}\VX_i\) and
-does not need to be updated during the optimization process.
+vectorization of a matrix. \(\sum_{i} w_i \VX_i \otimes \VX_i =
+\sum_{i} \VX^*_i \otimes \VX^*_i\) can then be pre-computed with
+\(\VX^*_i=\sqrt{w_i}\VX_i\) and does not need to be updated during the
+optimization process. This builds upon the classical identity \(vec(AM\trans{B})=
+(B \otimes A)vec(M)\).
 
 \clearpage
 
@@ -3938,7 +3940,7 @@ D_{\theta\theta^{\prime}\theta^{\prime\prime}} + B_{\theta^{\prime\prime}} A^{-1
 
 ** Averaging over replicates
 
-Aeraging over technical replicates \(\VY^*\) to obtain \(\VY\)
+Averaging over technical replicates \(\VY^*\) to obtain \(\VY\)
 rescales the residual variance-covariance matrix. Denote by
 \(\Omega_i(\Vparam)\) the 'single replicate' residual
 variance-covariance matrix which is to be specified in argument

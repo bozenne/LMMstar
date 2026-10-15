@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt 13 2026 (17:44) 
+## Last-Updated: okt 14 2026 (13:50) 
 ##           By: Brice Ozenne
-##     Update #: 1020
+##     Update #: 1035
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -401,9 +401,8 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     }
 
     ## ** compute score    
-    if(indiv){
-
-        ## *** looping over individuals
+    if(indiv){ ## *** looping over individuals
+        
         for(iId in 1:n.cluster){ ## iId <- 1
 
             iIndex <- index.cluster[[iId]]
@@ -418,58 +417,52 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
                 
             if(test.mean){
                 iOmegaM1 <- precompute$Omega$OmegaM1[[iPattern]]
-                Score[iId,rownames(iX)] <- (iWeight * iReplicate) * (iX %*% iOmegaM1 %*% iResidual)
+                Score[iId,name.mucoef] <- (iWeight * iReplicate) * (iX %*% iOmegaM1 %*% iResidual)
             }
+
             if(test.vcov){
                 idTrace <- precompute$Omega$dTrace[[iPattern]]
-                iOmegaM1.dOmega.OmegaM1 <- as.matrix(precompute$Omega$dOmegaM1[[iPattern]])
+                idOmegaM1 <- precompute$Omega$dOmegaM1[[iPattern]]
                 iNameVcov <- intersect(name.vcovcoef,names(idTrace))
-                Score[iId,iNameVcov] <- - 0.5 * iWeight * idTrace[iNameVcov] + 0.5 * (iWeight * iReplicate) * as.vector(tcrossprod(iResidual)) %*% iOmegaM1.dOmega.OmegaM1[,iNameVcov,drop=FALSE]
+                Score[iId,iNameVcov] <- - 0.5 * iWeight * idTrace[iNameVcov] + 0.5 * (iWeight * iReplicate) * (as.vector(tcrossprod(iResidual)) %*% idOmegaM1)
             }
+
             if(REML && test.vcov){
                 ## APPROXIMATION: the REML score w.r.t. variance parameter is not linear in the individual contribution tr(\sum_i a_i / \sum_i b_i)/2
                 ## first order expansion:  tr(a_j / \sum_i b_i)/2
                 REML.denom <- precompute$REML$X.OmegaM1.X_M1
-                Score[iId,iNameVcov] <-  Score[iId,iNameVcov] + 0.5 * (iWeight * iReplicate) * colSums(sweep(kronecker(iX,iX) %*% iOmegaM1.dOmega.OmegaM1,
-                                                                                                             FUN = "*", MARGIN = 1, STATS = as.vector(REML.denom)))
+                Score[iId,iNameVcov] <-  Score[iId,iNameVcov] + 0.5 * (iWeight * iReplicate) * colSums(sweep(kronecker(iX,iX) %*% idOmegaM1,
+                                                                                                             FUN = "*", MARGIN = 1, STATS = REML.denom))
                 ## shortcut for
                 ## 0.5 * (iWeight * iReplicate) * sum(diag(REML.denom %*% iX %*% matrix(iOmegaM1.dOmega.OmegaM1[,"rho(1,2)"],4,4) %*% t(iX)))
-            }
-            if(REML && test.vcov){
-                for(iParam in names(idTrace)){ ## intersect to handle when argument effects is only "variance" or "correlation"                        
-                    iREML.num <- prod(weights[iId,]) * 
-                    Score[iId,iParam] <-  Score[iId,iParam] + 0.5 * sum(iREML.num * REML.denom)
-                    
-                }
-            }
+            }            
         }
 
-    }else{
-
-        ## *** looping over covariance patterns
+    }else{ ## *** looping over covariance patterns
+        
         for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
             iPattern <- precompute$weights[iG,"pattern"]
 
-            if(test.mean){
+            if(test.mean){ ## mean
                 iOmegaM1 <- precompute$Omega$OmegaM1[[iPattern]]
-                iResidualsX <- precompute$XR[[iPattern]]## has already been weigthed
-                Score[name.mucoef] <- Score[name.mucoef] + as.vector(iOmegaM1) %*% iResidualsX
+                iXR <- precompute$XR[[iPattern]]## has already been weigthed
+                Score[name.mucoef] <- Score[name.mucoef] + as.vector(iOmegaM1) %*% iXR
             }
 
-            if(test.vcov){
+            if(test.vcov){ ## var
                 iWeight <- precompute$weights[iG,"sum_w"]
                 idTrace <- precompute$Omega$dTrace[[iPattern]]
-                iResiduals2 <- precompute$RR[[iPattern]]## has already been weigthed
-                iOmegaM1.dOmega.OmegaM1 <- as.matrix(precompute$Omega$dOmegaM1[[iPattern]])
+                iRR <- precompute$RR[[iPattern]]## has already been weigthed
+                idOmegaM1 <- precompute$Omega$dOmegaM1[[iPattern]]
                 iNameVcov <- intersect(name.vcovcoef,names(idTrace))
-                Score[iNameVcov] <- Score[iNameVcov] - 0.5 * iWeight * idTrace[iNameVcov] + 0.5 * iResiduals2 %*% iOmegaM1.dOmega.OmegaM1[,iNameVcov,drop=FALSE]
+                Score[iNameVcov] <- Score[iNameVcov] - 0.5 * iWeight * idTrace[iNameVcov] + 0.5 * (iRR %*% idOmegaM1)[,iNameVcov,drop=FALSE]
             }
         }
 
-        if(REML && test.vcov){
-            REML.num <- precompute$REML$X.dOmegaM1.X
+        if(REML && test.vcov){ ## REML
+            REML.num <- precompute$REML$X.dOmegaM1.X[,name.vcovcoef,drop=FALSE]
             REML.denom <- precompute$REML$X.OmegaM1.X_M1
-            Score[name.vcovcoef] <-  Score[name.vcovcoef] + 0.5 * sapply(REML.num[name.vcovcoef], function(iO){sum(iO * REML.denom)})
+            Score[name.vcovcoef] <-  Score[name.vcovcoef] + 0.5 * colSums(sweep(REML.num, FUN = "*", MARGIN = 1, STATS = REML.denom))
         }
 
     }

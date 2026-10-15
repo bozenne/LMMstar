@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt 13 2026 (17:42) 
+## Last-Updated: okt 14 2026 (13:48) 
 ##           By: Brice Ozenne
-##     Update #: 551
+##     Update #: 553
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,9 +180,8 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
     }
 
     ## ** compute log-likelihood
-    if(indiv){
-
-        ## *** looping over individuals
+    if(indiv){ ## *** looping over individuals
+        
         for (iId in 1:n.cluster){ ## iId <- 1
             iPattern <- pattern[iId,"all"]
             
@@ -196,27 +195,23 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
             
         }
 
-        ## *** REML contribution
         if(REML){##  https://towardsdatascience.com/maximum-likelihood-ml-vs-reml-78cf79bef2cf
             stop("Cannot compute individual likelihood contribution with REML. \n")
         }
         
-    }else{
+    }else{ ## *** looping over covariance patterns
         
-        
-        ## *** looping over covariance patterns
         for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
             iPattern <- precompute$weights[iG,"pattern"]
             
             iOmegaM1 <- precompute$Omega$OmegaM1[[iPattern]]
             iLogDetOmega <- precompute$Omega$logdetOmega[[iPattern]]
             iWeight <- precompute$weights[iG,"sum_w"]
-            iResiduals2 <- precompute$RR[[iPattern]]## has already been weigthed
+            iRR <- precompute$RR[[iPattern]]## has already been weigthed
 
-            ll <- ll - iWeight * iLogDetOmega / 2 - sum(iResiduals2 * as.vector(iOmegaM1)) / 2
+            ll <- ll - iWeight * iLogDetOmega / 2 - sum(iRR * as.vector(iOmegaM1)) / 2
         }
 
-        ## *** REML contribution
         if(REML){
             ll <- ll  + n.mucoef * log2pi/2 - precompute$REML$logdet_X.OmegaM1.X/2            
         }

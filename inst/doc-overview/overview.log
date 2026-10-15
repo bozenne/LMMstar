@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  13 OCT 2026 10:34
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.9)  14 OCT 2026 11:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1367,29 +1367,29 @@ Underfull \hbox (badness 3118) in paragraph at lines 370--370
 C:/Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}{C:/
 Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}{C:
 /Users/hpl802/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}]
-Overfull \hbox (15.7431pt too wide) detected at line 400
+Overfull \hbox (15.7431pt too wide) detected at line 402
 []
  []
 
 
-Overfull \hbox (24.9pt too wide) detected at line 410
+Overfull \hbox (24.9pt too wide) detected at line 412
 []
  []
 
 
-Overfull \hbox (34.8551pt too wide) detected at line 422
+Overfull \hbox (34.8551pt too wide) detected at line 424
 []
  []
 
 
-Overfull \hbox (12.03146pt too wide) in paragraph at lines 432--439
+Overfull \hbox (12.03146pt too wide) in paragraph at lines 434--441
 \T1/lmtt/m/n/12 type.information="observed"\T1/lmr/m/n/12 . When the in-di-vid-
 ual con-tri-bu-tion is re-quested (\T1/lmtt/m/n/12 indiv=TRUE\T1/lmr/m/n/12 ), 
 \T1/lmtt/m/n/12 information
  []
 
 
-Overfull \hbox (30.2858pt too wide) detected at line 446
+Overfull \hbox (30.2858pt too wide) detected at line 448
 []
  []
 
@@ -1398,14 +1398,14 @@ Overfull \hbox (30.2858pt too wide) detected at line 446
 [4
 
 ]
-Overfull \hbox (22.72969pt too wide) detected at line 464
+Overfull \hbox (22.72969pt too wide) detected at line 466
 []
  []
 
 
 
 [5]
-Overfull \hbox (12.39212pt too wide) detected at line 527
+Overfull \hbox (12.39212pt too wide) detected at line 529
 []
  []
 
@@ -1414,12 +1414,12 @@ Overfull \hbox (12.39212pt too wide) detected at line 527
 [6
 
 ]
-Overfull \hbox (17.17833pt too wide) detected at line 566
+Overfull \hbox (17.17833pt too wide) detected at line 568
 []
  []
 
 LaTeX Font Info:    Trying to load font information for U+dsrom on input line 5
-79.
+81.
 
 (C:\Users\hpl802\AppData\Local\Programs\MiKTeX\tex/latex/doublestroke\udsrom.fd
 File: Udsrom.fd 1995/08/01 v0.1 Double stroke roman font definitions
@@ -1490,7 +1490,7 @@ public/amsfonts/symbols/msam10.pfb><C:/Users/hpl802/AppData/Local/Programs/MiKT
 eX/fonts/type1/public/amsfonts/symbols/msam5.pfb><C:/Users/hpl802/AppData/Local
 /Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam7.pfb><C:/Users/hpl802
 /AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on overview.pdf (8 pages, 417382 bytes).
+Output written on overview.pdf (8 pages, 417777 bytes).
 PDF statistics:
  267 PDF objects out of 1000 (max. 8388607)
  23 named destinations out of 1000 (max. 500000)

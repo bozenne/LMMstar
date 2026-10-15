@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 13 2026 (10:13) 
+## Last-Updated: okt 15 2026 (09:47) 
 ##           By: Brice Ozenne
-##     Update #: 3380
+##     Update #: 3383
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -373,21 +373,22 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
                               transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                               optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
                               tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
-    param.value <- outEstimate$estimate
-    out$opt <- outEstimate[c("cv","n.iter","score","previous.estimate","previous.logLik","control")]
+    out$opt <- outEstimate[c("cv","n.iter","score","previous.estimateTrans","previous.logLik","control")]
     if((trace==0 && out$args$control$trace>0)){
         cat("\n")
     }
     if(out$opt$cv<=0){
         warning("Convergence issue: no stable solution has been found. \n")
     }
-    out$param <- param.value
+    out$param <- outEstimate$estimate    
+    out$param.trans <- outEstimate$estimateTrans    
 
     if(trace>=1){cat("\n")}
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}
-    outMoments <- .moments.lmm(value = out$param, design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+
+    outMoments <- .moments.lmm(value = out$param.trans, design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
                                transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                                logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
@@ -402,7 +403,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     return(out)
 }
 
-## * lmm.Wald_lmm (code)
+p## * lmm.Wald_lmm (code)
 ##' @export
 lmm.Wald_lmm <- function(object, data, repetition, structure, weights, 
                          method.fit, df, type.information, trace, control){
@@ -758,7 +759,8 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     ## ** degrees-of-freedom
     if(is.null(df)){
         df <- options$df
-    }else if(df %in% c("analytic","numeric")){
+    }
+    if(df %in% c("analytic","numeric")){
         df.save <- df
         df <- TRUE
         attr(df,"method") <- df.save

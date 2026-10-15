@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: okt 15 2025 (16:52) 
+## Last-Updated: okt 15 2026 (09:41) 
 ##           By: Brice Ozenne
-##     Update #: 422
+##     Update #: 425
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -119,7 +119,7 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
             init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
                                     x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
                                     simplify = FALSE)
-            
+
             ## if((init$transform.sigma=="none") & (init$transform.k=="none") & (init$transform.rho=="none")){
             ##     ## do nothing
             ## }else if((init$transform.sigma==x$reparametrize$transform.sigma) & (init$transform.k==x$reparametrize$transform.k) & (init$transform.rho==x$reparametrize$transform.rho)){
