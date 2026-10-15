@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:15) 
+## Last-Updated: okt 15 2026 (12:30) 
 ##           By: Brice Ozenne
-##     Update #: 823
+##     Update #: 825
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -298,6 +298,8 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
     var.weights <- object$weights$var
     var.outcome <- object$outcome$var
 
+    object.transform <- transform(object)
+
     ## *** parameters
     if(inherits(object$design$vcov,"ID") || inherits(object$design$vcov,"IND")){
         param.init <- NULL ## OLS solver + empirical residual standard deviation can directly find the solution
@@ -489,9 +491,9 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                     time = object$time,
                                     method.fit = object$args$method.fit,
                                     type.information = object$args$type.information,
-                                    transform.sigma = object$reparametrize$transform.sigma,
-                                    transform.k = object$reparametrize$transform.k,
-                                    transform.rho = object$reparametrize$transform.rho,
+                                    transform.sigma = object.transform$sigma,
+                                    transform.k = object.transform$k,
+                                    transform.rho = object.transform$rho,
                                     optimizer = object$args$control$optimizer,
                                     init = param.init,
                                     n.iter = object$opt$control[["n.iter"]],
@@ -510,7 +512,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
                                   transform.sigma = "none", ## object$reparametrize$transform.sigma,
                                   transform.k = "none", ## object$reparametrize$transform.k,
                                   transform.rho = "none", ## object$reparametrize$transform.rho,
-                                  logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = FALSE, indiv = FALSE,
+                                  updateGLS = FALSE, logLik = FALSE, score = FALSE, information = FALSE, vcov = TRUE, df = FALSE, indiv = FALSE,
                                   effects = list("mean",c("mean","variance"))[[effects.vcov+1]], robust = FALSE,
                                   trace = FALSE, method.numDeriv = "simple", transform.names = FALSE)$vcov
             

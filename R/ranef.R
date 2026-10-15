@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 26 2022 (11:18) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt 15 2026 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 727
+##     Update #: 728
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -164,8 +164,9 @@ ranef.lmm <- function(object, effects = "mean", scale = "absolute", se = FALSE, 
 
     ## *** p
     if(!is.null(p)){
+        object.transform <- transform(object)
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
-                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                                 table.param = object$design$param)
         theta <- init$p
         cumTau <- stats::coef(object, p = theta, effects = c("variance","correlation"), transform.sigma = "square", transform.k = "var", transform.rho = "cov", transform.names = FALSE, options = options)

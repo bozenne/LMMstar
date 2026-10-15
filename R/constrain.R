@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 17 2022 (05:36) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:12) 
+## Last-Updated: okt 15 2026 (10:33) 
 ##           By: Brice Ozenne
-##     Update #: 148
+##     Update #: 152
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -50,6 +50,7 @@
     }
 
     ## *** transform
+    x.transform <- transform(x)
     if(is.null(transform.rho)){
         transform.rho <- "none"
     }
@@ -60,7 +61,8 @@
         transform.sigma <- "none"
     }
     transform.init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                                      x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho)
+                                      x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
+                                      simplify = FALSE)
     transform.sigma <- transform.init$transform.sigma
     transform.k <- transform.init$transform.k
     transform.rho <- transform.init$transform.rho
@@ -123,17 +125,18 @@
         test.k <- any(table.param[table.param$trans.name %in% name.effects,"type"]=="k" && transform.k %in% c("sd","logsd","var","logvar"))
         test.rho <- any(table.param[table.param$trans.name %in% name.effects,"type"]=="rho" && transform.rho %in% "cov")
         if(test.k || test.rho){
-            x$reparametrize$transform.sigma <- transform.sigma
-            x$reparametrize$transform.k <- transform.k
-            x$reparametrize$transform.rho <- transform.rho
+            x$control$arg$transform.sigma <- transform.sigma
+            x$control$arg$transform.k <- transform.k
+            x$control$arg$transform.rho <- transform.rho
         }
     }else{
         x$design$param[match(name.effects,table.param$name),"constraint"] <- effects
     }
 
     ## refit
+    x.transform <- transform(x)
     eee <- .optim.lmm(design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
-                      transform.sigma = x$reparametrize$transform.sigma, transform.k = x$reparametrize$transform.k, transform.rho = x$reparametrize$transform.rho,
+                      transform.sigma = x.transform$sigma, transform.k = x.transform$k, transform.rho = x.reparametrize$rho,
                       optimizer = "FS", init = init,
                       n.iter = x$opt$control[["n.iter"]],
                       tol.score = x$opt$control[["tol.score"]],

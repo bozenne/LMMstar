@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  4 2021 (10:04) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:12) 
+## Last-Updated: okt 15 2026 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 431
+##     Update #: 433
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -169,8 +169,9 @@ iid.lmm <- function(x,
     }
 
     ## *** p and transform
+    x.transform <- transform(x)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
                             table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -197,7 +198,7 @@ iid.lmm <- function(x,
     }
     outMoments <- .moments.lmm(value = theta, design = x$design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                               logLik = FALSE, score = TRUE, information = keep.grad || iid.dVcov, vcov = recompute.vcov, df = recompute.vcov && (keep.grad || iid.dVcov),
+                               updateGLS = FALSE, logLik = FALSE, score = TRUE, information = keep.grad || iid.dVcov, vcov = recompute.vcov, df = recompute.vcov && (keep.grad || iid.dVcov),
                                indiv = TRUE, effects = effects2, robust = FALSE,
                                trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 

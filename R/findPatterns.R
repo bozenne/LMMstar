@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 13 2026 (17:40) 
+## Last-Updated: okt 15 2026 (14:56) 
 ##           By: Brice Ozenne
-##     Update #: 1021
+##     Update #: 1027
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -48,7 +48,7 @@
     n.pattern.var <- length(pattern2lp.var)
     ## name of the variance pattern
     Upattern.var <- 1:n.pattern.var
-    
+
     Upattern <- data.frame(name = as.character(Upattern.var),
                            var = Upattern.var,
                            cor = NA,

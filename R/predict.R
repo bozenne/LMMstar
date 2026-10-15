@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt  1 2026 (12:42) 
+## Last-Updated: okt 15 2026 (10:50) 
 ##           By: Brice Ozenne
-##     Update #: 1556
+##     Update #: 1557
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -241,8 +241,9 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     }
 
     ## *** p: parameter value and transformation
+    object.transform <- transform(object)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                             table.param = object$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

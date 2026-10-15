@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 20 2021 (23:25) 
 ## Version: 
-## Last-Updated: okt 16 2025 (18:17) 
+## Last-Updated: okt 15 2026 (10:34) 
 ##           By: Brice Ozenne
-##     Update #: 1444
+##     Update #: 1445
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -421,13 +421,13 @@ estimate.mlmm <- estimate.Wald_lmm
     ## revert back to usual transformation if vcov parameter not used (for lmm only, otherwise transform.sigma/k/rho are provided, i.e. not NULL)
     if(all(!is.na(grad))){
         if(all(colSums(grad[,type.beta=="sigma",drop=FALSE]!=0)==0) && is.null(transform.sigma)){
-            transform2.sigma <- x$reparametrize$transform.sigma
+            transform2.sigma <- transform(x, type =  "sigma")
         }
         if(all(colSums(grad[,type.beta=="k",drop=FALSE]!=0)==0) && is.null(transform.k)){
-            transform2.k <- x$reparametrize$transform.k
+            transform2.k <- transform(x, type =  "k")
         }
         if(all(colSums(grad[,type.beta=="rho",drop=FALSE]!=0)==0) && is.null(transform.rho)){
-            transform2.rho <- x$reparametrize$transform.rho
+            transform2.rho <- transform(x, type =  "rho")
         }
     }
 

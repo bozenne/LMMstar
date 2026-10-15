@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:22) 
+## Last-Updated: okt 15 2026 (15:24) 
 ##           By: Brice Ozenne
-##     Update #: 506
+##     Update #: 515
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,20 +30,22 @@
 
     ## ** fill matrix
     for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
-        iN.time <- pattern.ntime[iP]
+        iPattern <- pattern[iP]
+        iN.time <- pattern.ntime[iPattern]
+        iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
 
         if(iN.time == 1){
-            iX.summary <- crossprod(X[unlist(index.cluster[pattern.cluster[[iP]]]),,drop=FALSE])
-            out$pattern[[iP]][1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
+            iX.summary <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE])
+            out$pattern[[iPattern]][1,] <- iX.summary[lower.tri(iX.summary, diag = TRUE)]
 
         }else{
-            iX <- array(unlist(lapply(index.cluster[pattern.cluster[[iP]]], function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iP]]])),
+            iX <- array(unlist(lapply(iIndex.cluster, function(iIndex){X[iIndex,,drop=FALSE]})),
+                        dim = c(iN.time,NCOL(X),length(iIndex.cluster)),
                         dimnames = list(NULL,colnames(X),NULL))
 
             for(iCol1 in 1:p){ ## iCol1 <- 1
                 for(iCol2 in 1:iCol1){ ## iCol2 <- 2
-                    out$pattern[[iP]][,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
+                    out$pattern[[iPattern]][,out$key[iCol1,iCol2]] <- tcrossprod(iX[,iCol1,],iX[,iCol2,])
                 }
             }
         }
@@ -68,18 +70,19 @@
     }), pattern)
 
     for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
-        iN.time <- pattern.ntime[iP]
-        iIndex.cluster <- index.cluster[pattern.cluster[[iP]]]
+        iPattern <- pattern[iP]
+        iN.time <- pattern.ntime[iPattern]
+        iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
 
         if(iN.time == 1){
-            out[[iP]][] <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE], residuals[unlist(iIndex.cluster)])[,1]
+            out[[iPattern]][] <- crossprod(X[unlist(iIndex.cluster),,drop=FALSE], residuals[unlist(iIndex.cluster)])[,1]
         }else{
             iResiduals <- do.call(cbind, lapply(iIndex.cluster, function(iIndex){residuals[iIndex,,drop=FALSE]}))
             iX <- array(unlist(lapply(iIndex.cluster, function(iIndex){X[iIndex,,drop=FALSE]})),
-                        dim = c(iN.time,NCOL(X),length(index.cluster[pattern.cluster[[iP]]])),
+                        dim = c(iN.time,NCOL(X),length(iIndex.cluster)),
                         dimnames = list(NULL,colnames(X),NULL))
             for(iCol in 1:p){ ## iCol <- 3
-                out[[iP]][,iCol] <- as.vector(tcrossprod(iX[,iCol,], iResiduals))
+                out[[iPattern]][,iCol] <- as.vector(tcrossprod(iX[,iCol,], iResiduals))
             }    
         }
     }
@@ -95,7 +98,9 @@
     out <- stats::setNames(vector(mode = "list", length = length(pattern)), pattern)
 
     for(iP in 1:n.pattern){ ## iPattern <- pattern[1]
-        out[[iP]] <- as.vector(tcrossprod(do.call(cbind,lapply(index.cluster[pattern.cluster[[iP]]], function(iIndex){residuals[iIndex,,drop=FALSE]}))))
+        iPattern <- pattern[iP]
+        iIndex.cluster <- index.cluster[pattern.cluster[[iPattern]]]
+        out[[iPattern]] <- as.vector(tcrossprod(do.call(cbind,lapply(iIndex.cluster, function(iIndex){residuals[iIndex,,drop=FALSE]}))))
     }
     
     return(out)
@@ -111,8 +116,8 @@
     name.pattern <- precompute$weights$pattern
     n.pattern <- length(name.pattern)
     time.pattern <- sapply(Omega, NROW)[precompute$weights$vcov]
-    param.pattern <- lapply(dOmega,names)[precompute$weights$vcov]
-    nparam.pattern <- sapply(param.pattern,length)
+    param.pattern <- lapply(dOmega,names)[precompute$weights$vcov] ## may be empty when dOmega is missing (logLik calculation only)
+    nparam.pattern <- sapply(param.pattern,length) ## may be 0 when dOmega is missing (logLik calculation only)
     
     ## ** special case 1: no parameter to take derivative 
     if(all(nparam.pattern==0) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
@@ -172,11 +177,6 @@
         iPattern <- name.pattern[iP]
         iPattern.vcov <- precompute$weights[iP,"vcov"]
         iPattern.rep <- precompute$weights[iP,"replicate.num"]
-        
-        ## *** handle special case: no covariance parameter
-        if (nparam.pattern[iPattern]==0) {
-            next
-        }
 
         ## *** matrix inverse
         if(!is.null(multiplier)){
@@ -214,7 +214,7 @@
         }
         
         ## *** first derivative
-        if(score || information || vcov || df){
+        if(nparam.pattern[iPattern]>0 && (score || information || vcov || df)){
             if(!is.null(multiplier)){            
                 idOmega <- lapply(dOmega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
             }else{
@@ -232,7 +232,7 @@
         }
 
         ## *** second derivative
-        if((information || vcov || df)){
+        if(nparam.pattern[iPattern]>0 && (information || vcov || df)){
             if(!is.null(multiplier)){            
                 id2Omega <- lapply(d2Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
             }else{
@@ -259,7 +259,7 @@
         }
 
         ## *** third derivative
-        if(df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")){
+        if(nparam.pattern[iPattern]>0 && df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")){
             iTriplet.vcov <- triplet.vcov[triplet.vcov[,iPattern.vcov],c("name","param1","param2","param3")]
             if(!is.null(multiplier)){            
                 id3Omega <- lapply(d3Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:41) 
+## Last-Updated: okt 15 2026 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 425
+##     Update #: 435
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -95,8 +95,9 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
 
     ## ** extract
     if(!is.null(effects) && "param" %in% effects){
+        out <- cbind(trans.name = x$design$param$name, x$design$param)
+        x.transform <- transform(x)
 
-        out <- cbind(trans.name = x$design$param$name, x$design$param)        
         if(transform.names == FALSE){
             ## do nothing
         }else{
@@ -105,29 +106,22 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
                 if(is.null(transform.sigma)){
                     transform.k <- NULL
                 }else{
-                    transform.k <- ifelse(transform.sigma == x$reparametrize$transform.sigma, x$reparametrize$transform.k, "none")
+                    transform.k <- ifelse(transform.sigma == x.transform$sigma, x.transform$k, "none")
                 }
             }
             if("rho" %in% out$type == FALSE){
                 if(is.null(transform.sigma)){
                     transform.rho <- NULL
                 }else{
-                    transform.rho <- ifelse(transform.sigma == x$reparametrize$transform.sigma, x$reparametrize$transform.rho, "none")
+                    transform.rho <- ifelse(transform.sigma == x.transform$sigma, x.transform$rho, "none")
                 }
             }
 
             init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                                    x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                                    x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
                                     simplify = FALSE)
 
-            ## if((init$transform.sigma=="none") & (init$transform.k=="none") & (init$transform.rho=="none")){
-            ##     ## do nothing
-            ## }else if((init$transform.sigma==x$reparametrize$transform.sigma) & (init$transform.k==x$reparametrize$transform.k) & (init$transform.rho==x$reparametrize$transform.rho)){
-            ##     if(!is.null(x$reparametrize$newname)){ ## default transformation
-            ##         out[match(names(x$reparametrize$p),out$name),"trans.name"] <- x$reparametrize$newname
-            ##     }
-            ## }else{
-            index.reparametrize <- match(names(x$reparametrize$p),out$name)
+            index.reparametrize <- which(out$type %in%  c("sigma","k","rho"))
             out[index.reparametrize,"trans.name"] <- .reparametrize(p = stats::setNames(rep(NA, length(index.reparametrize)), out[index.reparametrize,"name"]),  
                                                                     type = out[index.reparametrize,"type"],
                                                                     sigma = out[index.reparametrize,"sigma"],
@@ -139,7 +133,6 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
                                                                     transform.k = init$transform.k,
                                                                     transform.rho = init$transform.rho,
                                                                     transform.names = TRUE)$newname
-            ## }
         }
 
         ## *** subset

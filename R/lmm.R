@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:47) 
+## Last-Updated: okt 15 2026 (13:54) 
 ##           By: Brice Ozenne
-##     Update #: 3383
+##     Update #: 3394
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -369,28 +369,28 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
         if(out$args$control$trace>1){cat("\n")}
     }
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
-    outEstimate <- .optim.lmm(design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+    outEstimate <- .optim.lmm(design = out$design, time = out$time, method.fit = out$args$method.fit, ## use expected information
                               transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
                               optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
                               tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
-    out$opt <- outEstimate[c("cv","n.iter","score","previous.estimateTrans","previous.logLik","control")]
+    out$opt <- outEstimate[c("cv","n.iter","estimate","score","previous.estimate","previous.logLik","control")] ## NOTE: estimate and previous.estimate are on the transformed scale
     if((trace==0 && out$args$control$trace>0)){
         cat("\n")
     }
     if(out$opt$cv<=0){
         warning("Convergence issue: no stable solution has been found. \n")
     }
-    out$param <- outEstimate$estimate    
-    out$param.trans <- outEstimate$estimateTrans    
+    out$param <- outEstimate$estimate.originalScale
 
     if(trace>=1){cat("\n")}
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}
 
-    outMoments <- .moments.lmm(value = out$param.trans, design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information,
+    outMoments <- .moments.lmm(value = stats::setNames(out$opt$estimate, names(out$param)),
+                               design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information, 
                                transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                               logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                               updateGLS = FALSE, logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
     out[names(outMoments)] <- outMoments
     out$fitted <- out$fitted[,1]
@@ -403,7 +403,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     return(out)
 }
 
-p## * lmm.Wald_lmm (code)
+## * lmm.Wald_lmm (code)
 ##' @export
 lmm.Wald_lmm <- function(object, data, repetition, structure, weights, 
                          method.fit, df, type.information, trace, control){
@@ -755,7 +755,7 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
             method.fit <- "ML"
         }
     }
-    
+
     ## ** degrees-of-freedom
     if(is.null(df)){
         df <- options$df
@@ -764,7 +764,7 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
         df.save <- df
         df <- TRUE
         attr(df,"method") <- df.save
-    }else if(is.logical(args$df)){
+    }else if(is.logical(df)){
         attr(df,"method") <- "analytic"
     }else{
         stop("Argument \'df\' must be of type logical or \"analytic\" or \"numeric\". \n")        

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:38) 
 ## Version: 
-## Last-Updated: okt 24 2025 (17:33) 
+## Last-Updated: okt 15 2026 (10:36) 
 ##           By: Brice Ozenne
-##     Update #: 2234
+##     Update #: 2235
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -180,8 +180,9 @@ anova.lmm <- function(object, effects = NULL, rhs = NULL, type.information = NUL
     }
     
     ## *** transformation & p
+    object.transform <- transform(object)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                             table.param = object$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

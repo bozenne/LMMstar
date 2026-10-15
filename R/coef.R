@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:30) 
 ## Version: 
-## Last-Updated: okt 17 2025 (16:01) 
+## Last-Updated: okt 15 2026 (11:23) 
 ##           By: Brice Ozenne
-##     Update #: 1403
+##     Update #: 1413
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -107,9 +107,11 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     param.k.x <- stats::setNames(object$design$param$k.x,param.name)
     param.k.y <- stats::setNames(object$design$param$k.y,param.name)
 
-    object.reparametrize.name <- names(object$reparametrize$p)
-    object.reparametrize.value <- object$reparametrize$p
-    object.reparametrize.newname <- object$reparametrize$newname
+
+    object.reparametrize.index <- transform(object, type = "index")
+    object.reparametrize.name <- param.name[object.reparametrize.index]
+    object.reparametrize.value <- transform(object, type = "value(originalName)")[object.reparametrize.name]
+    object.reparametrize.newname <- transform(object, type = "name")[object.reparametrize.name]
 
     ## ** normalize user imput
     ## *** dots
@@ -161,9 +163,10 @@ coef.lmm <- function(object, effects = NULL, p = NULL,
     }
     if(is.null(transform.sigma) && (!is.null(transform.k) && transform.k == "none") && (!is.null(transform.rho) && transform.rho == "none")){
         transform.sigma <- "none"
-    } 
+    }
+    object.transform <- transform(object)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                             table.param = object$design$param)
     test.notransform <- init$test.notransform
     transform.sigma <- init$transform.sigma

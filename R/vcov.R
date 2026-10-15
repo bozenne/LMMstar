@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:28) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:15) 
+## Last-Updated: okt 15 2026 (12:21) 
 ##           By: Brice Ozenne
-##     Update #: 1261
+##     Update #: 1263
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -118,8 +118,9 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE,
     }
 
     ## *** transformation & p
+    object.transform <- transform(object)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                            x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                             table.param = object$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -188,7 +189,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE,
         }
         outMoments <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                   logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = (df || keep.grad) && test.new, indiv = FALSE, effects = effects, robust = robust,
+                                   updateGLS = FALSE, logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = (df || keep.grad) && test.new, indiv = FALSE, effects = effects, robust = robust,
                                    trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
         trans2original.names <- colnames(outMoments$vcov) ## output names without transformation
@@ -230,7 +231,7 @@ vcov.lmm <- function(object, effects = NULL, robust = FALSE, df = FALSE,
             if(test.new){
                 iVcov <-  .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = type.information,
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                       updateGLS = FALSE, logLik = FALSE, score = FALSE, information = FALSE,  vcov = TRUE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
                                        trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)$vcov
                 attr(attr(vcov,"gradient"),"vcov") <- iVcov[rownames(vcov),colnames(vcov)] ## possible re-ordering to account for transformation + drop attributes by subsetting
             }else{

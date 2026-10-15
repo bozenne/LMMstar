@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: feb  9 2022 (14:51) 
 ## Version: 
-## Last-Updated: okt 21 2025 (10:42) 
+## Last-Updated: okt 15 2026 (10:37) 
 ##           By: Brice Ozenne
-##     Update #: 1689
+##     Update #: 1690
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -159,8 +159,10 @@ confint.lmm <- function (object, parm = NULL, level = 0.95, effects = NULL, robu
 
     ## *** transform
     ## used to decide on the null hypothesis of k parameters
+    object.transform <- transform(object)
     init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho)
+                            x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
+                            simplify = FALSE)
     
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k

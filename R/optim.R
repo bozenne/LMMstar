@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:27) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:49) 
+## Last-Updated: okt 15 2026 (14:36) 
 ##           By: Brice Ozenne
-##     Update #: 137
+##     Update #: 208
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,7 @@
 ##' @keywords internal
 
 ## * .optim.lmm (code)
-.optim.lmm <- function(design, time, method.fit, type.information, 
+.optim.lmm <- function(design, time, method.fit, 
                        transform.sigma, transform.k, transform.rho,
                        optimizer, init, n.iter, tol.score, tol.param, n.backtracking, init.cor, trace){
 
@@ -77,47 +77,6 @@
     Upattern <- design$precompute.weights$pattern
     n.Upattern <- length(Upattern)
 
-    if(length(param.fixed.mu)>0){
-        partialHat <- design$mean[,param.fixed.mu,drop=FALSE] %*% init[param.fixed.mu]
-        partialY <- design$Y - partialHat
-        
-        if(!is.null(design$precompute.XX) && !is.null(design$precompute.XY) && length(param.mu2)>0){
-            ## remove XX involving fixed parameters
-            key.XX <- design$precompute.XX$key[param.mu2,param.mu2,drop=FALSE]
-            index.precompute <- unique(as.double(design$precompute.XX$key[param.mu2,param.mu2]))
-            key.XX[] <- stats::setNames(1:length(index.precompute),index.precompute)[as.character(design$precompute.XX$key[param.mu2,param.mu2])]        
-            precompute.XX <- lapply(design$precompute.XX$pattern, function(iX){iX[,index.precompute,drop=FALSE]})
-
-
-            ## update XY with X(Y-Xb(fixed))
-            if(attr(design$weights,"user-defined")){
-                wX.mean <- sweep(design$mean[,param.mu2,drop=FALSE], FUN = "*", MARGIN = 1, STATS = sqrt(design$weights[attr(index.cluster,"vectorwise")]))
-                wY <- cbind(partialY*sqrt(design$weights[attr(index.cluster,"vectorwise")]))
-            }else{
-                wX.mean <- design$mean[,param.mu2,drop=FALSE]
-                wY <- partialY
-            }
-            precompute.XY <- .precomputeXR(X = wX.mean,
-                                           residuals = wY,
-                                           pattern = design$vcov$Upattern$name,
-                                           pattern.ntime = stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name),
-                                           pattern.cluster = design$vcov$Upattern$index.cluster, index.cluster = design$index.cluster)
-
-        }else{
-            precompute.XY <- NULL
-            precompute.XX <- NULL
-            key.XX <- NULL
-        }
-        
-    }else{
-        partialY <- design$Y
-        precompute.XY <- design$precompute.XY
-        precompute.XX <- design$precompute.XX$pattern
-        key.XX <- design$precompute.XX$key
-    }
-    
-    effects <- c("mean","variance","correlation")
-    
     ## ** Estimate intialization values based on the empirical moments
     if(!is.null(init)){
 
@@ -152,7 +111,26 @@
 
         param.value <- stats::setNames(rep(NA, n.param),param.name)
 
-        ## mean value
+        ## Current residuals (possibly substract constant mean parameter effect)
+        if(length(param.fixed.mu)>0){
+            partialY <-  design$Y - design$mean[,param.fixed.mu,drop=FALSE] %*% design$param[!is.na(design$param$constraint),"constraint"]
+            if(is.null(design$weights$multiplier)){
+                pattern.ntime <- design$vcov$Upattern$n.time
+                pattern.cluster <- design$vcov$Upattern$index.cluster
+            }else{
+                pattern.ntime <- stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name)[design$precompute.weights$vcov]
+                pattern.cluster <- tapply(1:NROW(design$vcov$pattern),factor(design$vcov$pattern$all, levels = design$precompute.weights$pattern), FUN = identity)
+            }
+            precompute.XpartialY <- .precomputeXR(X = design$mean, residuals = sweep(partialY, FUN = "*", MARGIN = 1, STATS = design$weights$XYR),
+                                                  pattern = design$precompute.weights$pattern,
+                                                  pattern.ntime = stats::setNames(pattern.ntime, design$precompute.weights$pattern),
+                                                  pattern.cluster = pattern.cluster, index.cluster = design$index.cluster)
+        }else{
+            partialY <- design$Y
+            precompute.XpartialY <- design$precompute.XY
+        }
+
+        ## initialize mean value
         if(!is.null(init.mu)){
             param.value[param.mu2] <- init.mu[param.mu2]
         }else if(length(param.mu2)>0){
@@ -168,9 +146,9 @@
                     return(diag(1, nrow = iN.time, ncol = iN.time))
                 }), Upattern)
             }
-            param.value[param.mu2] <- .optimGLS(OmegaM1 = start.OmegaM1, precompute.XY = design$precompute.XY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)
-        }
-        ## vcov values
+            param.value[param.mu2] <- .GLS(OmegaM1 = start.OmegaM1, precompute.XY = precompute.XpartialY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)
+        }                                                  
+        ## initialize vcov values based on the residuals
         iResiduals.long <- partialY - design$mean[,param.mu2,drop=FALSE] %*% param.value[param.mu2]
         if(length(param.Omega2)>0){
             if(is.null(init.Omega)){
@@ -201,36 +179,37 @@
     }
 
     ## ** Apply transformation to initialization values
-    paramTrans.value <- .reparametrize(param.value,
-                                       type = design$param$type,
-                                       sigma = design$param$sigma,
-                                       k.x = design$param$k.x,
-                                       k.y = design$param$k.y,
-                                       Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                       transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       transform.names = FALSE)$p
-
+    reparametrize <- .reparametrize(param.value,
+                                    type = design$param$type,
+                                    level = design$param$level,
+                                    sigma = design$param$sigma,
+                                    k.x = design$param$k.x,
+                                    k.y = design$param$k.y,
+                                    Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                    transform.names = TRUE)
+    paramTrans.value <- reparametrize$p
+    
 
     ## ** Gradient descent
     update.param.Omega <- stats::setNames(rep(0, length(param.Omega)), param.Omega)
     
     if(n.iter==0 || length(param.Omega2)==0){
         cv <- as.numeric(length(param.Omega2)==0)
-        param.valueM1 <- NULL
-        logLik.value <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
+        logLik.value <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                     logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                     updateGLS = FALSE, logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE,
+                                     effects = c("mean","variance","correlation"), robust = FALSE,
                                      trace = FALSE, transform.names = FALSE)$logLik
         logLik.valueM1 <- NULL
         score.value <- NULL
         iIter <- 0
     }else if(optimizer=="FS"){
         cv <- 0
-        param.valueM1 <- NULL
         logLik.value <- -Inf
+        paramTrans.valueM1 <- paramTrans.value
         score.value <- stats::setNames(rep(Inf, length(param.value)), names(param.value))
         information.value <- NULL
-        type.information <- "expected"
         ## wolfe.c1 <- 1e-4
         ## wolfe.c2 <- 0.9
         iIter <- 0
@@ -243,15 +222,15 @@
             information.valueM1 <- information.value
 
             ## *** estimate moments
-            outMoments <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = type.information,
+            outMoments <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                       logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                       updateGLS = iiIter>0, logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE,
+                                       effects = c("variance","correlation"), robust = FALSE,
                                        trace = FALSE, transform.names = FALSE)
 
             logLik.value <- outMoments$logLik    
             score.value <- outMoments$score    
             information.value <- outMoments$information
-
             ## if(iiIter==0){
             ##     test.wolfe <- c(TRUE,TRUE)
             ## }else{
@@ -267,7 +246,7 @@
                     cv <- 1
                     break
                 }
-            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score)<tol.score) && (iiIter==0 || all(abs(param.valueM1 - param.value)<tol.param))){
+            }else if(all(!is.na(outMoments$score)) && all(abs(outMoments$score)<tol.score) && (iiIter==0 || all(abs(paramTrans.valueM1 - paramTrans.value)<tol.param))){
                 if(iiIter==0){
                     paramTrans.valueM1 <- paramTrans.value * NA
                 }
@@ -278,42 +257,30 @@
                 break
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
                 outMoments <- .backtracking(valueM1 = paramTrans.valueM1, update = update.param.Omega, n.iter = n.backtracking,
-                                            design = design, time = time, method.fit = method.fit, type.information = type.information,
+                                            logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1,
+                                            value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                            logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1, effects = effects, 
-                                            precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX, Y = partialY, param.mu = param.mu2, param.Omega = param.Omega2)
+                                            param.Omega = param.Omega)
                 
                 if(attr(outMoments,"cv")==FALSE){
                     cv <- -1
                     paramTrans.value <- paramTrans.valueM1 ## revert back to previous iteration
                     break
                 }else{
-                    paramTrans.value <- attr(outMoments,"value")
+                    paramTrans.value <- outMoments$value
                     logLik.value <- outMoments$logLik    
                     score.value <- outMoments$score    
                     information.value <- outMoments$information
                 }
             }
 
-            ## *** update variance-covariance estimate
+            ## *** update estimate
             paramTrans.valueM1 <- paramTrans.value
-            if(length(param.Omega2)>0){
-                ## update variance-covariance parameters (transform scale)
-                paramTrans.value[param.Omega2] <- paramTrans.valueM1 + stats::setNames(as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE])), param.Omega2)
+            if(length(param.Omega2)>0){ ## update variance-covariance parameters (transform scale)
+                paramTrans.value <- outMoments$value
+                paramTrans.value[param.Omega2] <- paramTrans.valueM1[param.Omega2] + as.double(score.value[param.Omega2] %*% solve(information.value[param.Omega2,param.Omega2,drop=FALSE]))
             }
-            
-            ## *** update mean estimate
-            if(length(param.mu2)>0){
-                if(length(param.Omega2)>0){
-                    iOmega <- .calc_Omega(object = design$vcov, param = paramTrans.value,
-                                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, Upattern = Upattern, simplify = FALSE)
-                }
-                paramTrans.value[param.mu2] <- .optimGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                                         precompute.XY = precompute.XY, precompute.XX = precompute.XX, key.XX = key.XX,
-                                                         Y = partialY, design = design,
-                                                         param.mu = param.mu2)
-            }
-            
+
             ## *** display
             iIter <- iIter+1
             if(trace > 0 && trace < 3){
@@ -364,27 +331,27 @@
             }else if(iIter==0){
                 cat(attr(cv,"message")," after ",iIter," iteration: max score=",max(abs(outMoments$score[param.Omega2])),"\n", sep = "")
             }else{
-                cat(attr(cv,"message")," after ",iIter," iterations: max score=",max(abs(outMoments$score[param.Omega2]))," | max change in coefficient=",max(abs(param.valueM1 - param.value)),"\n", sep = "")
+                cat(attr(cv,"message")," after ",iIter," iterations: max score=",max(abs(outMoments$score[param.Omega2]))," | max change in coefficient=",max(abs(paramTrans.valueM1 - paramTrans.value)),"\n", sep = "")
             }
         }
         score <- outMoments$score
     }else{
         warper_obj <- function(p){
-            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "observed",
+            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                          logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                          updateGLS = TRUE, logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                           trace = FALSE, transform.names = FALSE)$logLik
         }
         warper_grad <- function(p){
-            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "observed",
+            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                          logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                          updateGLS = TRUE, logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                           trace = FALSE, transform.names = FALSE)$score
         }
         warper_hess <- function(p){
-            .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "observed",
+            .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                         logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                         updateGLS = TRUE, logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                          trace = FALSE, transform.names = FALSE)$information
         }
 
@@ -393,7 +360,7 @@
         ## warper_obj(2*paramTrans.value)
         ## numDeriv::jacobian(x = paramTrans.value, func = warper_obj)-warper_grad(paramTrans.value)
         if(trace<=0){trace <- 0}
-        res.optim <- optimx::optimx(par = paramTrans.value, fn = warper_obj, gr = warper_grad, hess = warper_hess,
+        res.optim <- optimx::optimx(par = paramTrans.value[param.Omega2], fn = warper_obj, gr = warper_grad, hess = warper_hess,
                                     method = optimizer, itnmax = n.iter, control = list(trace = trace))
         ## solution <- stats::setNames(as.double(res.optim[1,1:length(paramTrans.value)]), names(paramTrans.value))
         ## warper_obj(solution)
@@ -424,9 +391,9 @@
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                   transform.names = FALSE)$p
 
-    return(list(estimate = param.value,
-                estimateTrans = paramTrans.value,
-                previous.estimateTrans = paramTrans.valueM1,
+    return(list(estimate.originalScale = param.value,
+                estimate = stats::setNames(paramTrans.value, reparametrize$newname),
+                previous.estimate = paramTrans.valueM1,
                 logLik = logLik.value,
                 previous.logLik = logLik.valueM1,
                 score = score.value,
@@ -435,28 +402,6 @@
                 control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
                             n.backtracking = as.double(n.backtracking), init.cor = as.double(init.cor))
                 ))
-}
-
-## * .optimGLS
-## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
-.optimGLS <- function(OmegaM1, precompute.XY, precompute.XX, precompute.weights){
-
-    param.mu <- colnames(precompute.XX$key)
-    n.param <- length(param.mu)
-    numerator <- matrix(0, nrow = n.param, ncol = 1)
-    denominator <- matrix(0, nrow = n.param, ncol = n.param)
-
-    for(iG in 1:NROW(precompute.weights)){ ## loop over covariance and replication patterns
-
-        iPattern <- precompute.weights[iG,"pattern"]
-        iVec.OmegaM1 <- as.double(OmegaM1[[iPattern]])
-        numerator <- numerator + t(iVec.OmegaM1 %*%  precompute.XY[[iPattern]])
-        denominator <- denominator + as.double(iVec.OmegaM1 %*%  precompute.XX$pattern[[iPattern]])[precompute.XX$key]
-
-    }
-
-    out <- solve(denominator, numerator)    
-    return(stats::setNames(as.double(out), param.mu))
 }
 
 ## * .wolfe
@@ -483,68 +428,25 @@
 
 ## * backtracking
 .backtracking <- function(valueM1, update, n.iter,
-                          design, time, method.fit, type.information,
-                          transform.sigma, transform.k, transform.rho, 
-                          logLikM1, scoreM1, informationM1, information, effects, precompute.moments,
-                          precompute.XY, precompute.XX, key.XX, Y, param.mu, param.Omega){
+                          logLikM1, scoreM1, informationM1,
+                          value, design, time, method.fit, type.information,
+                          transform.sigma, transform.k, transform.rho,
+                          param.Omega){
 
     if(n.iter<=0){return(list(cv = FALSE))}
     
     alpha <- 1/2
-    design.param <- design$param[match(param.Omega, design$param$name),,drop=FALSE]                                                
-    valueNEW <- valueM1
-    momentNEW <- NULL
     cv <- FALSE
-
-    ## move param to transform scale
-    valueM1.trans <- .reparametrize(valueM1[param.Omega],
-                                    type = design.param$type,
-                                    sigma = design.param$sigma,
-                                    k.x = design.param$k.x,
-                                    k.y = design.param$k.y,
-                                    Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                    transform.names = FALSE)$p
 
     for(iIter in 1:n.iter){
 
         ## update variance-covariance parameters (transform scale)
-        valueNEW.trans <- stats::setNames(valueM1.trans[param.Omega] + alpha * update[param.Omega], param.Omega)
-
-        ## update variance-covariance parameters (original scale)
-        valueNEW[param.Omega] <- .reparametrize(valueNEW.trans,
-                                                type = design.param$type,
-                                                sigma = design.param$sigma,
-                                                k.x = design.param$k.x,
-                                                k.y = design.param$k.y,
-                                                Jacobian = FALSE, dJacobian = FALSE, inverse = TRUE,
-                                                transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                                transform.names = FALSE)$p
-
-        ## estimate residual variance-covariance matrix
-        iOmega <- .calc_Omega(object = design$vcov, param = valueNEW, simplify = FALSE)
-        iDet <- sapply(iOmega,det) 
-        if(any(is.na(iDet)) || any(iDet<0)){
-            alpha <- alpha/2
-            next
-        }
-        
-        ## update mean parameters
-        if(length(param.mu)>0){
-            valueNEW[param.mu] <- .optimGLS(OmegaM1 = stats::setNames(lapply(iOmega, solve), names(iOmega)),
-                                            pattern = design$vcov$Upattern$name,
-                                            precompute.XY = precompute.XY,
-                                            precompute.XX = precompute.XX,
-                                            key.XX = key.XX,
-                                            Y = Y,
-                                            design = design,
-                                            param.mu = param.mu)
-        }
+        valueNEW <- stats::setNames(valueM1[param.Omega] + alpha * update[param.Omega], param.Omega)
 
         ## compute moments
         momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
+                                  updateGLS = TRUE, logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                                   trace = FALSE, transform.names = FALSE)
 
         ## ## check wolfe condition
@@ -552,8 +454,10 @@
         ##                      logLik.old = logLikM1, logLik.new = momentNEW$score,
         ##                      score.old = scoreM1, score.new = momentNEW$score,
         ##                      alpha = alpha, c1 = c1, c2 = c2)
+        
         ## check convergence
-        if(is.na(momentNEW$logLik) || momentNEW$logLik<logLikM1){
+        detNEW <- sapply(momentNEW$OmegaM1, det)
+        if(is.na(momentNEW$logLik) || momentNEW$logLik<logLikM1 || any(is.na(detNEW)) || any(detNEW<0)){
             alpha <- alpha/2
         }else{
             cv <- TRUE
@@ -563,13 +467,6 @@
     }
 
     ## ** export
-    if(is.null(momentNEW)){
-        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
-                                  transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                  logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = effects, robust = FALSE,
-                                  trace = FALSE, transform.names = FALSE)
-    }
-    attr(momentNEW,"value") <- valueNEW
     attr(momentNEW,"cv") <- cv
     attr(momentNEW,"n.backtrack") <- iIter
     

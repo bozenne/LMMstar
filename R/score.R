@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:59) 
 ## Version: 
-## Last-Updated: okt 14 2026 (13:50) 
+## Last-Updated: okt 15 2026 (14:19) 
 ##           By: Brice Ozenne
-##     Update #: 1035
+##     Update #: 1041
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -89,8 +89,9 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
     x.param <- stats::model.tables(x, effects = c("param",effects), transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, transform.names = transform.names)
     
     ## *** p and transform
+    x.transform <- transform(x)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
                             table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -119,7 +120,7 @@ score.lmm <- function(x, effects = "mean", indiv = FALSE, newdata = NULL, p = NU
         }
         out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = x$args$type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                            logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
+                            updateGLS = FALSE, logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
                             trace = FALSE, transform.names = transform.names)$score
     }
 
@@ -364,16 +365,6 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
     name.vcovcoef <- intersect(setdiff(name.allcoef,name.mucoef), unlist(lapply(precompute$Omega$dOmegaM1,function(iA){dimnames(iA)[[2]]})))
     n.vcovcoef <- length(name.vcovcoef)
 
-    ## ** prepare output
-    name.effects <- c(name.mucoef, name.vcovcoef)
-    n.effects <- length(name.effects)
-    if(indiv){
-        Score <- matrix(0, nrow = n.cluster, ncol = n.effects, dimnames = list(NULL, name.effects))
-    }else{
-        Score <- stats::setNames(rep(0, n.effects), name.effects)
-    }
-
-
     ## ** restrict to relevant parameters
     test.mean <- (n.mucoef>0) && ("mean" %in% effects)
     test.vcov <- (n.vcovcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
@@ -398,6 +389,21 @@ score.mlmm <- function(x, effects = "contrast", indiv = FALSE, p = NULL, newdata
         }
     }else{
         message <- NULL
+    }
+
+    ## ** prepare output
+    name.effects <- NULL
+    if(test.mean){
+        name.effects <- c(name.effects, name.mucoef)
+    }
+    if(test.vcov){
+        name.effects <- c(name.effects, name.vcovcoef)
+    }
+    n.effects <- length(name.effects)
+    if(indiv){
+        Score <- matrix(0, nrow = n.cluster, ncol = n.effects, dimnames = list(NULL, name.effects))
+    }else{
+        Score <- stats::setNames(rep(0, n.effects), name.effects)
     }
 
     ## ** compute score    

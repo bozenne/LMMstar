@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (12:57) 
 ## Version: 
-## Last-Updated: okt 30 2025 (17:56) 
+## Last-Updated: okt 15 2026 (10:52) 
 ##           By: Brice Ozenne
-##     Update #: 831
+##     Update #: 832
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -118,8 +118,9 @@ sigma.lmm <- function(object, cluster = NULL, p = NULL, chol = FALSE, inverse = 
     
     ## *** p
     if(!is.null(p)){
+        object.transform <- transform(object)
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
-                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                                 table.param = object$design$param)
         theta <- init$p
     }else{

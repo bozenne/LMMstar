@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:38) 
+## Last-Updated: okt 15 2026 (14:03) 
 ##           By: Brice Ozenne
-##     Update #: 465
+##     Update #: 484
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -57,11 +57,12 @@ df.residual.mlmm <- function(object, ...){
 }
 
 ## * .df_analytic
-.df_analytic <- function(X, residuals, weights, vcov, robust,
+.df_analytic <- function(X, residuals, weights, vcov, robust, diag,
                          pattern, index.cluster, name.allcoef, pair.vcov, triplet.vcov,
                          REML, type.information, effects, precompute){
 
     ## ** extract information
+    n.allcoef <- length(name.allcoef)
     n.cluster <- length(pattern)
     n.mucoef <- NCOL(X)
     
@@ -71,11 +72,34 @@ df.residual.mlmm <- function(object, ...){
     npair.vcov <- NROW(pair.vcov) ## number of pairs of variance parameters
     ntriplet.vcov <- NROW(triplet.vcov) ## number of triplet of variance parameters
 
-    ## ** prepare output
+    ## ** restrict to relevant parameters
     test.mean <- (n.mucoef>0) && ("mean" %in% effects)
     test.vcov <- (n.vcovcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
 
-    name.effects <- c(name.mucoef, name.vcovcoef)
+    if(test.vcov){ ## (request variance but not correlation) or (request correlation but not variance)
+        if("variance" %in% effects == FALSE || "correlation" %in% effects == FALSE){            
+            if("variance" %in% effects == FALSE){            
+                name.vcovcoef <- setdiff(name.vcovcoef, name.allcoef[attr(name.allcoef, "type") %in% c("sigma","k")])
+            }else if("correlation" %in% effects == FALSE){
+                name.vcovcoef <- setdiff(name.vcovcoef, name.allcoef[attr(name.allcoef, "type") %in% c("rho")])
+            }
+            precompute$Omega$d3Trace <- lapply(precompute$Omega$d3Trace, function(iO){iO[intersect(names(iO),name.effects),,drOP=FALSE]})
+            precompute$Omega$dOmegaM1 <- lapply(precompute$Omega$dOmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),,drop=FALSE]})
+            precompute$Omega$d2OmegaM1 <- lapply(precompute$Omega$d2OmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),,drop=FALSE]})
+            precompute$Omega$d3OmegaM1 <- lapply(precompute$Omega$d3OmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),,drop=FALSE]})
+            n.vcovcoef <- length(name.vcovcoef)
+            test.vcov <- n.vcovcoef>0
+        }
+    }
+
+    ## ** prepare output
+    name.effects <- NULL
+    if(test.mean){
+        name.effects <- c(name.effects,name.mucoef)
+    }
+    if(test.vcov){
+        name.effects <- c(name.effects,name.vcovcoef)
+    }
     n.effects <- length(name.effects)
     dInformation <- array(0, dim = rep(n.mucoef + n.vcovcoef, 3), dimnames = list(name.allcoef, name.allcoef, name.allcoef))
 
@@ -100,7 +124,7 @@ df.residual.mlmm <- function(object, ...){
     for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
 
         iPattern <- precompute$weights[iG,"pattern"]
-        browser()
+        
         ## *** mean,mean,vcov
         if(test.mean & test.vcov){
 
@@ -124,7 +148,7 @@ df.residual.mlmm <- function(object, ...){
             iX.d2OmegaM1.R <- - t(iXR) %*% id2OmegaM1
             
             for(iPair in colnames(id2OmegaM1)){ ## iPair <- colnames(id2OmegaM1)[1]
-                iParam <- pair.vcov[pair.vcov$name == iPair, c("param1","param2")]
+                iParam <- unlist(pair.vcov[pair.vcov$name == iPair, c("param1","param2")])
                 dInformation[iParam[1],iParam[2],name.mucoef] <- dInformation[iParam[1],iParam[2],name.mucoef] + iX.d2OmegaM1.R[,iPair]                
                 dInformation[name.mucoef,iParam[1],iParam[2]] <- dInformation[name.mucoef,iParam[1],iParam[2]] + iX.d2OmegaM1.R[,iPair]                
                 dInformation[iParam[2],name.mucoef,iParam[1]] <- dInformation[iParam[2],name.mucoef,iParam[1]] + iX.d2OmegaM1.R[,iPair]                
@@ -141,10 +165,10 @@ df.residual.mlmm <- function(object, ...){
 
             id3OmegaM1 <- precompute$Omega$d3OmegaM1[[iPattern]]
             iRR <- precompute$RR[[iPattern]]
-            iR.d3OmegaM1.R <- - 0.5 * t(iRR) %*% id3OmegaM1
+            iR.d3OmegaM1.R <- - 0.5 * (t(iRR) %*% id3OmegaM1)[1,]
             
-            for(iTriplet in colnames(id3OmegaM1)){ ## iTriplet <- colnames(id2OmegaM1)[1]
-                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+            for(iTriplet in colnames(id3OmegaM1)){ ## iTriplet <- colnames(id3OmegaM1)[1]
+                iParam <- unlist(triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")])
                 dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] + iR.d3OmegaM1.R[iTriplet]                                
             }
         }
@@ -152,14 +176,11 @@ df.residual.mlmm <- function(object, ...){
         ## *** vcov,vcov,vcov (trace)
         if(test.vcov){
 
-            iKey <- c(stats::setNames(triplet.vcov$key1,triplet.vcov$name)[which(pair.vcov[[iPattern.vcov]])],
-                      stats::setNames(triplet.vcov$key2,triplet.vcov$name)[intersect(which(pair.vcov[[iPattern.vcov]]),which(!is.na(pair.vcov$key2)))])
-            
             iWeight <- precompute$weights[iG,"sum_w"]
             id3Trace <- precompute$Omega$d3Trace[[iPattern]]
             
             for(iTriplet in names(id3Trace)){ ## iTriplet <- names(id3Trace)[1]
-                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+                iParam <- unlist(triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")])
                 dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] - 0.5 * iWeight * id3Trace[iTriplet]                
             }
             
@@ -193,7 +214,7 @@ df.residual.mlmm <- function(object, ...){
             REML.trace <- stats::setNames(REML.trace1a + REML.trace1b + REML.trace2a + REML.trace2b + REML.trace2c + REML.trace3, triplet.vcov$name)
             
             for(iTriplet in triplet.vcov$name){ ## iTriplet <- triplet.vcov$name[1]
-                iParam <- triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")]
+                iParam <- unlist(triplet.vcov[triplet.vcov$name == iTriplet, c("param1","param2","param3")])
                 dInformation[iParam,iParam,iParam] <- dInformation[iParam,iParam,iParam] - 0.5 * REML.trace[iTriplet]
             }
         }
@@ -251,7 +272,7 @@ df.residual.mlmm <- function(object, ...){
         
         iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                                logLik = FALSE, score = FALSE, information = (robust!=2), vcov = (robust==2), df = FALSE, indiv = FALSE, effects = effects, robust = robust,
+                                updateGLS = FALSE, logLik = FALSE, score = FALSE, information = (robust!=2), vcov = (robust==2), df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, method.numDeriv = method.numDeriv, transform.names = FALSE)
 
         if(as.double){

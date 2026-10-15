@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2024 (09:37) 
 ## Version: 
-## Last-Updated: okt 24 2025 (17:42) 
+## Last-Updated: okt 15 2026 (10:39) 
 ##           By: Brice Ozenne
-##     Update #: 447
+##     Update #: 448
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -477,15 +477,13 @@ equation2contrast <- function(object, name.coef, X,
 effects2contrast <- function(object, effects, rhs, options){
 
     effects.ref <- c("all","mean","fixed","variance","correlation")
-    transform.sigma <- object$reparametrize$transform.sigma
-    transform.k <- object$reparametrize$transform.k
-    transform.rho <- object$reparametrize$transform.rho
-
+    object.transform <- transform(object)
+    
     ## ** extract from object
     object.coef <- stats::model.tables(object, effects = "param",
-                                       transform.sigma = transform.sigma,
-                                       transform.k = transform.k,
-                                       transform.rho = transform.rho,
+                                       transform.sigma = object.transform$sigma,
+                                       transform.k = object.transform$k,
+                                       transform.rho = object.transform$rho,
                                        transform.names = TRUE)
     name.coef <- object.coef$name
     n.coef <- length(name.coef)
@@ -522,7 +520,7 @@ effects2contrast <- function(object, effects, rhs, options){
             }else if("fixed" %in% effects){
                 effects[effects=="fixed"] <- "mean"
             }
-            if(transform.k %in% c("sd","var","logsd","logvar")){
+            if(object.transform$k %in% c("sd","var","logsd","logvar")){
                 stop("Cannot use \'transform.k\' equals \"sd\", \"var\", \"logsd\", or \"logvar\". \n",
                      "anova does not handle tests where the null hypothesis is at a boundary of the support of a random variable. \n")
             }
@@ -584,7 +582,7 @@ effects2contrast <- function(object, effects, rhs, options){
             effects.type <- do.call(rbind,apply(effects, MARGIN = 1, function(iRow){tapply(iRow!=0,type.coef,sum)}, simplify=FALSE))
             if("k" %in% colnames(effects.type) == FALSE){effects.type <- cbind(effects.type, k = 0)} ## case of a homoschedastic model
 
-            if(any(effects.type[,"sigma"]!=0) || (any(effects.type[,"k"]!=0) && transform.k %in% c("sd","var","logsd","logvar"))){
+            if(any(effects.type[,"sigma"]!=0) || (any(effects.type[,"k"]!=0) && object.transform$k %in% c("sd","var","logsd","logvar"))){
                 stop("Unable to decide on a value for the right-hand side of the null hypothesis\n",
                      "due to the presence of parameters of type \"sigma\" in the same null hypothesis. \n",
                      "Consider specifying the argument \'rhs\'. \n")
@@ -737,7 +735,7 @@ effects2contrast <- function(object, effects, rhs, options){
                 if(all(iRow)==0){index.mu}else{which(iRow!=0)}
             })]
             default.null <- c("mu" = 0,
-                              "k" = ifelse(transform.k %in% c("log","logsquare"), 0, 1),
+                              "k" = ifelse(object.transform$k %in% c("log","logsquare"), 0, 1),
                               "rho" = 0)
             rhs <- stats::setNames(default.null[effects.type2], rownames(effects))
         }else if(length(rhs)==1){
@@ -749,7 +747,7 @@ effects2contrast <- function(object, effects, rhs, options){
         }
 
         ## collect
-        if(rescue==TRUE && (!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho))){ ## the user specifically requests the transformed scale
+        if(rescue==TRUE && (!is.null(object.transform$sigma) || !is.null(object.transform$k) || !is.null(object.transform$rho))){ ## the user specifically requests the transformed scale
             backtransform <- FALSE
         }else{
             backtransform <- TRUE
@@ -766,7 +764,7 @@ effects2contrast <- function(object, effects, rhs, options){
 
         if(out.eq2c$rescue==TRUE){
             colnames(out.eq2c$contrast) <- name.coef
-            if(!is.null(transform.sigma) || !is.null(transform.k) || !is.null(transform.rho)){ ## the user specifically requests the transformed scale
+            if(!is.null(object.transform$sigma) || !is.null(object.transform$k) || !is.null(object.transform$rho)){ ## the user specifically requests the transformed scale
                 backtransform <- FALSE
             }else{
                 backtransform <- TRUE

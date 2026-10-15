@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (17:26) 
 ## Version: 
-## Last-Updated: okt 14 2026 (13:48) 
+## Last-Updated: okt 15 2026 (15:15) 
 ##           By: Brice Ozenne
-##     Update #: 553
+##     Update #: 572
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,18 +65,23 @@ logLik.lmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
 
         ## normalize p argument
         if(!is.null(p)){
-            init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
-                                    x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
-                                    table.param = object$design$param)
-            theta <- init$p
+            object.transform <- transform(object)
+            theta <- .reparametrize(p,
+                                   type = object$design$param$type,
+                                   sigma = object$design$param$sigma,
+                                   k.x = object$design$param$k.x,
+                                   k.y = object$design$param$k.y,
+                                   Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
+                                   transform.sigma = object.transform$sigma, transform.k = object.transform$k, transform.rho = object.transform$rho,
+                                   transform.names = TRUE)$p
         }else{
-            theta <- object$param
+            theta <- transform(object, type = "value(originalName)")
         }
 
         ## evaluate log-lik
         out <- .moments.lmm(value = theta, design = design, time = object$time, method.fit = object$args$method.fit, type.information = object$args$type.information,
-                            transform.sigma = "none", transform.k = "none", transform.rho = "none",
-                            logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = indiv, 
+                            transform.sigma = object.transform$sigma, transform.k = object.transform$k, transform.rho = object.transform$rho,
+                            updateGLS = FALSE, logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, robust = FALSE, indiv = indiv, 
                             trace = FALSE)$logLik
 
     } 
@@ -203,9 +208,9 @@ logLik.mlmm <- function(object, newdata = NULL, p = NULL, indiv = FALSE, ...){
         
         for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
             iPattern <- precompute$weights[iG,"pattern"]
-            
+
             iOmegaM1 <- precompute$Omega$OmegaM1[[iPattern]]
-            iLogDetOmega <- precompute$Omega$logdetOmega[[iPattern]]
+            iLogDetOmega <- precompute$Omega$logdetOmega[iPattern]
             iWeight <- precompute$weights[iG,"sum_w"]
             iRR <- precompute$RR[[iPattern]]## has already been weigthed
 

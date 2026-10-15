@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:23) 
+## Last-Updated: okt 15 2026 (14:21) 
 ##           By: Brice Ozenne
-##     Update #: 1399
+##     Update #: 1411
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -96,8 +96,9 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     }
 
     ## *** transformation & p
+    x.transform <- transform(x)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
                             table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -129,7 +130,7 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
         out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                            logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
+                            updateGLS = FALSE, logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = indiv, effects = effects, robust = FALSE,
                             trace = FALSE, transform.names = transform.names)$information
     }
 
@@ -176,8 +177,31 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
     n.vcovcoef <- length(name.vcovcoef)
     npair.vcov <- NROW(pair.vcov) ## number of pairs of variance parameters
 
+    ## ** restrict to relevant parameters
+    test.mean <- (n.mucoef>0) && ("mean" %in% effects)
+    test.vcov <- (n.vcovcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
+    if(test.vcov && REML && indiv){
+        message <- "approximate individual REML information"
+    }else{
+        message <- NULL
+    }
+    
+
     ## ** prepare output
-    name.effects <- c(name.mucoef, name.vcovcoef)
+    name.effects <- NULL
+    if(test.mean){
+        name.effects <- c(name.effects,name.mucoef)
+    }
+    if(test.vcov){
+        name.effects <- c(name.effects,name.vcovcoef)
+        if(test.mean){
+            pair.vcov$key1 <- pair.vcov$key1.all
+            pair.vcov$key2 <- pair.vcov$key2.all
+        }else{
+            pair.vcov$key1 <- pair.vcov$key1.vcov
+            pair.vcov$key2 <- pair.vcov$key2.vcov
+        }
+    }
     n.effects <- length(name.effects)
     if(indiv){
         info <- array(0, dim = c(n.cluster, n.effects, n.effects),
@@ -187,35 +211,6 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
                        dimnames = list(name.effects, name.effects)
                        )
     }    
-
-    ## ** restrict to relevant parameters
-    test.mean <- (n.mucoef>0) && ("mean" %in% effects)
-    test.vcov <- (n.vcovcoef>0) && (("variance" %in% effects) || ("correlation" %in% effects))
-
-    if(test.vcov){
-        if(REML && indiv){
-            message <- "approximate individual REML information"
-        }else{
-            message <- NULL
-        }
-
-        if("variance" %in% effects == FALSE || "correlation" %in% effects == FALSE){            
-            if("variance" %in% effects == FALSE){            
-                name.vcovcoef <- setdiff(name.vcovcoef, name.allcoef[attr(name.allcoef, "type") %in% c("sigma","k")])
-            }else if("correlation" %in% effects == FALSE){
-                name.vcovcoef <- setdiff(name.vcovcoef, name.allcoef[attr(name.allcoef, "type") %in% c("rho")])
-            }
-            precompute$Omega$d2Trace <- lapply(precompute$Omega$d2Trace, function(iO){iO[intersect(names(iO),name.effects),,drop=FALSE]})
-            if(type.information=="observed"){
-                precompute$Omega$dOmegaM1 <- lapply(precompute$Omega$dOmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),,drop=FALSE]})
-                precompute$Omega$d2OmegaM1 <- lapply(precompute$Omega$d2OmegaM1, function(iO){iO[,intersect(colnames(iO),name.effects),,drop=FALSE]})
-            }
-            n.vcovcoef <- length(name.vcovcoef)
-            test.vcov <- n.vcovcoef>0
-        }        
-    }else{
-        message <- NULL
-    }
 
     ## ** compute information
     if(REML && test.vcov){

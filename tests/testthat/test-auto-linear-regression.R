@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (10:13) 
 ## Version: 
-## Last-Updated: okt  1 2026 (12:41) 
+## Last-Updated: okt 15 2026 (12:16) 
 ##           By: Brice Ozenne
-##     Update #: 225
+##     Update #: 226
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -26,8 +26,8 @@ if(FALSE){
 }
 
 context("Check lmm on linear regressions")
-LMMstar.options(optimizer = "FS", method.numDeriv = "Richardson", precompute.moments = TRUE,
-                columns.confint = c("estimate","se","df","lower","upper","p.value"), df = TRUE)
+LMMstar.options(optimizer = "FS", df = "analytic", method.numDeriv = "Richardson", 
+                columns.confint = c("estimate","se","df","lower","upper","p.value"))
 
 ## * simulate data
 n <- 5e1
@@ -48,7 +48,6 @@ set.seed(10)
 d <- lava::sim(m,n, latent = FALSE)
 d$time <- "t1"
 
-stats::.getXlevels(~time,data.frame(time = 1:4))
 
 ## * single variance parameter (ML)
 

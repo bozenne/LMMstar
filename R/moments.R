@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt 15 2026 (09:35) 
+## Last-Updated: okt 15 2026 (15:33) 
 ##           By: Brice Ozenne
-##     Update #: 1020
+##     Update #: 1104
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,8 +76,9 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     }
 
     ## *** transformation & p
+    x.transform <- transform(x)
     init <- .init_transform(p = p, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                            x.transform.sigma = x$reparametrize$transform.sigma, x.transform.k = x$reparametrize$transform.k, x.transform.rho = x$reparametrize$transform.rho,
+                            x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
                             table.param = x$design$param)
     transform.sigma <- init$transform.sigma
     transform.k <- init$transform.k
@@ -111,7 +112,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     ## ** evaluate moments 
     out <- .moments.lmm(value = theta, design = design, time = x$time, method.fit = x$args$method.fit, type.information = type.information,
                         transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
-                        logLik = logLik, score = score, information = information, vcov = vcov, df = df, indiv = indiv, effects = effects, robust = FALSE,
+                        updateGLS = FALSE, logLik = logLik, score = score, information = information, vcov = vcov, df = df, indiv = indiv, effects = effects, robust = FALSE,
                         trace = FALSE, method.numDeriv = options$method.numDeriv, transform.names = transform.names)
 
     ## ** export
@@ -121,7 +122,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
 ## * .moments.lmm
 .moments.lmm <- function(value, design, time, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
-                         logLik, score, information, vcov, df, indiv, effects, robust,
+                         updateGLS, logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, method.numDeriv, transform.names){
 
     out <- list()
@@ -130,42 +131,21 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     name.allcoef <- design$param$name
     attr(name.allcoef,"type") <- design$param$type
     nameparam.vcov <- design$param[design$param$type!="mu" & is.na(design$param$constraint),"name"]
+    nameparam.mu <- design$param[design$param$type=="mu" & is.na(design$param$constraint),"name"]
 
-    ## ** 1- compute partial derivatives regarding the mean and the variance
-    if(trace>=1){cat("- residuals \n")}
-    out$fitted <- design$mean %*% value[colnames(design$mean)]
-    out$residuals <- design$Y - out$fitted
-
-    if(is.null(design$weights$multiplier)){
-        pattern.ntime <- design$vcov$Upattern$n.time
-        pattern.cluster <- design$vcov$Upattern$index.cluster
+    ## require the full information whenever the information is not block diagonal
+    ## the whole matrix is needed in order to get the inverse (vcov)
+    if((vcov && type.information=="observed")  || (df && attr(df,"method")=="analytic")){
+        effects2 <- c("mean","variance","correlation")
     }else{
-        pattern.ntime <- stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name)[design$precompute.weights$vcov]
-        pattern.cluster <- tapply(1:NROW(design$vcov$pattern),factor(design$vcov$pattern$all, levels = design$precompute.weights$pattern), FUN = identity)
+        effects2 <- effects
     }
 
-    wRR <- cbind(out$residuals)
-    if(!is.null(design$weights$XYR)){        
-        wRR <- sweep(wRR, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights$XYR))
-    }
+    ## prepare for likelihood evaluation
     precompute <- list(weights = design$precompute.weights,
-                       XX = design$precompute.XX,
-                       RR = .precomputeRR(residuals = wRR, pattern = design$precompute.weights$pattern, 
-                                          pattern.ntime = stats::setNames(pattern.ntime, design$precompute.weights$pattern),
-                                          pattern.cluster = pattern.cluster, index.cluster = design$index.cluster)                           
-                       )
+                       XX = design$precompute.XX)
 
-    if(score || information || vcov || df){
-
-        wR <- out$residuals
-        if(!is.null(design$weights$XYR)){        
-            wR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = design$weights$XYR)
-        }
-        precompute$XR  <-  .precomputeXR(X = design$mean, residuals = wR, pattern = design$precompute.weights$pattern,
-                                         pattern.ntime = stats::setNames(pattern.ntime, design$precompute.weights$pattern),
-                                         pattern.cluster = pattern.cluster, index.cluster = design$index.cluster)
-    }
-
+    ## ** 1- compute partial derivatives regarding the variance
     if(trace>=1){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = design$vcov, param = value,
                              transform.sigma = transform.sigma,
@@ -201,28 +181,61 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         triplet <- NULL
     }
 
-    ## ** 2- precompute
-    ## *** require the full information whenever the information is not block diagonal
-    ## all the matrix is need in order to get the inverse (vcov)
-    if((vcov && (method.fit=="REML"||type.information=="observed"))  || is.null(attr(df,"method")) || attr(df,"method")=="analytic"){
-        effects2 <- c("mean","variance","correlation")
-    }else{
-        effects2 <- effects
-    }
-
-    ## *** matrix product between the residual variance-covariance matrix and its derivative
+    ## precompute matrix product between the residual variance-covariance matrix and its derivative
     precompute$Omega <- .precomputeOmega(Omega = out$Omega, dOmega = out$dOmega, d2Omega = out$d2Omega, d3Omega = out$d3Omega, multiplier = design$multiplier, 
                                          effects = effects2, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3, precompute = precompute,
                                          REML = method.fit=="REML", type.information = type.information,
                                          logLik = logLik, score = (score || (vcov && robust)), information = information, vcov = vcov, df = df)
+    out$OmegaM1 <- precompute$Omega$OmegaM1
 
-    if(method.fit == "REML" && !is.null(precompute$XX)){
+    if(method.fit == "REML"){ ## precompute REML terms        
         precompute$REML <- .precomputeREML(dOmega = out$dOmega, d2Omega = out$d2Omega, d3Omega = out$d3Omega, 
                                            effects = effects2, param.vcov = nameparam.vcov, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3, precompute = precompute, 
                                            logLik = logLik, score = score, information = information, vcov = vcov, df = df)
     }
 
-    ## ** 3- compute likelihood derivatives
+    ## ** 2- GLS update of the mean parameters
+    out$value <- value
+    if(updateGLS && length(nameparam.mu)>0){
+        if(trace>=1){cat("- GLS update \n")}
+        value[nameparam.mu] <- .GLS(OmegaM1 = precompute$Omega$OmegaM1, precompute.XY = design$precompute.XY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)[nameparam.mu]
+        
+    }
+
+    ## ** 3- compute partial derivatives regarding the mean
+    if(trace>=1){cat("- residuals \n")}
+    out$fitted <- design$mean %*% value[colnames(design$mean)]
+    out$residuals <- design$Y - out$fitted
+
+    if(is.null(design$weights$multiplier)){
+        pattern.ntime <- stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name)
+        pattern.cluster <- stats::setNames(design$vcov$Upattern$index.cluster, design$vcov$Upattern$name)
+    }else{
+        ## , design$precompute.weights$pattern)
+        pattern.ntime <- stats::setNames(design$vcov$Upattern$n.time, design$vcov$Upattern$name)[design$precompute.weights$vcov]
+        names(pattern.ntime) <- design$precompute.weights$pattern
+        pattern.cluster <- tapply(1:NROW(design$vcov$pattern),factor(design$vcov$pattern$all, levels = design$precompute.weights$pattern), FUN = identity)
+        names(pattern.cluster) <- design$precompute.weights$pattern
+    }
+
+    wRR <- cbind(out$residuals)
+    if(!is.null(design$weights$XYR)){        
+        wRR <- sweep(wRR, FUN = "*", MARGIN = 1, STATS = sqrt(design$weights$XYR))
+    }
+    precompute$RR <- .precomputeRR(residuals = wRR, pattern = design$precompute.weights$pattern, 
+                                   pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = design$index.cluster)                           
+
+    if(score || information || vcov || df){
+
+        wR <- out$residuals
+        if(!is.null(design$weights$XYR)){        
+            wR <- sweep(out$residuals, FUN = "*", MARGIN = 1, STATS = design$weights$XYR)
+        }
+        precompute$XR  <-  .precomputeXR(X = design$mean, residuals = wR, pattern = design$precompute.weights$pattern,
+                                         pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = design$index.cluster)
+    }
+
+    ## ** 4- compute likelihood derivatives
 
     ## *** log-likelihood
     if(logLik){
@@ -240,14 +253,10 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                          indiv = indiv || (vcov && robust), REML = method.fit=="REML", effects = effects2, precompute = precompute)
 
         if(score){
-            if(indiv){
-                out$score <- Mscore[,name.allcoef,drop=FALSE]
+            if(!indiv && (vcov && robust)){
+                out$score <- colSums(Mscore)
             }else{
-                if(robust){
-                    out$score <- colSums(Mscore[,name.allcoef,drop=FALSE])
-                }else{
-                    out$score <- Mscore[name.allcoef]
-                }
+                out$score <- Mscore
             }
             attr(out$score,"message") <- attr(Mscore,"message")
         }
@@ -261,11 +270,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                               indiv = indiv && information, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, precompute = precompute)
 
         if(information){
-            if(indiv){
-                out$information <- Minfo[,name.allcoef,name.allcoef,drop=FALSE]
-            }else{
-                out$information <- Minfo[name.allcoef,name.allcoef,drop=FALSE]
-            }
+            out$information <- Minfo
             attr(out$information, "type.information") <- type.information
             attr(out$information,"message") <- attr(Minfo,"message")            
         }
@@ -294,7 +299,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         }
 
         if(vcov){
-            out$vcov <- Mvcov[name.allcoef,name.allcoef,drop=FALSE]
+            out$vcov <- Mvcov
             attr(out$vcov, "type.information") <- type.information
             attr(out$vcov, "robust") <- robust>0
             attr(out$vcov, "message") <- attr(Mvcov,"message")            
@@ -308,7 +313,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         if(is.null(attr(df,"method")) || attr(df,"method")=="analytic"){
             out$df <- .df_analytic(X = design$mean, residuals = out$residuals, weights = design$weights, vcov = out$vcov, robust = robust,
                                    pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3,
-                                   REML = (method.fit=="REML"), type.information = type.information, effects = effects2, precompute = precompute)
+                                   REML = (method.fit=="REML"), type.information = type.information, effects = effects2, precompute = precompute, diag = TRUE)
         }else if(attr(df,"method")=="numeric"){
             out$df <- .df_numDeriv(param = value, design = design, time = time, method.fit = method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
@@ -319,8 +324,30 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         attr(out$df,"dVcov") <- NULL        
     }
 
-    ## ** 4- export
+    ## ** 5- export
     return(out)
+}
+
+## * .optimGLS
+## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
+.GLS <- function(OmegaM1, precompute.XY, precompute.XX, precompute.weights){
+
+    param.mu <- colnames(precompute.XX$key)
+    n.param <- length(param.mu)
+    numerator <- matrix(0, nrow = n.param, ncol = 1)
+    denominator <- matrix(0, nrow = n.param, ncol = n.param)
+
+    for(iG in 1:NROW(precompute.weights)){ ## loop over covariance and replication patterns
+
+        iPattern <- precompute.weights[iG,"pattern"]
+        iVec.OmegaM1 <- as.double(OmegaM1[[iPattern]])
+        numerator <- numerator + t(iVec.OmegaM1 %*%  precompute.XY[[iPattern]])
+        denominator <- denominator + as.double(iVec.OmegaM1 %*%  precompute.XX$pattern[[iPattern]])[precompute.XX$key]
+
+    }
+
+    out <- solve(denominator, numerator)    
+    return(stats::setNames(as.double(out), param.mu))
 }
 
 ##----------------------------------------------------------------------

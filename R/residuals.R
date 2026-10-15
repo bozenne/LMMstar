@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt  1 2026 (12:42) 
+## Last-Updated: okt 15 2026 (10:52) 
 ##           By: Brice Ozenne
-##     Update #: 1553
+##     Update #: 1554
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -156,8 +156,9 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 
     ## *** p
     if(!is.null(p)){
+        object.transform <- transform(object)
         init <- .init_transform(p = p, transform.sigma = NULL, transform.k = NULL, transform.rho = NULL, 
-                                x.transform.sigma = object$reparametrize$transform.sigma, x.transform.k = object$reparametrize$transform.k, x.transform.rho = object$reparametrize$transform.rho,
+                                x.transform.sigma = object.transform$sigma, x.transform.k = object.transform$k, x.transform.rho = object.transform$rho,
                                 table.param = object$design$param)
         theta <- init$p
     }else{
