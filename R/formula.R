@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:53) 
 ## Version: 
-## Last-Updated: Feb 13 2026 (15:19) 
+## Last-Updated: okt 16 2026 (14:14) 
 ##           By: Brice Ozenne
-##     Update #: 326
+##     Update #: 330
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,7 +17,7 @@
 
 ## * formula.lmm (code)
 ##' @export
-formula.lmm <- function(x, effects = "mean", ...){
+formula.lmm <- function(x, effects = "mean", simplify = TRUE, ...){
 
     ## ** normalize user imput
     dots <- list(...)
@@ -26,18 +26,30 @@ formula.lmm <- function(x, effects = "mean", ...){
     }
 
     if(identical(effects,"all")){
-        effects <- c("mean","variance")
+        effects <- c("mean",names(x$design$vcov$formula)[sapply(x$design$vcov$formula,is.null)==FALSE])
     }
-    effects <- match.arg(effects, c("mean","variance"), several.ok = TRUE)
+    effects <- match.arg(effects, c("mean","variance","correlation","correlation.cross"), several.ok = TRUE)
 
     ## ** extract formula
-    if("mean" %in% effects && "variance" %in% effects){
-        return(list(mean = x$formula$mean,
-                    variance = x$formula$var))
-    }else if("mean" %in% effects){
-        return(x$formula$mean)
-    }else if("variance" %in% effects){
-        return(x$formula$var)
+    out <- list()
+    if("mean" %in% effects){
+        out$mean <- formula(attr(x$design$mean,"terms"))
+    }
+    if("variance" %in% effects){
+        out$variance <- x$design$vcov$formula$variance
+    }
+    if("correlation" %in% effects){
+        out$correlation <- x$design$vcov$formula$correlation
+    }
+    if("correlation.cross" %in% effects){
+        out$correlation.cross <- x$design$vcov$formula$correlation.cross
+    }
+
+    ## ** export
+    if(simplify && length(out)==1){
+        return(out[[1]])
+    }else{
+        return(out)
     }
 }
 

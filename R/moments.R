@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (09:15) 
 ## Version: 
-## Last-Updated: okt 15 2026 (15:33) 
+## Last-Updated: okt 16 2026 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 1104
+##     Update #: 1140
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -120,11 +120,12 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
 }
 
 ## * .moments.lmm
-.moments.lmm <- function(value, design, time, method.fit, type.information,
+.moments.lmm <- function(value, design, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
                          updateGLS, logLik, score, information, vcov, df, indiv, effects, robust,
                          trace, method.numDeriv, transform.names){
 
+    ## ** prepare
     out <- list()
     test.d2Omega <- df || ((vcov || information) & (method.fit == "REML" || type.information == "observed"))
     test.d3Omega <- df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")
@@ -145,6 +146,11 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     precompute <- list(weights = design$precompute.weights,
                        XX = design$precompute.XX)
 
+    ## triplet of variance-covariance coefficients
+    if(df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")){
+        design$vcov$triplet.vcov <- .tripletVcov(structure = design$vcov, X = design$mean, index.cluster = design$index.cluster, index.clusterTime = design$index.clusterTime)
+    }
+
     ## ** 1- compute partial derivatives regarding the variance
     if(trace>=1){cat("- Omega \n")}
     out$Omega <- .calc_Omega(object = design$vcov, param = value,
@@ -153,53 +159,25 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
                              transform.rho = transform.rho,
                              simplify = FALSE)
 
-    if(score || information || vcov || df){
-        if(trace>=1){cat("- dOmega \n")}
-        out$dOmega <- .calc_dOmega(object = design$vcov, param = value, Omega = out$Omega, 
-                                   transform.sigma = transform.sigma,
-                                   transform.k = transform.k,
-                                   transform.rho = transform.rho)
-    }
-
-    if(test.d2Omega){
-        if(trace>=1){cat("- d2Omega \n")}
-        out$d2Omega <- .calc_d2Omega(object = design$vcov, param = value, Omega = out$Omega, 
-                                     transform.sigma = transform.sigma,
-                                     transform.k = transform.k,
-                                     transform.rho = transform.rho)
-    }
-
-    if(test.d3Omega){
-        if(trace>=1){cat("- d3Omega \n")}
-        triplet <- .meanCovTriplet(structure = design$vcov, X = design$mean, index.cluster = design$index.cluster, index.clusterTime = design$index.clusterTime)
-
-        out$d3Omega <- .calc_d3Omega(object = design$vcov, param = value, Omega = out$Omega, triplet = triplet$vcov3,
-                                     transform.sigma = transform.sigma,
-                                     transform.k = transform.k,
-                                     transform.rho = transform.rho)
-    }else{
-        triplet <- NULL
-    }
-
     ## precompute matrix product between the residual variance-covariance matrix and its derivative
-    precompute$Omega <- .precomputeOmega(Omega = out$Omega, dOmega = out$dOmega, d2Omega = out$d2Omega, d3Omega = out$d3Omega, multiplier = design$multiplier, 
-                                         effects = effects2, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3, precompute = precompute,
-                                         REML = method.fit=="REML", type.information = type.information,
+    precompute$Omega <- .precomputeOmega(object = design$vcov, Omega = out$Omega, precompute = precompute, multiplier = design$multiplier,
+                                         param = value, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
+                                         effects = effects2, REML = method.fit=="REML", type.information = type.information,
                                          logLik = logLik, score = (score || (vcov && robust)), information = information, vcov = vcov, df = df)
     out$OmegaM1 <- precompute$Omega$OmegaM1
 
-    if(method.fit == "REML"){ ## precompute REML terms        
-        precompute$REML <- .precomputeREML(dOmega = out$dOmega, d2Omega = out$d2Omega, d3Omega = out$d3Omega, 
-                                           effects = effects2, param.vcov = nameparam.vcov, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3, precompute = precompute, 
+    if(method.fit == "REML"){ ## precompute REML terms
+        precompute$REML <- .precomputeREML(precompute = precompute, effects = effects2, param.vcov = nameparam.vcov, pair.vcov = design$vcov$pair.vcov, triplet.vcov = design$vcov$triplet.vcov, 
                                            logLik = logLik, score = score, information = information, vcov = vcov, df = df)
     }
 
     ## ** 2- GLS update of the mean parameters
-    out$value <- value
-    if(updateGLS && length(nameparam.mu)>0){
-        if(trace>=1){cat("- GLS update \n")}
-        value[nameparam.mu] <- .GLS(OmegaM1 = precompute$Omega$OmegaM1, precompute.XY = design$precompute.XY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)[nameparam.mu]
-        
+    if(updateGLS){
+        out$value <- value
+        if(length(nameparam.mu)>0){
+            if(trace>=1){cat("- GLS update \n")}
+            value[nameparam.mu] <- .GLS(OmegaM1 = precompute$Omega$OmegaM1, precompute.XY = design$precompute.XY, precompute.XX = design$precompute.XX, precompute.weights = design$precompute.weights)[nameparam.mu]
+        }
     }
 
     ## ** 3- compute partial derivatives regarding the mean
@@ -266,7 +244,7 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     if(information || vcov || (df & robust!=1)){
         if(trace>=1){cat("- information \n")}
         Minfo <- .information(X = design$mean, residuals = out$residuals, weights = design$weights, 
-                              pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef, pair.vcov = design$vcov$pair.vcovvcov,
+                              pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef, pair.vcov = design$vcov$pair.vcov,
                               indiv = indiv && information, REML = (method.fit=="REML"), type.information = type.information, effects = effects2, precompute = precompute)
 
         if(information){
@@ -312,10 +290,10 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
         if(trace>=1){cat("- degrees-of-freedom \n")}
         if(is.null(attr(df,"method")) || attr(df,"method")=="analytic"){
             out$df <- .df_analytic(X = design$mean, residuals = out$residuals, weights = design$weights, vcov = out$vcov, robust = robust,
-                                   pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef, pair.vcov = design$vcov$pair.vcovvcov, triplet.vcov = triplet$vcov3,
+                                   pattern = design$vcov$pattern, index.cluster = design$index.cluster, name.allcoef = name.allcoef, pair.vcov = design$vcov$pair.vcov, triplet.vcov = design$vcov$triplet.vcov,
                                    REML = (method.fit=="REML"), type.information = type.information, effects = effects2, precompute = precompute, diag = TRUE)
         }else if(attr(df,"method")=="numeric"){
-            out$df <- .df_numDeriv(param = value, design = design, time = time, method.fit = method.fit, type.information = type.information,
+            out$df <- .df_numDeriv(param = value, design = design, method.fit = method.fit, type.information = type.information,
                                    transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                    effects = effects2, vcov = Mvcov, robust = robust, method.numDeriv = method.numDeriv)
         }
@@ -328,7 +306,8 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     return(out)
 }
 
-## * .optimGLS
+## * helper
+## ** .optimGLS
 ## Implement GLS estimator i.e. \beta = (tX \OmegaM1 X)^{1} tX \OmegaM1 Y
 .GLS <- function(OmegaM1, precompute.XY, precompute.XX, precompute.weights){
 
@@ -350,5 +329,47 @@ moments.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL,
     return(stats::setNames(as.double(out), param.mu))
 }
 
+## ** .tripletVcov
+.tripletVcov <- function(structure, X, index.cluster, index.clusterTime){
+    
+    n.pattern <- NROW(structure$Upattern)
+    activeparam <- c(colnames(X),structure$param[is.na(structure$param$constraint),"name"])
+    
+    ## *** pairs of covariance parameters
+    ## collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
+    ls.Mparam.vcovvcov <- pairParamVcovVcov(structure)
+    
+    ## unique combinations of variance-covariance parameters across patterns
+    Mparam.vcovvcov <- unique(do.call(rbind,ls.Mparam.vcovvcov))
+    
+    ## table with pairs for each pattern
+    structure$pair.vcov <- structure$pair.vcov
+
+    ## *** triplets of covariance parameters
+    ## form all triplets in each pattern
+    ls.triplet.vcovvcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){
+        unorderedTriplet(intersect(activeparam,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
+    }, simplify = FALSE)
+
+    ## unique triplets across all patterns
+    Utriplet.vcovvcov <- unique(t(do.call(cbind,ls.triplet.vcovvcov)))
+    out <- data.frame(paste(Utriplet.vcovvcov[,1],Utriplet.vcovvcov[,2],Utriplet.vcovvcov[,3],sep = "_"),
+                                    Utriplet.vcovvcov,
+                                    matrix(NA, nrow = NROW(Utriplet.vcovvcov), ncol = n.pattern))
+    names(out) <- c("name","param1","param2","param3",structure$Upattern$name)
+    ## find which triplet appears in which pattern
+    for(iPattern in structure$Upattern$name){ ## iP <- structure$Upattern$name[1]
+        ## put parameter from the pattern first
+        iParam.pattern <- structure$Upattern$param[[which(structure$Upattern$name == iPattern)]]
+        iParam.active <- c(iParam.pattern,setdiff(activeparam,iParam.pattern))
+        ## convert to numeric
+        iUtriplet.vcov3.num <- matrix(as.numeric(factor(Utriplet.vcovvcov, levels = iParam.active)), nrow = NROW(Utriplet.vcovvcov), ncol = NCOL(Utriplet.vcovvcov))
+        ## check all parameters belong to pattern
+        out[,iPattern] <- rowSums(iUtriplet.vcov3.num <= length(iParam.pattern))==3
+    }
+
+    ## *** export
+    return(out)
+}
 ##----------------------------------------------------------------------
 ### moments.R ends here

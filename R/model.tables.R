@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 20 2021 (10:48) 
 ## Version: 
-## Last-Updated: okt 15 2026 (14:41) 
+## Last-Updated: okt 16 2026 (16:04) 
 ##           By: Brice Ozenne
-##     Update #: 435
+##     Update #: 460
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -17,16 +17,23 @@
 
 ## * model.tables.lmm
 ##' @title Statistical Inference and parametrization of a Linear Mixed Model
-##' @description Export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model
-##' or a table describing each parameter (type, associated sigma or k parameter, ...).
+##' @description Main use: export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model. \cr
+##' Side use: access details about the parametrization or the optimisation procedure.
 ##'
 ##' @param x a \code{lmm} object.
 ##' @param level [numeric,0-1] the confidence level of the confidence intervals.
-##' @param effects [character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-##' or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
-##' or only for variance coefficients (\code{"variance"}),
-##' or only for correlation coefficients (\code{"correlation"}).
-##' Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).
+##' @param effects [character] Main use: output estimates, CIs, and p-values for \itemize{
+##' \item \code{"all"}: all parameters
+##' \item \code{"mean"} or \code{"fixed"}: mean parameters
+##' \item \code{"variance"}: variance parameters
+##' \item \code{"correlation"}: correlation parameters
+##' }  
+##' Side use: output \itemize{
+##' \item \code{"param"}: name and characteristics of each parameter.
+##' \item \code{"args"}: argument with which the optimization procedure was run. 
+##' \item \code{"opt"}: output of the optimization procedure.
+##' \item \code{"variables"}: characteristics of the outcome, strata, time, cluster, and weight variables.
+##' } 
 ##' @param robust [logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 ##' Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.
 ##' @param null [numeric vector] the value of the null hypothesis relative to each coefficient.
@@ -39,11 +46,11 @@
 ##' Not relevant when the argument \code{effects="param"}, 
 ##' @param ... Not used. For compatibility with the generic method.
 ##' 
-##' @details When \code{effects} differs from \code{"param"}, this function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
+##' @details Main use: the function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
 ##' 
 ##' @keywords methods
 ##' 
-##' @return A \code{data.frame} object.
+##' @return Main use: \code{data.frame} object.
 ##' 
 ##' @export
 model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, null = NULL,
@@ -62,10 +69,14 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
         if(!is.character(effects) || !is.vector(effects)){
             stop("Argument \'effects\' must be a character vector. \n")
         }
-        valid.effects <- c("param","mean","fixed","variance","correlation","all")
+        valid.effects <- c("param","mean","fixed","variance","correlation","all",
+                           "args","opt","variables")
         if(any(effects %in% valid.effects == FALSE)){
             stop("Incorrect value for argument \'effect\': \"",paste(setdiff(effects,valid.effects), collapse ="\", \""),"\". \n",
                  "Valid values: \"",paste(valid.effects, collapse ="\", \""),"\". \n")
+        }
+        if(any(c("args","opt","variables") %in% effects) & length(effects)!=1){
+            stop("Too many elements in argument \'effect\': it should have length 1 when it contains \"",intersect(effects,c("args","opt","variables"))[1],"\". \n",sep="cs")
         }
         ## otherwise let anova initialize, e.g. all or fixed
     }
@@ -94,48 +105,16 @@ model.tables.lmm <- function(x, level = 0.95, effects = NULL, robust = FALSE, nu
     }
 
     ## ** extract
-    if(!is.null(effects) && "param" %in% effects){
-        out <- cbind(trans.name = x$design$param$name, x$design$param)
-        x.transform <- transform(x)
-
-        if(transform.names == FALSE){
-            ## do nothing
-        }else{
-            ## when not exported align the transformation to the one of the exported parameters
-            if("k" %in% out$type == FALSE){
-                if(is.null(transform.sigma)){
-                    transform.k <- NULL
-                }else{
-                    transform.k <- ifelse(transform.sigma == x.transform$sigma, x.transform$k, "none")
-                }
-            }
-            if("rho" %in% out$type == FALSE){
-                if(is.null(transform.sigma)){
-                    transform.rho <- NULL
-                }else{
-                    transform.rho <- ifelse(transform.sigma == x.transform$sigma, x.transform$rho, "none")
-                }
-            }
-
-            init <- .init_transform(p = NULL, transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho, 
-                                    x.transform.sigma = x.transform$sigma, x.transform.k = x.transform$k, x.transform.rho = x.transform$rho,
-                                    simplify = FALSE)
-
-            index.reparametrize <- which(out$type %in%  c("sigma","k","rho"))
-            out[index.reparametrize,"trans.name"] <- .reparametrize(p = stats::setNames(rep(NA, length(index.reparametrize)), out[index.reparametrize,"name"]),  
-                                                                    type = out[index.reparametrize,"type"],
-                                                                    sigma = out[index.reparametrize,"sigma"],
-                                                                    k.x = out[index.reparametrize,"k.x"],
-                                                                    k.y = out[index.reparametrize,"k.y"],
-                                                                    level = out[index.reparametrize,"level"],                                              
-                                                                    Jacobian = FALSE, dJacobian = FALSE, inverse = FALSE,
-                                                                    transform.sigma = init$transform.sigma,
-                                                                    transform.k = init$transform.k,
-                                                                    transform.rho = init$transform.rho,
-                                                                    transform.names = TRUE)$newname
-        }
-
-        ## *** subset
+    if(!is.null(effects) && "args" %in% effects){
+        out <- x$args
+    }else if(!is.null(effects) && "opt" %in% effects){
+        out <- x$opt
+    }else if(!is.null(effects) && "variables" %in% effects){
+        out <- x$variables
+    }else if(!is.null(effects) && "param" %in% effects){
+        
+        out <- cbind(trans.name = transform(x, type = "name"), x$design$param)
+        ## subset
         effects2 <- setdiff(effects,"param")
         if(length(effects2)>0){
             if(all("all" %in% effects2)){

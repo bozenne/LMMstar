@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 15 2026 (13:54) 
+## Last-Updated: okt 16 2026 (17:23) 
 ##           By: Brice Ozenne
-##     Update #: 3394
+##     Update #: 3477
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -175,11 +175,12 @@
 lmm.formula <- function(object, data, repetition, structure, weights = NULL, 
                         method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
-    name.out <- c("args", "call", "cluster", "df", "d2Omega", "data", "data.original", 
-                  "design", "dOmega", "dVcov", "fitted", "formula", "information", 
-                  "logLik", "Omega", "OmegaM1", "opt", "outcome", "param", "reparametrize", 
-                  "residuals", "score", "strata", "time", "vcov", "weights", "xfactor"
-                  )
+    name.out <- c("call", "args",
+                  "data.original", "variables",
+                  "index.na", "xfactor", "design", 
+                  "opt",
+                  "param", "logLik", "score", "vcov", "information", "dVcov", "df",
+                  "Omega", "OmegaM1", "residuals", "fitted")
     out <- stats::setNames(vector(mode = "list", length = length(name.out)), name.out)
 
     ## ** 0. extract call and default from package
@@ -203,7 +204,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
             structure <- do.call(structure, args = list(~1))
         }
     }
-    
+
     ## ** 1. check and normalize user input
     if(trace>=1){cat("1. Check and normalize user input")}
 
@@ -279,32 +280,44 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     if(trace>=2){cat("\n")}
 
     ## *** store results
-    out$formula <- list(mean = outArgs$formula,
-                        mean.outcome = outArgs$formula.outcome,
-                        mean.design = outArgs$formula.design,
-                        var = structure$formula$var,
-                        cor = structure$formula$cor)
-    out$outcome <- list(var = var.outcome)
+    object.formula <- list(mean = outArgs$formula,
+                           mean.outcome = outArgs$formula.outcome,
+                           mean.design = outArgs$formula.design,
+                           var = structure$formula$var,
+                           cor = structure$formula$cor)
 
     dfNNA.Ucluster <- data[!duplicated(data$XXclusterXX),c("XXclusterXX","XXcluster.indexXX")]
     cluster.matchNNA <- match(U.cluster,dfNNA.Ucluster$XXclusterXX)
-    out$cluster <- list(n = length(U.cluster), levels = U.cluster, index = dfNNA.Ucluster$XXcluster.indexXX[cluster.matchNNA], var = var.cluster)
     
     dfNNA.Utime <- data[!duplicated(data$XXtimeXX),c("XXtimeXX","XXtime.indexXX")]
     time.matchNNA <- match(U.time,dfNNA.Utime$XXtimeXX)
-    out$time <- list(n = length(U.time), levels = U.time, index = dfNNA.Utime$XXtime.indexXX[time.matchNNA], var = var.time)
 
     dfNNA.Ustrata <- data[!duplicated(data$XXstrataXX),c("XXstrataXX","XXstrata.indexXX")]
     strata.matchNNA <- match(U.strata,dfNNA.Ustrata$XXstrataXX)
-    out$strata <- list(n = length(U.strata), levels = U.strata, index = dfNNA.Ustrata$XXstrata.indexXX[strata.matchNNA], var = var.strata)
 
     out$index.na <- index.na
-    out$data <- data ## possible missing data have been removed
-    out$weights <-  list(var = outArgs$var.weights)
-    out$args <- list(method.fit = outArgs$method.fit,
-                     type.information = outArgs$type.information,
-                     df = outArgs$df,
-                     control =  outArgs$control)
+    ## out$data <- data ## possible missing data have been removed
+
+    out$variables <- data.frame(var = c(var.outcome,
+                                        var.strata,
+                                        var.time,
+                                        var.cluster,
+                                        outArgs$var.weights["likelihood"],
+                                        outArgs$var.weights["Omega"]),
+                                n = c(NA, length(U.strata), length(U.time), length(U.cluster), NA, NA),
+                                original = c(TRUE, !is.na(attr(var.strata,"original")), !is.na(attr(var.time,"original")), !is.na(attr(var.cluster,"original")),
+                                             !is.na(outArgs$var.weights["likelihood"]), !is.na(outArgs$var.weights["Omega"])),
+                                levels = NA,
+                                index = NA)
+
+    out$variables$levels <- list(NULL, U.strata, U.time, U.cluster, NULL, NULL)
+    out$variables$index <- list(NULL,
+                                dfNNA.Ustrata$XXstrata.indexXX[strata.matchNNA],
+                                dfNNA.Utime$XXtime.indexXX[time.matchNNA],
+                                dfNNA.Ucluster$XXcluster.indexXX[cluster.matchNNA],
+                                NULL,
+                                NULL)
+    rownames(out$variables) <- c("outcome","strata","time","cluster","weight.likelihood","weight.Omega")
     
     if(trace>=1){cat("\n")}
 
@@ -322,17 +335,17 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     }
 
     ## *** design matrix
-    out$design <- .model.matrix.lmm(formula.mean = out$formula$mean.design,
+    out$design <- .model.matrix.lmm(formula.mean = object.formula$mean.design,
                                     structure = structure,
-                                    data = data, var.outcome = out$outcome$var, var.weights = out$weights$var,
+                                    data = data, var.outcome = var.outcome, var.weights = outArgs$var.weights,
                                     drop.X = options$drop.X,
                                     options = options,
-                                    df = out$args$df)
+                                    df = outArgs$df)
 
     ## *** update xfactor according to factors used in the vcov structure
     ## NOTE: use model.frame to handline splines in the formula
-    out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(out$formula$mean.design),
-                                                    stats::model.frame(out$formula$mean.design,data))),
+    out$xfactor <- c(list(mean = stats::.getXlevels(stats::terms(object.formula$mean.design),
+                                                    stats::model.frame(object.formula$mean.design,data))),
                      out$design$vcov$xfactor)
     out$design$vcov$xfactor <- NULL
     
@@ -342,60 +355,64 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     if(trace>=1){cat("3. Estimate model parameters")}
 
     valid.control <- c("init","optimizer", names(options$param.optimizer),"transform.sigma","transform.k","transform.rho","trace")
-    if(any(names(out$args$control) %in% valid.control  == FALSE)){
-        stop("Incorrect elements in argument \'control\': \"",paste(names(out$args$control)[names(out$args$control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
+    if(any(names(outArgs$control) %in% valid.control  == FALSE)){
+        stop("Incorrect elements in argument \'control\': \"",paste(names(outArgs$control)[names(outArgs$control) %in% valid.control  == FALSE], collapse = "\" \""),"\". \n",
              "Valid elements: \"",paste(valid.control, collapse = "\" \""),"\".\n")
     }
-    if(identical(out$args$control$init,"lmer")){
-        out$args$control$init <- .initializeLMER(formula = out$formula$mean, structure = out$design$vcov, data = data,
-                                                 param = out$design$param, method.fit = out$args$method.fit, weights = out$design$weights)
+    if(identical(outArgs$control$init,"lmer")){
+        outArgs$control$init <- .initializeLMER(formula = object.formula$mean, structure = out$design$vcov, data = data,
+                                                param = out$design$param, method.fit = outArgs$method.fit, weights = out$design$weights)
     }else if(inherits(out$design$vcov,"CUSTOM")){
         init.Omega <- .calc_Omega(out$design$vcov, param = c(out$design$vcov$init.sigma,out$design$vcov$init.rho), simplify = TRUE)
-        out$args$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
+        outArgs$control$init <- init.Omega[[which.max(out$design$vcov$Upattern$n.time)]]
     }
-    out$args$control[setdiff(names(options$param.optimizer),names(out$args$control))] <- options$param.optimizer[setdiff(names(options$param.optimizer),names(out$args$control))]
-    if(is.null(out$args$control$transform.sigma)){
-        out$args$control$transform.sigma <- options$transform.sigma
+    outArgs$control[setdiff(names(options$param.optimizer),names(outArgs$control))] <- options$param.optimizer[setdiff(names(options$param.optimizer),names(outArgs$control))]
+    if(is.null(outArgs$control$transform.sigma)){
+        outArgs$control$transform.sigma <- options$transform.sigma
     }
-    if(is.null(out$args$control$transform.k)){
-        out$args$control$transform.k <- options$transform.k
+    if(is.null(outArgs$control$transform.k)){
+        outArgs$control$transform.k <- options$transform.k
     }
-    if(is.null(out$args$control$transform.rho)){
-        out$args$control$transform.rho <- options$transform.rho
+    if(is.null(outArgs$control$transform.rho)){
+        outArgs$control$transform.rho <- options$transform.rho
     }
 
     if(trace>0){
-        if(out$args$control$trace>0){cat("\n")}
-        if(out$args$control$trace>1){cat("\n")}
+        if(outArgs$control$trace>0){cat("\n")}
+        if(outArgs$control$trace>1){cat("\n")}
     }
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
-    outEstimate <- .optim.lmm(design = out$design, time = out$time, method.fit = out$args$method.fit, ## use expected information
-                              transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                              optimizer = out$args$control[["optimizer"]], init = out$args$control[["init"]], n.iter = out$args$control[["n.iter"]], n.backtracking = out$args$control[["n.backtracking"]],
-                              tol.score = out$args$control[["tol.score"]], tol.param = out$args$control[["tol.param"]], init.cor = out$args$control[["init.cor"]], trace = out$args$control[["trace"]])
-    out$opt <- outEstimate[c("cv","n.iter","estimate","score","previous.estimate","previous.logLik","control")] ## NOTE: estimate and previous.estimate are on the transformed scale
-    if((trace==0 && out$args$control$trace>0)){
+    outEstimate <- .optim.lmm(design = out$design, n.time = length(U.time), method.fit = outArgs$method.fit, ## use expected information
+                              transform.sigma = outArgs$control$transform.sigma, transform.k = outArgs$control$transform.k, transform.rho = outArgs$control$transform.rho,
+                              optimizer = outArgs$control[["optimizer"]], init = outArgs$control[["init"]], n.iter = outArgs$control[["n.iter"]], n.backtracking = outArgs$control[["n.backtracking"]],
+                              tol.score = outArgs$control[["tol.score"]], tol.param = outArgs$control[["tol.param"]], init.cor = outArgs$control[["init.cor"]], trace = outArgs$control[["trace"]])
+
+    out$opt <- outEstimate[setdiff(names(outEstimate),c("estimate.originalScale"))] ## NOTE: estimate and previous.estimate are on the transformed scale
+    if((trace==0 && outArgs$control$trace>0)){
         cat("\n")
     }
     if(out$opt$cv<=0){
         warning("Convergence issue: no stable solution has been found. \n")
     }
     out$param <- outEstimate$estimate.originalScale
-
+    out$args <- cbind(data.frame(method.fit = outArgs$method.fit,
+                                 type.information = outArgs$type.information,
+                                 df = outArgs$df),
+                      as.data.frame(outArgs$control))
     if(trace>=1){cat("\n")}
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}
 
     outMoments <- .moments.lmm(value = stats::setNames(out$opt$estimate, names(out$param)),
-                               design = out$design, time = out$time, method.fit = out$args$method.fit, type.information = out$args$type.information, 
-                               transform.sigma = out$args$control$transform.sigma, transform.k = out$args$control$transform.k, transform.rho = out$args$control$transform.rho,
-                               updateGLS = FALSE, logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = out$args$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                               design = out$design, method.fit = outArgs$method.fit, type.information = outArgs$type.information, 
+                               transform.sigma = outArgs$control$transform.sigma, transform.k = outArgs$control$transform.k, transform.rho = outArgs$control$transform.rho,
+                               updateGLS = FALSE, logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = outArgs$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
+
     out[names(outMoments)] <- outMoments
     out$fitted <- out$fitted[,1]
     out$residuals <- out$residuals[,1]
-
     if(trace>=1){cat("\n")}
 
     ## ** 5. convert to lmm and export
@@ -1155,23 +1172,6 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
         structure <- do.call(structure, list(formula = ~1))
     }
 
-    ## ** check that time and cluster are appropriately defined with respect to structure
-    if(is.character(structure)){
-        structure.class <- structure
-    }else{
-        structure.class <- na.omit(structure$class)
-    }
-    if(all(is.na(var.cluster.original)) && any(structure.class %in% c("CS","AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
-        stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
-             "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-    }
-    if(all(is.na(var.time.original)) && any(structure.class %in% c("IND","AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
-        stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
-             "Should have exactly one variable before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
-    }
-
-    
-
     ## ** update structure with cluster/time/strata variables
     var.clusterS <- "XXcluster.indexXX"
     attr(var.clusterS,"original") <- var.cluster.original
@@ -1207,13 +1207,21 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
             structure$class$correlation <- NA
             class(structure)[1] <- "IND"
         }
-        if(is.na(structure$class["correlation"]) && structure$class["variance"]=="IND" && (all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original))){
-            if(!is.null(original.class)){original.class <- "IND"}
-            structure$call[[1]] <- parse(text="ID")
-            structure$name$variance <- NA
-            structure$formula$variance <- NULL
-            structure$class["variance"] <- "ID"
-            class(structure)[1] <- "ID"
+        
+        if(is.na(structure$class["correlation"]) && structure$class["variance"]=="IND"){
+            if(all(structure$name$var[[1]] %in% structure$name$strata)){
+                if(!is.null(original.class)){original.class <- "IND"}
+                structure$call[[1]] <- parse(text="ID")
+                structure$class["variance"] <- "ID"
+                class(structure)[1] <- "ID"
+            }else if(all(is.na(structure$name$var)) || all(structure$name$var[[1]] %in% var.time.original)){
+                if(!is.null(original.class)){original.class <- "IND"}
+                structure$call[[1]] <- parse(text="ID")
+                structure$name$variance <- NA
+                structure$formula$variance <- NULL
+                structure$class["variance"] <- "ID"
+                class(structure)[1] <- "ID"
+            }
         }
         if(!is.null(original.class)){
             attr(structure$formula,"update.time")[] <- FALSE
@@ -1225,8 +1233,8 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     ## remove variables from the variance model if redondant with time
     if(attr(structure$formula,"inherit.formula.arg") && attr(structure$formula,"update.time")["variance"] && sum(!is.na(structure$name$variance[[1]]))>0){
         test.redondant <- sapply(structure$name$variance[[1]], function(iVar){
-                iMap <- unique(data[c(iVar,var.time)])
-                all(iMap[[iVar]][match(data[[var.time]], iMap[[var.time]])] == data[[iVar]])
+            iMap <- unique(data[c(iVar,var.time)])
+            all(iMap[[iVar]][match(data[[var.time]], iMap[[var.time]])] == data[[iVar]])
         })
         if(any(test.redondant)){
             structure$name$variance[[1]] <- setdiff(structure$name$variance[[1]], names(test.redondant)[test.redondant])
@@ -1239,8 +1247,28 @@ lmm.partialCor <- function(object, data, repetition, structure, weights,
     ## update structure with cluster, ordering, and strata variables
     structure <- stats::update(structure, var.cluster = var.clusterS, var.time = var.timeS, var.strata = var.strata.original, ranef = ranef)
 
-    
     ## ** Sanity checks
+
+    ## *** check that time and cluster are appropriately defined with respect to structure
+    if(is.character(structure)){
+        structure.class <- structure
+    }else{
+        structure.class <- na.omit(structure$class)
+    }
+    if(all(is.na(var.cluster.original)) && any(structure.class %in% c("CS","AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
+        stop("Incorrect specification of argument \'repetition\': missing cluster variable. \n",
+             "Should have exactly one variable after the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
+    }
+    if(all(is.na(var.time.original))){
+        if(n.time>1 && structure.class %in% "IND"){
+            stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
+                 "It is needed when having multiple observation per cluster, \n",
+                 "and should be placed before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
+        }else if(any(structure.class %in% c("AR1","EXP","LV","ANTE","TOEPLITZ","DUN","UN"))){
+            stop("Incorrect specification of argument \'repetition\': missing time variable. \n",
+                 "It should be placed before the grouping symbol (|), something like: ~ time|cluster or strata ~ time|cluster. \n")
+        }
+    }
 
     ## *** Variability within cluster (for clusters with more than a single value)
     if(!is.null(structure$formula$cor)){

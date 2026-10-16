@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt 15 2026 (14:03) 
+## Last-Updated: okt 16 2026 (11:51) 
 ##           By: Brice Ozenne
-##     Update #: 484
+##     Update #: 504
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,7 +65,6 @@ df.residual.mlmm <- function(object, ...){
     n.allcoef <- length(name.allcoef)
     n.cluster <- length(pattern)
     n.mucoef <- NCOL(X)
-    
     name.mucoef <- colnames(X)
     name.vcovcoef <- intersect(setdiff(name.allcoef,name.mucoef), unlist(lapply(precompute$Omega$dOmegaM1,function(iA){dimnames(iA)[[2]]})))
     n.vcovcoef <- length(name.vcovcoef)
@@ -100,8 +99,9 @@ df.residual.mlmm <- function(object, ...){
     if(test.vcov){
         name.effects <- c(name.effects,name.vcovcoef)
     }
+    
     n.effects <- length(name.effects)
-    dInformation <- array(0, dim = rep(n.mucoef + n.vcovcoef, 3), dimnames = list(name.allcoef, name.allcoef, name.allcoef))
+    dInformation <- array(0, dim = c(n.effects, n.effects, n.allcoef), dimnames = list(name.effects, name.effects, name.allcoef))
 
     ## ** compute derivative of the information matrix
     if(REML && test.vcov){
@@ -120,6 +120,7 @@ df.residual.mlmm <- function(object, ...){
         }),pair.vcov$name))
         
     }
+
     ## ** derivative of the hessian (looping over covariance patterns)
     for (iG in 1:NROW(precompute$weights)) { ## iG <- 1
 
@@ -256,7 +257,7 @@ df.residual.mlmm <- function(object, ...){
     return(df)    
 }
 ## * .df_numDeriv
-.df_numDeriv <- function(param, design, time, method.fit, type.information,
+.df_numDeriv <- function(param, design, method.fit, type.information,
                          transform.sigma, transform.k, transform.rho,
                          effects, robust, vcov, method.numDeriv){  ## if robust is 1 then robust s.e. are computed but df are relative to model-based s.e.
 
@@ -270,7 +271,7 @@ df.residual.mlmm <- function(object, ...){
     get.element <- ifelse(robust,"vcov","information")
     FUN_element <- function(p, as.double){
         
-        iMoment <- .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = type.information,
+        iMoment <- .moments.lmm(value = p, design = design, method.fit = method.fit, type.information = type.information,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                 updateGLS = FALSE, logLik = FALSE, score = FALSE, information = (robust!=2), vcov = (robust==2), df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, method.numDeriv = method.numDeriv, transform.names = FALSE)
@@ -377,134 +378,6 @@ df.residual.mlmm <- function(object, ...){
     return(out)
 }
 
-## ** .unorderedTriplet
-## form all combinations
-## .unorderedTriplet(1:5)
-.unorderedTriplet <- function(x, distinct = FALSE){
-    n <- length(x)
-    ls <- lapply(1:n, function(k){do.call(cbind,lapply(k:n, function(l){rbind(x[k], x[l], x[l:n])}))})
-    out <- do.call(cbind,ls)
-    if(distinct){
-        out <- out[,apply(out,2,function(iCol){sum(duplicated(iCol))<2}),drop=FALSE]
-    }
-    return(out)
-}
-
-## ** .meanCovTriplet
-.meanCovTriplet <- function(structure, X, index.cluster, index.clusterTime){
-    
-    out <- list()
-    n.pattern <- NROW(structure$Upattern)
-    activeparam <- c(colnames(X),structure$param[is.na(structure$param$constraint),"name"])
-    
-    ## *** pairs of covariance parameters
-    ## collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
-    ls.Mparam.vcovvcov <- pairParamVcovVcov(structure)
-    
-    ## unique combinations of variance-covariance parameters across patterns
-    Mparam.vcovvcov <- unique(do.call(rbind,ls.Mparam.vcovvcov))
-    
-    ## table with pairs for each pattern
-    structure$pair.vcovvcov <- structure$pair.vcovvcov
-
-    ## *** pairs of mean-covariance parameters
-    ls.Mparam.meanvcov <- lapply(structure$Upattern$name, function(iName){
-        iCluster <- structure$Upattern[structure$Upattern$name==iName,"index.cluster"][[1]]
-        ## collect, for each pattern, the vector of mean parameters
-        iX.mean <- X[unlist(index.cluster[iCluster]),,drop=FALSE] != 0
-        ## collect, for each pattern, the vector of variance parameters
-        iX.var <- structure$var$X[unlist(index.cluster[iCluster]),,drop=FALSE] != 0
-        if(is.null(structure$cor)){
-            iUX.meanvar <- unique(cbind(iX.mean,iX.var))
-            iOut <- do.call(rbind,apply(iUX.meanvar, MARGIN = 1, function(iRow){c(names(iRow)[which(iRow)],rep("",sum(iRow==FALSE)))}, simplify = FALSE))
-        }else{
-            iNtime <- structure$Upattern[structure$Upattern$name == iName,"n.time"]
-            iName.var <- structure$Upattern[structure$Upattern$name == iName,"var"]
-            iName.cor <- structure$Upattern[structure$Upattern$name == iName,"cor"]
-            iUX.mean <- unique(cbind(XXindexXX = unlist(index.clusterTime[iCluster]),iX.mean))
-            
-            iUX.varcor <- data.frame(XXindex1XX=rep(1:iNtime, times = iNtime),
-                                     XXindex2XX=rep(1:iNtime, each = iNtime),
-                                     apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, times = iNtime), 
-                                     apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, each = iNtime), 
-                                     do.call(cbind, apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE))
-                                     )
-            iOut <- cbind(iUX.varcor, matrix("", nrow = NROW(iUX.varcor), ncol = NCOL(iX.mean), dimnames = list(NULL, colnames(iX.mean))))
-            for(iR in 1:NROW(iOut)){ ## iR <- 1
-                iTest <- colSums(iUX.mean[iUX.mean[,"XXindexXX"] %in% iUX.varcor[iR,c("XXindex1XX","XXindex1XX")],-1,drop=FALSE])
-                iOut[iR,names(iTest[iTest>0])] <- names(iTest[iTest>0])
-            }
-            iOut$XXindex1XX <- NULL
-            iOut$XXindex2XX <- NULL
-        }
-        return(as.matrix(iOut))
-    })
-    names(ls.Mparam.meanvcov) <- structure$Upattern$name
-    ## unique combinations of mean and covariance parameters across patterns
-    Mparam.meanvcov <- unique(do.call(rbind,ls.Mparam.meanvcov))
-
-    ## *** triplets of covariance parameters
-    ## form all triplets in each pattern
-    ls.triplet.vcovvcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){
-        unorderedTriplet(intersect(activeparam,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
-    }, simplify = FALSE)
-
-    ## unique triplets across all patterns
-    Utriplet.vcovvcov <- unique(t(do.call(cbind,ls.triplet.vcovvcov)))
-    out$vcov3 <- data.frame(paste(Utriplet.vcovvcov[,1],Utriplet.vcovvcov[,2],Utriplet.vcovvcov[,3],sep = "_"),
-                                    Utriplet.vcovvcov,
-                                    matrix(NA, nrow = NROW(Utriplet.vcovvcov), ncol = n.pattern))
-    names(out$vcov3) <- c("name","param1","param2","param3",structure$Upattern$name)
-    ## find which triplet appears in which pattern
-    for(iPattern in structure$Upattern$name){ ## iP <- structure$Upattern$name[1]
-        ## put parameter from the pattern first
-        iParam.pattern <- structure$Upattern$param[[which(structure$Upattern$name == iPattern)]]
-        iParam.active <- c(iParam.pattern,setdiff(activeparam,iParam.pattern))
-        ## convert to numeric
-        iUtriplet.vcov3.num <- matrix(as.numeric(factor(Utriplet.vcovvcov, levels = iParam.active)), nrow = NROW(Utriplet.vcovvcov), ncol = NCOL(Utriplet.vcovvcov))
-        ## check all parameters belong to pattern
-        out$vcov3[,iPattern] <- rowSums(iUtriplet.vcov3.num <= length(iParam.pattern))==3
-    }
-
-    ## *** triplets of mean-covariance parameters
-    ## form all triplets in each pattern
-    ls.triplet.meanvcov <- apply(Mparam.meanvcov, MARGIN = 1, FUN = function(iParam){
-        unorderedTriplet(intersect(activeparam,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
-    }, simplify = FALSE)
-    ## unique triplets across all patterns
-    Utriplet.meanvcov <- unique(t(do.call(cbind,ls.triplet.meanvcov)))
-    Utriplet.meanvcov.num <- matrix(as.numeric(factor(Utriplet.meanvcov, levels = activeparam)), nrow = NROW(Utriplet.meanvcov), ncol = NCOL(Utriplet.meanvcov))
-    Utriplet.meanvcov.nMu <- rowSums(Utriplet.meanvcov.num <= sum(activeparam %in% colnames(X)))
-    ## mean covariance covariance
-    Utriplet.mean1vcov2 <- Utriplet.meanvcov[Utriplet.meanvcov.nMu==1,,drop=FALSE]
-    out$mean1vcov2 <- data.frame(paste(Utriplet.mean1vcov2[,1],Utriplet.mean1vcov2[,2],Utriplet.mean1vcov2[,3],sep = "_"),
-                                        Utriplet.mean1vcov2,
-                                        matrix(NA, nrow = NROW(Utriplet.mean1vcov2), ncol = n.pattern))
-    names(out$mean1vcov2) <- c("name","param1","param2","param3",structure$Upattern$name)
-    ## mean mean covariance
-    Utriplet.mean2vcov1 <- Utriplet.meanvcov[Utriplet.meanvcov.nMu==2,,drop=FALSE]
-    out$mean2vcov1 <- data.frame(paste(Utriplet.mean2vcov1[,1],Utriplet.mean2vcov1[,2],Utriplet.mean2vcov1[,3],sep = "_"),
-                                         Utriplet.mean2vcov1,
-                                         matrix(NA, nrow = NROW(Utriplet.mean2vcov1), ncol = n.pattern))
-    names(out$mean2vcov1) <- c("name","param1","param2","param3",structure$Upattern$name)
-
-    for(iPattern in structure$Upattern$name){ ## iP <- 1
-        ## put parameter from the pattern first
-        iParam.pattern <- intersect(activeparam, as.vector(ls.Mparam.meanvcov[[iPattern]]))
-        iParam.active <- c(iParam.pattern,setdiff(activeparam,iParam.pattern))
-        ## convert to numeric
-        iUtriplet.mean1vcov2.num <- matrix(as.numeric(factor(Utriplet.mean1vcov2, levels = iParam.active)),
-                                          nrow = NROW(Utriplet.mean1vcov2), ncol = NCOL(Utriplet.meanvcov))
-        iUtriplet.mean2vcov1.num <- matrix(as.numeric(factor(Utriplet.mean2vcov1, levels = iParam.active)),
-                                          nrow = NROW(Utriplet.mean2vcov1), ncol = NCOL(Utriplet.meanvcov))
-        ## check all parameters belong to pattern
-        out$mean1vcov2[,iPattern] <- rowSums(iUtriplet.mean1vcov2.num <= length(iParam.pattern))==3
-        out$mean2vcov1[,iPattern] <- rowSums(iUtriplet.mean2vcov1.num <= length(iParam.pattern))==3
-    }
-
-    ## *** export
-    return(out)
-}
 
     
 ##----------------------------------------------------------------------

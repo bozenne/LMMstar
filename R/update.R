@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: mar 13 2026 (14:03) 
+## Last-Updated: okt 16 2026 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 217
+##     Update #: 241
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -36,9 +36,10 @@ update.ID <- function(object, var.cluster, var.time, var.strata, ...){
         ## if both repetition and structure contained a strata, it ought to be the same (see check in .lmmNormalizeArgs)
         ## so no need to add to the existing strata
         object$name$strata <- var.strata
+        formula.variance <- stats::update(object$formula$variance, paste0(paste(var.strata,collapse="+"),"~."))
         ## use .formulaStructure to obtain ~0+strata instead of 'just' adding strata to the formula
         outCov <- .formulaStructure(list(variance = formula.variance, correlation = NULL, correlation.cross = NULL),
-                                    var.time = list(variance = var.time, correlation = NULL, correlation.cross = NULL),
+                                    ls.time = list(variance = NULL, correlation = NULL, correlation.cross = NULL),
                                     correlation = FALSE)
         object$formula$variance <- outCov$formula$variance
         object$name$variance <- list(outCov$name$variance)

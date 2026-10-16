@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:14) 
+## Last-Updated: okt 16 2026 (16:03) 
 ##           By: Brice Ozenne
-##     Update #: 254
+##     Update #: 277
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -20,9 +20,12 @@
 ##' @description Contruct a data frame containing all the variables involved in a Linear Mixed Model.
 ##' @param formula a \code{lmm} object.
 ##' @param newdata [data.frame] dataset relative to which the model frame should be constructed.
-##' @param type [character] by default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
-##' Can be used to add rows relative to missing repetitions (\code{"add.NA"})
-##' or obtain a dataset with unique sets of covariates (\code{"unique"}) with respect to the mean structure.
+##' @param type [character] dataset to be output: \itemize{
+##' \item \code{"processed"}: dataset used to fit the Linear Mixed Model
+##' \item \code{"original"}: original dataset provided by the user
+##' \item \code{"unique"}: unique sets of covariates with respect to the mean structure.
+##' \item \code{"extended"}: \code{"processed"} dataset where rows relative to missing repetitions have been added.
+##' }.
 ##' @param add.index [logical] should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
 ##' be added to the output?
 ##' @param na.rm [logical] should rows containing missing values for the variables used in the linear mixed model be removed?
@@ -50,20 +53,23 @@
 
 ## * model.frame.lmm (code)
 ##' @export
-model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FALSE, na.rm = TRUE, ...){
+model.frame.lmm <- function(formula, newdata = NULL, type = "processed", add.index = type %in% c("processed","extended"), na.rm = TRUE, ...){
 
 
     mycall <- match.call()
 
     ## ** extract from object
-    var.manifest <- stats::variable.names(formula)
-    var.outcome <- formula$outcome$var
-    var.cluster <- formula$cluster$var
-    var.time <- formula$time$var
-    n.time <- formula$time$n
-    var.strata <- formula$strata$var
+    table.variables <- stats::model.tables(formula, effects = "variables")
+    var.outcome <- table.variables["outcome","var"]
+    var.cluster <- table.variables["cluster","var"]
+    var.time <- table.variables["time","var"]
+    var.strata <- table.variables["strata","var"]
+    n.time <- table.variables["time","n"]
+    browser()
+    index.cluster <- index(formula, variable = "cluster", type = "factor")
 
     ## ** normalize user imput
+    ## *** dots
     dots <- list(...)
     if("options" %in% names(dots) && !is.null(dots$options)){
         options <- dots$options
@@ -74,18 +80,80 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
     if(length(dots)>0){
         stop("Unknown argument(s) \'",paste(names(dots),collapse="\' \'"),"\'. \n")
     }
-    if(!is.null(type)){
-        type[1] <- match.arg(type[1], c("add.NA","unique"))
+
+    ## *** newdata
+    if(!is.null(newdata)){
+        if(any(setdiff(var.manifest,var.outcome) %in% names(newdata) == FALSE)){
+            missing.col <- setdiff(var.manifest,var.outcome)[setdiff(var.manifest,var.outcome) %in% names(newdata)]
+            stop("Incorrect argument \'newdata\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")
+        }
     }
-    if(!is.null(type) && type[1]=="add.NA"){
+
+    ## *** type
+    if(length(type)!=1){
+        stop("Argument \'type\' should have length 1. \n")
+    }
+    if(type %in% c("processed","original","unique","extended") == FALSE){
+        stop("Argument \'type\' should be one of \"processed\", \"original\", \"unique\", \"extended\". \n",
+             "Proposed value: \"",type,"\".")
+    }
+
+    ## *** na.rm
+    if(type=="extended"){
         if("na.rm" %in% names(mycall) && mycall$na.rm){
             stop("Argument \'na.rm\' must be FALSE when arguement \'type\' equals \"add.NA\". \n")
         }
         na.rm <- FALSE        
     }
 
-    ## ** generate data.frame
-    if(is.null(type) || type[1]=="add.NA"){
+    ## ** retrieve original data.frame
+    if(is.null(newdata)){
+        test.newdata <- FALSE
+        newdata <- formula$data.original
+        index.na <- NULL
+    }else{
+        test.newdata <- TRUE
+        index.na <- stats::na.omit(formula)
+    }
+    browser()
+    ## ** add index
+    if(add.index){
+        if(test.newdata){
+        }else{
+            index.cluster <- formula$design$index.cluster
+
+            index.nna <- setdiff(1:NROW(newdata), index.na)
+            out$XXindexXX <- 1:NROW(newdata)
+            browser()
+            
+            if(table.variables["strata","original"]){
+                out$XXclusterXX <- newdata[[var.cluster]]
+            }else{
+                out$XXclusterXX <- 1
+            }
+            if(table.variables["time","original"]){
+                out$XXtimeXX <- newdata[[var.time]]
+            }else{
+                out$XXtimeXX <- 1
+            }            
+            if(table.variables["strata","original"]){
+                out$XXstrataXX <- newdata[[var.strata]]
+            }else{
+                out$XXstrataXX <- 1
+            }
+            out$XXcluster.indexXX <- 1
+            out$XXtime.indexXX <- 1
+            out$XXstrata.indexXX <-1             
+        }
+        
+    }
+
+    if(type == "original"){
+        
+
+        
+        
+    }else if(type %in% c("processed","extended")){
 
         ## *** reformat newdata
         if(is.null(newdata) && (is.null(formula$index.na) || na.rm)){
@@ -109,7 +177,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
             }
         }
         
-    }else if(type[1]=="unique"){
+    }else if(type=="unique"){
 
         if(length(type)==1){
             effects <- "mean"
@@ -162,11 +230,11 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
         ## *** subset
         out <- newdata[newdata.row,,drop=FALSE]
         index.na <- NULL
-   
+        
     }
 
     ## ** add missing row (NA outcome)
-    if(!is.null(type) && type[1]=="add.NA"){
+    if(type == "extended"){
 
         n.clusterTime <- lengths(index.data$index.clusterTime)
         incomplete.cluster <- which(n.clusterTime!=n.time)
@@ -204,7 +272,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
                 iOut$XXindexXX <- rep(as.numeric(NA), iN.missingTime)
                 iOut$XXtime.indexXX <- setdiff(1:n.time,iDF$XXtime.indexXX)
                 iOut$XXtimeXX <- formula$time$levels[iOut$XXtime.indexXX]
-       
+                
                 iOut[var2.meanBaseline] <-  lapply(var2.meanBaseline, function(iVar){
                     rep(iDF[1,iVar], iN.missingTime)
                 })
@@ -222,9 +290,6 @@ model.frame.lmm <- function(formula, newdata = NULL, type = NULL, add.index = FA
     }
 
     ## ** export
-    if(add.index==FALSE){
-        out <- out[intersect(names(out),var.manifest)]
-    }
     if(length(index.na)>0){
         attr(out,"index.na") <- index.na
     }

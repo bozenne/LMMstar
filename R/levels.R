@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 18 2021 (10:32) 
 ## Version: 
-## Last-Updated: jul  9 2025 (10:04) 
+## Last-Updated: okt 16 2026 (14:41) 
 ##           By: Brice Ozenne
-##     Update #: 18
+##     Update #: 21
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,10 +30,9 @@
 ##' @export
 levels.lmm <- function(x){
 
-    ## check if intercept
-
-
-    data.X <- x$data[all.vars(stats::delete.response(stats::terms(x$formula$mean)))]
+    x.formula <- formula(x, effects = "mean")
+    
+    data.X <- x$data[all.vars(stats::delete.response(x.formula))]
     C <- lapply(data.X, function(iCol){
         if(inherits(iCol,"factor")){stats::contrasts(iCol)}else if(inherits(iCol,"character")){stats::contrasts(as.factor(iCol))}
     })

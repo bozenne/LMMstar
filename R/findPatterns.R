@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 15 2026 (14:56) 
+## Last-Updated: okt 16 2026 (10:01) 
 ##           By: Brice Ozenne
-##     Update #: 1027
+##     Update #: 1031
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -31,7 +31,6 @@
                               sep){
 
     ## ** extract from object
-    X.var <- structure$var$X
     structure.param <- structure$param[structure$param$type %in% c("sigma","k"),]
     param.sigma <- structure.param[structure.param$type=="sigma","name"]
     param.k <- structure.param[structure.param$type=="k","name"]
@@ -61,14 +60,10 @@
     Upattern$index.cluster <- unname(tapply(U.cluster, pattern.var, unique)[Upattern$var])
     Upattern$n.time <- lengths(pattern2lp.var) ## some patterns may be the same but for different combinations of times (e.g. CS for 3 timepoints but could be 1:3 or 2:4)
 
-    if(NCOL(X.var)>0){
-        ## find param with non-0 value in the design matrix
-        Upattern$param <- lapply(1:n.pattern.var, function(iP){ ## iP <- 1
-            names(which(colSums(abs(lp2X.var[pattern2lp.var[[iP]],,drop=FALSE]))>0))
-        })       
-    }else{
-        Upattern$param <- vector(mode = "list", length = n.pattern.var)
-    }
+    ## find param with non-0 value in the design matrix
+    Upattern$param <- lapply(1:n.pattern.var, function(iP){ ## iP <- 1
+        names(which(colSums(abs(lp2X.var[pattern2lp.var[[iP]],,drop=FALSE]))>0))
+    })       
 
     ## ** characterize each variance pattern
     Xpattern.var <- lapply(1:NROW(Upattern), function(iP){ ## iP <- 1
@@ -121,7 +116,6 @@
 
     ## ** identify unique cor patterns
     n.cluster <- length(U.cluster)
-    X.cor <- structure$cor$X
     structure.param <- structure$param[structure$param$type=="rho",]
     ## from linear predictor to correlation parameter
     lp2rho <- do.call(c,lapply(1:NROW(structure.param$name), function(iRow){ ## iRow <- 1

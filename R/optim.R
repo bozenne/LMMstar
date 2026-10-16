@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:27) 
 ## Version: 
-## Last-Updated: okt 15 2026 (14:36) 
+## Last-Updated: okt 16 2026 (16:49) 
 ##           By: Brice Ozenne
-##     Update #: 208
+##     Update #: 213
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -49,7 +49,7 @@
 ##' @keywords internal
 
 ## * .optim.lmm (code)
-.optim.lmm <- function(design, time, method.fit, 
+.optim.lmm <- function(design, n.time, method.fit, 
                        transform.sigma, transform.k, transform.rho,
                        optimizer, init, n.iter, tol.score, tol.param, n.backtracking, init.cor, trace){
 
@@ -81,8 +81,8 @@
     if(!is.null(init)){
 
         if(is.matrix(init)){
-            if(NROW(init)!=time$n || NCOL(init)!=time$n){
-                stop("When a matrix, initialization should be a square matrix with dimensions compatible with time (",time$n,"x",time$n,"). \n")
+            if(NROW(init)!=n.time || NCOL(init)!=n.time){
+                stop("When a matrix, initialization should be a square matrix with dimensions compatible with time (",n.time,"x",n.time,"). \n")
             }
             init.mu <- NULL
             init.Omega <- init
@@ -196,7 +196,7 @@
     
     if(n.iter==0 || length(param.Omega2)==0){
         cv <- as.numeric(length(param.Omega2)==0)
-        logLik.value <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
+        logLik.value <- .moments.lmm(value = paramTrans.value, design = design, method.fit = method.fit, type.information = "expected",
                                      transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                      updateGLS = FALSE, logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE,
                                      effects = c("mean","variance","correlation"), robust = FALSE,
@@ -222,7 +222,7 @@
             information.valueM1 <- information.value
 
             ## *** estimate moments
-            outMoments <- .moments.lmm(value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
+            outMoments <- .moments.lmm(value = paramTrans.value, design = design, method.fit = method.fit, type.information = "expected",
                                        transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                        updateGLS = iiIter>0, logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE,
                                        effects = c("variance","correlation"), robust = FALSE,
@@ -258,7 +258,7 @@
             }else if(is.na(logLik.value) || (logLik.value < logLik.valueM1)){ ## decrease in likelihood - try partial update
                 outMoments <- .backtracking(valueM1 = paramTrans.valueM1, update = update.param.Omega, n.iter = n.backtracking,
                                             logLikM1 = logLik.valueM1, scoreM1 = score.valueM1, informationM1 = information.valueM1,
-                                            value = paramTrans.value, design = design, time = time, method.fit = method.fit, type.information = "expected",
+                                            value = paramTrans.value, design = design, method.fit = method.fit, type.information = "expected",
                                             transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                             param.Omega = param.Omega)
                 
@@ -337,19 +337,19 @@
         score <- outMoments$score
     }else{
         warper_obj <- function(p){
-            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
+            -.moments.lmm(value = p, design = design, method.fit = method.fit, type.information = "expected",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                           updateGLS = TRUE, logLik = TRUE, score = FALSE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                           trace = FALSE, transform.names = FALSE)$logLik
         }
         warper_grad <- function(p){
-            -.moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
+            -.moments.lmm(value = p, design = design, method.fit = method.fit, type.information = "expected",
                           transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                           updateGLS = TRUE, logLik = FALSE, score = TRUE, information = FALSE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                           trace = FALSE, transform.names = FALSE)$score
         }
         warper_hess <- function(p){
-            .moments.lmm(value = p, design = design, time = time, method.fit = method.fit, type.information = "expected",
+            .moments.lmm(value = p, design = design, method.fit = method.fit, type.information = "expected",
                          transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                          updateGLS = TRUE, logLik = FALSE, score = FALSE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                          trace = FALSE, transform.names = FALSE)$information
@@ -398,10 +398,7 @@
                 previous.logLik = logLik.valueM1,
                 score = score.value,
                 n.iter = iIter,                
-                cv = cv,
-                control = c(n.iter = as.double(n.iter), tol.score = as.double(tol.score), tol.param = as.double(tol.param),
-                            n.backtracking = as.double(n.backtracking), init.cor = as.double(init.cor))
-                ))
+                cv = cv))
 }
 
 ## * .wolfe
@@ -444,7 +441,7 @@
         valueNEW <- stats::setNames(valueM1[param.Omega] + alpha * update[param.Omega], param.Omega)
 
         ## compute moments
-        momentNEW <- .moments.lmm(value = valueNEW, design = design, time = time, method.fit = method.fit, type.information = type.information,
+        momentNEW <- .moments.lmm(value = valueNEW, design = design, method.fit = method.fit, type.information = type.information,
                                   transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                   updateGLS = TRUE, logLik = TRUE, score = TRUE, information = TRUE, vcov = FALSE, df = FALSE, indiv = FALSE, effects = c("variance","correlation"), robust = FALSE,
                                   trace = FALSE, transform.names = FALSE)

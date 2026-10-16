@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt 15 2026 (15:24) 
+## Last-Updated: okt 16 2026 (14:09) 
 ##           By: Brice Ozenne
-##     Update #: 515
+##     Update #: 537
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -108,17 +108,19 @@
 
 ## * .precomputeOmega
 ## Precompute product between the residual variance-covariance matrix and its derivative
-.precomputeOmega <- function(Omega, dOmega, d2Omega, d3Omega, multiplier, 
-                             effects, pair.vcov, triplet.vcov, precompute,
-                             REML, type.information, logLik, score, information, vcov, df){
+.precomputeOmega <- function(object, Omega, precompute, multiplier, 
+                             param, transform.sigma, transform.k, transform.rho,
+                             effects, REML, type.information, logLik, score, information, vcov, df){
 
     ## ** extract information
     name.pattern <- precompute$weights$pattern
     n.pattern <- length(name.pattern)
-    time.pattern <- sapply(Omega, NROW)[precompute$weights$vcov]
-    param.pattern <- lapply(dOmega,names)[precompute$weights$vcov] ## may be empty when dOmega is missing (logLik calculation only)
-    nparam.pattern <- sapply(param.pattern,length) ## may be 0 when dOmega is missing (logLik calculation only)
-    
+    time.pattern <- stats::setNames(object$Upattern$n.time,object$Upattern$name)[precompute$weights$vcov]
+    param.pattern <- stats::setNames(object$Upattern$param,object$Upattern$name)[precompute$weights$vcov]
+    nparam.pattern <- sapply(param.pattern,length)
+    pair.vcov <- object$pair.vcov
+    triplet.vcov <- object$triplet.vcov
+
     ## ** special case 1: no parameter to take derivative 
     if(all(nparam.pattern==0) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
         score <- FALSE
@@ -128,7 +130,7 @@
     }else if(df && identical(attr(df,"method"),"numeric")){
         df <- FALSE
     }
-    
+
     ## ** prepare output
     out <- list(OmegaM1 = lapply(name.pattern, function(iP){matrix(NA, nrow = time.pattern[[iP]], ncol = time.pattern[[iP]])}))
     names(out$OmegaM1) <- name.pattern
@@ -170,11 +172,15 @@
         out$d3Trace <- lapply(name.pattern, function(iP){stats::setNames(rep(NA, times = ntriplet.vcov[iP]), nametriplet.vcov[[iP]])})
         names(out$d3Trace) <- name.pattern        
     }
-    
-    ## ** pre-compute
-    for(iP in 1:n.pattern){ ## iP <- 1
 
-        iPattern <- name.pattern[iP]
+    ## ** pre-compute
+    ## make sure to go through vcov pattern in order to only update derivatives when needeed
+    grid.pattern <- precompute$weights[order(factor(precompute$weights$vcov, unique(precompute$weights$vcov))),,drop=FALSE]
+    grid.pattern$update.derivative <- !duplicated(grid.pattern$vcov)
+    
+    for(iP in 1:NROW(grid.pattern)){ ## iP <- 1
+
+        iPattern <- grid.pattern$pattern[iP]
         iPattern.vcov <- precompute$weights[iP,"vcov"]
         iPattern.rep <- precompute$weights[iP,"replicate.num"]
 
@@ -212,13 +218,21 @@
             }
             
         }
-        
+
         ## *** first derivative
         if(nparam.pattern[iPattern]>0 && (score || information || vcov || df)){
+            if(grid.pattern$update.derivative[iP]){
+                dOmega.tempo <- .calc_dOmega(object = object, param = param, Omega = Omega, 
+                                             transform.sigma = transform.sigma,
+                                             transform.k = transform.k,
+                                             transform.rho = transform.rho,
+                                             Upattern = object$Upattern[object$Upattern$name==iPattern.vcov,,drop=FALSE])[[iPattern.vcov]]
+            }
+
             if(!is.null(multiplier)){            
-                idOmega <- lapply(dOmega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+                idOmega <- lapply(dOmega.tempo, FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
             }else{
-                idOmega <- dOmega[[iPattern.vcov]]
+                idOmega <- dOmega.tempo
             }
             iLS_dOmega.OmegaM1 <- lapply(idOmega, function(iO){iO %*% iOmegaM1})
             iLS_OmegaM1.dOmega.OmegaM1 <- lapply(iLS_dOmega.OmegaM1, function(iO){iOmegaM1 %*% iO})
@@ -233,10 +247,18 @@
 
         ## *** second derivative
         if(nparam.pattern[iPattern]>0 && (information || vcov || df)){
+            if(grid.pattern$update.derivative[iP]){
+                d2Omega.tempo <- .calc_d2Omega(object = object, param = param, Omega = Omega, 
+                                               transform.sigma = transform.sigma,
+                                               transform.k = transform.k,
+                                               transform.rho = transform.rho,
+                                               Upattern = object$Upattern[object$Upattern$name==iPattern.vcov,,drop=FALSE])[[iPattern.vcov]]
+            }
+
             if(!is.null(multiplier)){            
-                id2Omega <- lapply(d2Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+                id2Omega <- lapply(d2Omega.tempo, FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
             }else{
-                id2Omega <- d2Omega[[iPattern.vcov]]
+                id2Omega <- d2Omega.tempo
             }
             iPair.vcov <- pair.vcov[pair.vcov[,iPattern.vcov],c("param1","param2")]
 
@@ -261,10 +283,20 @@
         ## *** third derivative
         if(nparam.pattern[iPattern]>0 && df && (is.null(attr(df,"method")) || attr(df,"method")=="analytic")){
             iTriplet.vcov <- triplet.vcov[triplet.vcov[,iPattern.vcov],c("name","param1","param2","param3")]
+
+            if(grid.pattern$update.derivative[iP]){
+                d3Omega.tempo <- .calc_d3Omega(object = object, param = param, Omega = Omega,
+                                               triplet = triplet.vcov,
+                                               transform.sigma = transform.sigma,
+                                               transform.k = transform.k,
+                                               transform.rho = transform.rho,
+                                               Upattern = object$Upattern[object$Upattern$name==iPattern.vcov,,drop=FALSE])[[iPattern.vcov]]
+            }
+
             if(!is.null(multiplier)){            
-                id3Omega <- lapply(d3Omega[[iPattern.vcov]], FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
+                id3Omega <- lapply(d3Omega.tempo, FUN = "*", multiplier[[iPattern.vcov]][,,iRep])
             }else{
-                id3Omega <- d3Omega[[iPattern.vcov]]
+                id3Omega <- d3Omega.tempo
             }
 
             for(iTriplet in 1:ntriplet.vcov[iPattern.vcov]){ ## iP3 <- 1
@@ -290,9 +322,9 @@
                         out$d3Trace[[iPattern]][iTriplet] <- sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[2]]))
                     }else if(type.information == "observed"){
                         out$d3Trace[[iPattern]][iTriplet] <- sum(c(sum(iLS_OmegaM1.dOmega.OmegaM1[[iParam3.3]] * id2Omega[[paste(iParam3.1,iParam3.2,sep="_")]]),
-                                                              sum(iOmegaM1 * id3Omega[[iTriplet]]),
-                                                              sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[3]])))
-                                                            ) 
+                                                                   sum(iOmegaM1 * id3Omega[[iTriplet]]),
+                                                                   sum(diag(Upsilon[[1]])) + sum(diag(Upsilon[[3]])))
+                                                                 ) 
                     }
                 }
             }
@@ -306,11 +338,10 @@
 ## * .precomputeREML
 ## Precompute REML terms
 ## Note: possible weights are already included in precompute$XX
-.precomputeREML <- function(dOmega, d2Omega, d3Omega, 
-                            effects, param.vcov, pair.vcov, triplet.vcov, precompute,
+.precomputeREML <- function(precompute, effects, param.vcov, pair.vcov, triplet.vcov, 
                             logLik, score, information, vcov, df){
 
-    ## ** normalize user input
+    ## ** normalize input
     if((score || information || vcov || df) && ("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE)){
         score <- FALSE
         information <- FALSE
@@ -340,11 +371,11 @@
         X.dOmegaM1.X <- matrix(0, nrow = p*(p+1)/2, ncol = length(param.vcov), dimnames = list(NULL,param.vcov))
     }
     if(information){
-        pair.varcoef <- unique(unlist(lapply(d2Omega,names)))
+        pair.varcoef <- pair.vcov$name
         X.d2OmegaM1.X <- matrix(0, nrow = p*(p+1)/2, ncol = NROW(pair.vcov), dimnames = list(NULL,pair.vcov$name))
     }
     if(df){
-        triplet.varcoef <- unique(unlist(lapply(d3Omega,names)))
+        triplet.varcoef <- triplet.vcov$name
         X.d3OmegaM1.X <- matrix(0, nrow = p*(p+1)/2, ncol = NROW(triplet.vcov), dimnames = list(NULL,triplet.vcov$name))
     }
 
@@ -366,17 +397,17 @@
         X.OmegaM1.X_vec <- X.OmegaM1.X_vec + (iXX %*% cbind(as.vector(iOmegaM1)))[,1]
 
         if(score){
-            iParam.vcov <- names(dOmega[[iPattern.vcov]])
+            iParam.vcov <- colnames(precompute$Omega$dOmegaM1[[iPattern]])
             X.dOmegaM1.X[,iParam.vcov] <- X.dOmegaM1.X[,iParam.vcov,drop=FALSE] + iXX %*% precompute$Omega$dOmegaM1[[iPattern]]
         }
 
         if(information){
-            iPair.vcov <- names(d2Omega[[iPattern.vcov]])
+            iPair.vcov <- colnames(precompute$Omega$d2OmegaM1[[iPattern]])
             X.d2OmegaM1.X[,iPair.vcov] <- X.d2OmegaM1.X[,iPair.vcov,drop=FALSE] + iXX %*% precompute$Omega$d2OmegaM1[[iPattern]]
         }
         
         if(df){
-            iTriplet.vcov <- names(d3Omega[[iPattern.vcov]])
+            iTriplet.vcov <- colnames(precompute$Omega$d3OmegaM1[[iPattern]])
             X.d3OmegaM1.X[,iTriplet.vcov] <- X.d3OmegaM1.X[,iTriplet.vcov,drop=FALSE] + iXX %*% precompute$Omega$d3OmegaM1[[iPattern]]
         }
         
@@ -439,6 +470,7 @@
     ## ** export
     return(out)
 }
+
 
 ##----------------------------------------------------------------------
 ### precompute.R ends here

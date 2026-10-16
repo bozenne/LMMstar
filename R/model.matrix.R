@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 15 2026 (15:33) 
+## Last-Updated: okt 16 2026 (17:15) 
 ##           By: Brice Ozenne
-##     Update #: 3949
+##     Update #: 3971
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -360,7 +360,8 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         iFormat <- grid.timeFormat[iGrid,"format"]
         iSuffix <- ifelse(iGrid==3,".cross","")
         iFormula <- structure$formula[[paste0(iMoment,iSuffix)]]
-        iVars <- all.vars(iFormula)
+        iVars.strata <- stats::na.omit(structure$name$strata)
+        iVars <- setdiff(all.vars(iFormula), iVars.strata)
 
         ## *** normalize dataset (e.g. set right levels to factor variables)
         if("xfactor" %in% names(structure[[iMoment]])){ ## from model.matrix.lmm
@@ -395,7 +396,20 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
                 iXfactor <- stats::.getXlevels(stats::terms(iFormula), data.md)
             }            
         }
-        
+
+        if(length(iVars.strata)>0){
+            iTestFac.strata <- sapply(data[iVars.strata],is.factor)
+            iFormula.strata <- stats::reformulate(termlabels = iVars.strata)
+            if(sum(iTestFac.strata==FALSE)==0){
+                iXfactor <- c(iXfactor,stats::.getXlevels(stats::terms(iFormula.strata),data))
+            }else{
+                data.md.strata <- stats::model.frame(iFormula.strata,data)
+                for(iiVar in names(iTestFac.strata)[which(iTestFac.strata==FALSE)]){
+                    data.md.strata[[iiVar]] <- as.factor(data.md.strata[[iiVar]])
+                }
+                iXfactor <- c(iXfactor,stats::.getXlevels(stats::terms(iFormula.strata),data.md.strata))
+            }
+        }
         iData <- .updateFactor(data, xfactor = iXfactor, xnumeric = iXnumeric)
 
         ## *** design matrix
@@ -507,9 +521,13 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
     ## ** mean
     ## use stats::model.frame to handle splines
-    data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
+    ## data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
+    ## X.mean <- .model.matrix_regularize(formula.mean, data = data.mf, type = "mean", drop.X = drop.X)
+    ## attr(X.mean,"term.labels") <- setdiff(attr(attr(data.mf,"terms"),"term.labels"),c("XXindexXX","XXtimeXX","XXclusterXX","XXstrataXX"))
+    ## attr(X.mean,"terms") <- attr(data.mf,"terms")
+    
+    data.mf <- stats::model.frame(formula.mean,data)
     X.mean <- .model.matrix_regularize(formula.mean, data = data.mf, type = "mean", drop.X = drop.X)
-    attr(X.mean,"term.labels") <- setdiff(attr(attr(data.mf,"terms"),"term.labels"),c("XXindexXX","XXtimeXX","XXclusterXX","XXstrataXX"))
     attr(X.mean,"terms") <- attr(data.mf,"terms")
 
     if(NCOL(X.mean)>0){
@@ -749,32 +767,32 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     Mparam.vcovvcov <- unique(do.call(rbind,ls.Mparam.vcovvcov))
     
     ## find all pairs of observed combinations
-    ls.pair.vcovvcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){ ## iParam <- Mparam.vcovvcov[7,]
+    ls.pair.vcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){ ## iParam <- Mparam.vcovvcov[7,]
         unorderedPairs(intersect(activeparam.all,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
     }, simplify = FALSE)
-    Upairs.vcovvcov <- unique(t(do.call(cbind,ls.pair.vcovvcov)))
-    structure$pair.vcovvcov <- data.frame(paste(Upairs.vcovvcov[,1],Upairs.vcovvcov[,2],sep = "_"),
+    Upairs.vcovvcov <- unique(t(do.call(cbind,ls.pair.vcov)))
+    structure$pair.vcov <- data.frame(paste(Upairs.vcovvcov[,1],Upairs.vcovvcov[,2],sep = "_"),
                                           Upairs.vcovvcov,
                                           matrix(NA, nrow = NROW(Upairs.vcovvcov), ncol = n.pattern))
-    names(structure$pair.vcovvcov) <- c("name","param1","param2",name.pattern)
+    names(structure$pair.vcov) <- c("name","param1","param2",name.pattern)
 
     ## find which pairs appears in which pattern
     for(iPattern in name.pattern){ ## iP <- 1
-        structure$pair.vcovvcov[,iPattern] <- apply(structure$pair.vcovvcov[c("param1","param2")], MARGIN = 1, function(iRow){
+        structure$pair.vcov[,iPattern] <- apply(structure$pair.vcov[c("param1","param2")], MARGIN = 1, function(iRow){
             (iRow[1] %in% ls.Mparam.vcovvcov[[iPattern]]) & (iRow[2] %in% ls.Mparam.vcovvcov[[iPattern]])
         })         
     }
 
     ## from vector to matrix format
     activeindex.all <- stats::setNames(1:length(activeparam.all),activeparam.all)
-    structure$pair.vcovvcov$key1.all <- activeindex.all[structure$pair.vcovvcov$param1] + length(activeparam.all)*(activeindex.all[structure$pair.vcovvcov$param2]-1)
-    structure$pair.vcovvcov$key2.all <- ifelse(structure$pair.vcovvcov$param1!=structure$pair.vcovvcov$param2,
-                                               activeindex.all[structure$pair.vcovvcov$param2] + length(activeparam.all)*(activeindex.all[structure$pair.vcovvcov$param1]-1),
+    structure$pair.vcov$key1.all <- activeindex.all[structure$pair.vcov$param1] + length(activeparam.all)*(activeindex.all[structure$pair.vcov$param2]-1)
+    structure$pair.vcov$key2.all <- ifelse(structure$pair.vcov$param1!=structure$pair.vcov$param2,
+                                               activeindex.all[structure$pair.vcov$param2] + length(activeparam.all)*(activeindex.all[structure$pair.vcov$param1]-1),
                                                NA_integer_)
     activeindex.vcov <- stats::setNames(1:length(activeparam.vcov),activeparam.vcov)
-    structure$pair.vcovvcov$key1.vcov <- activeindex.vcov[structure$pair.vcovvcov$param1] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcovvcov$param2]-1)
-    structure$pair.vcovvcov$key2.vcov <- ifelse(structure$pair.vcovvcov$param1!=structure$pair.vcovvcov$param2,
-                                                activeindex.vcov[structure$pair.vcovvcov$param2] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcovvcov$param1]-1),
+    structure$pair.vcov$key1.vcov <- activeindex.vcov[structure$pair.vcov$param1] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcov$param2]-1)
+    structure$pair.vcov$key2.vcov <- ifelse(structure$pair.vcov$param1!=structure$pair.vcov$param2,
+                                                activeindex.vcov[structure$pair.vcov$param2] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcov$param1]-1),
                                                 NA_integer_)
 
     ## ** param

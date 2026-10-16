@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (15:05) 
 ## Version: 
-## Last-Updated: aug  8 2024 (13:32) 
+## Last-Updated: okt 16 2026 (15:05) 
 ##           By: Brice Ozenne
-##     Update #: 128
+##     Update #: 135
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -37,11 +37,16 @@
 variable.names.lmm <- function(object, effects = "all", original = TRUE, simplify = TRUE, ...){
 
     ## ** extract variables
-    var.outcome <- object$outcome$var
-    var.cluster <- object$cluster$var
-    var.time <- object$time$var
-    var.strata <- object$strata$var
-    n.time <- object$time$n
+    table.variables <- stats::model.tables(object, effects = "variables")
+    var.outcome <- table.variables["outcome","var"]
+    var.cluster <- table.variables["cluster","var"]
+    var.time <- table.variables["time","var"]
+    var.strata <- table.variables["strata","var"]
+    n.time <- table.variables["time","n"]
+    
+    object.formula <- formula(object, effects = "all")
+    xfactor <- object$xfactor
+    data <- model.frame(object, type = "original")
 
     ## ** check user input
     ## *** dots
@@ -83,9 +88,9 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
 
     ## ** prepare output
     ls.out <- list(outcome = var.outcome,
-                   mean = attr(object$design$mean, "variable"),
-                   variance = all.vars(object$design$vcov$formula$var),
-                   correlation = all.vars(object$design$vcov$formula$cor),
+                   mean = all.vars(object.formula$mean),
+                   variance = all.vars(object.formula$variance),
+                   correlation = all.vars(object.formula$correlation),
                    time = var.time,
                    cluster = var.cluster,
                    strata = var.strata)
@@ -101,11 +106,9 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
     if("mean.type" %in% effects){
         ## hidden: no returned by effects = "all" to save computation time
         ## only internal function need effects="mean.type" (predict,model.frame) for reshaping data
-        n.time <- object$time$n
         vars.time <- stats::na.omit(unique(c(var.time,attr(var.time,"original"))))
         vars.cluster <- stats::na.omit(unique(c(var.cluster,attr(var.cluster,"original"))))
-        vars.mean_notime <- ls.out$mean
-        data <- object$data
+        vars.mean_notime <- ls.out$mean        
 
         ls.out$mean.type <- stats::setNames(rep("baseline", length(ls.out$mean)), ls.out$mean)
         if(length(vars.mean_notime)>0){
@@ -120,8 +123,8 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
                     iOut <- all(colSums(iTable>0)==1) ## no time value leading to two different covariate values
                     if(iOut){ ## explicit the transformation
                         iIndex.level <- apply(iTable>0, MARGIN = 2, FUN = which)
-                        if(iVar %in% names(object$xfactor$mean)){
-                            attr(iOut,"table") <- object$xfactor$mean[[iVar]][iIndex.level]
+                        if(iVar %in% names(xfactor$mean)){
+                            attr(iOut,"table") <- xfactor$mean[[iVar]][iIndex.level]
                         }else{
                             attr(iOut,"table") <- unique(data[[iVar]])[iIndex.level]
                         }                        
@@ -146,7 +149,7 @@ variable.names.lmm <- function(object, effects = "all", original = TRUE, simplif
         }
     }
 
-    ## ** export        
+    ## ** export
     if(simplify && length(effects)==1){
         if(effects=="all"){
             out <- unname(sort(unique(unlist(ls.out))))

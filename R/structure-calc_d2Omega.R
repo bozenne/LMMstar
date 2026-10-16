@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  8 2026 (14:54) 
+## Last-Updated: okt 16 2026 (10:02) 
 ##           By: Brice Ozenne
-##     Update #: 490
+##     Update #: 492
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -113,7 +113,7 @@
         if(is.null(iName.param)){
             return(NULL)
         }else{
-            iPair <- object$pair.vcovvcov[which(object$pair.vcovvcov[[Upattern[iPattern,"name"]]]),c("name","param1","param2"),drop=FALSE]
+            iPair <- object$pair.vcov[which(object$pair.vcov[[Upattern[iPattern,"name"]]]),c("name","param1","param2"),drop=FALSE]
             n.iPair <- NROW(iPair)
             iHess <- replicate(n = n.iPair, matrix(0, nrow = iNtime, ncol = iNtime), simplify = FALSE)
             names(iHess) <- iPair$name

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: okt 15 2026 (12:30) 
+## Last-Updated: okt 16 2026 (09:50) 
 ##           By: Brice Ozenne
-##     Update #: 825
+##     Update #: 826
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -421,7 +421,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
             iStructure$param <- NULL
             iStructure$pattern <- NULL
             iStructure$Upattern <- NULL
-            iStructure$pair.vcovvcov <- NULL
+            iStructure$pair.vcov <- NULL
 
             iData2 <- .lmmNormalizeData(iData[,var.all,drop=FALSE],
                                         var.outcome = var.outcome,

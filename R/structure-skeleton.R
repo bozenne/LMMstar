@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep  8 2021 (17:56) 
 ## Version: 
-## Last-Updated: apr 10 2026 (12:11) 
+## Last-Updated: okt 16 2026 (09:42) 
 ##           By: Brice Ozenne
-##     Update #: 2610
+##     Update #: 2613
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -76,6 +76,7 @@
     ## ** export
     structure$param <- structure$param[order(structure$param$index.strata),,drop=FALSE]
     rownames(structure$param) <- NULL
+    structure$var$X <- NULL
     return(structure)
 }
 
@@ -210,6 +211,7 @@
     ## *** export
     rownames(structure.rho) <- NULL
     structure$param <- rbind(structure$param, structure.rho)
+    structure$cor$X <- NULL
     return(structure)
 }
 

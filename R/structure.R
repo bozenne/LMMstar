@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: May 31 2021 (15:28) 
 ## Version: 
-## Last-Updated: sep 30 2026 (11:07) 
+## Last-Updated: okt 16 2026 (17:23) 
 ##           By: Brice Ozenne
-##     Update #: 1974
+##     Update #: 1995
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -73,12 +73,18 @@ ID <- function(formula = ~1){
     if(!inherit.formula.arg){
         stop("Argument \'formula\' should be a formula. \n")
     }
-    
+
     ## ** identify strata variable and covariate variables
     outCov <- .formulaStructure(list(variance = formula, correlation = NULL, correlation.cross = NULL), correlation = FALSE)
-    if(length(outCov$name$variance)>0 || length(outCov$name$correlation)>0){ 
-        stop("Argument \'formula\' should not contain variable(s) on the right-hand side of the formula. \n",
-             "Structure ID can only be stratified (left hand side of the formula). \n")
+    if(length(outCov$name$correlation)>0){ 
+        stop("Argument \'formula\' should not contain variable(s) for the correlation structure. \n",
+             "Structure ID can only have its variance stratified on a categorical covariate. \n")
+    }
+
+    if(any(outCov$name$variance %in% outCov$name$strata == FALSE)){
+        outCov$strata <- c(outCov$strata,outCov$name$variance)
+        outCov$variance <- outCov$strata
+        outCov$formula$variance <- reformulate(termlabels = outCov$strata, intercept = FALSE)
     }
 
     ## ** create structure
@@ -87,7 +93,7 @@ ID <- function(formula = ~1){
                                   ordering = NA,
                                   strata = if(length(outCov$strata)>0){outCov$strata}else{NA},
                                   time = NA,
-                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$variance))}else{NA},
+                                  variance = if(length(outCov$name$variance)>0){I(list(outCov$name$strata))}else{NA},
                                   correlation = NA,
                                   stringsAsFactors = FALSE),
                 formula = list(variance = outCov$formula$variance,
@@ -95,8 +101,8 @@ ID <- function(formula = ~1){
                                correlation.cross = NULL),
                 class = c(variance = "ID", correlation = NA, correlation.cross = NA))
     attr(out$formula,"inherit.formula.arg") <- inherit.formula.arg
-    attr(out$formula,"update.time") <- TRUE
-    
+    attr(out$formula,"update.time") <- c(variance = TRUE, correlation = FALSE, correlation.cross = FALSE) 
+
     ## ** export
     class(out) <- append("structure",class(out))
     class(out) <- append("ID",class(out))
@@ -1343,7 +1349,7 @@ CUSTOM <- function(formula = ~1, var.time,
             ## skip when no model for this moment
             if(is.null(formula[[iMoment]]) || length(ls.time[[iMoment]])==0){ next }
             ## use original time variable when possible
-            if(!is.null(attr(ls.time[[iMoment]],"original"))){
+            if(!is.null(attr(ls.time[[iMoment]],"original")) && !is.na(attr(ls.time[[iMoment]],"original"))){
                 ls.time[[iMoment]] <- attr(ls.time[[iMoment]],"original")
             }
             ## check that the time variable is not already in the formula
