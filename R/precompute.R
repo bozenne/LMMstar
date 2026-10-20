@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 22 2021 (13:47) 
 ## Version: 
-## Last-Updated: okt 16 2026 (14:09) 
+## Last-Updated: okt 20 2026 (09:39) 
 ##           By: Brice Ozenne
-##     Update #: 537
+##     Update #: 603
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -16,7 +16,8 @@
 ### Code:
 
 ## * .precomputeXX
-## Precompute square of the design matrix
+##' @description Precompute square of the design matrix
+##' @noRd
 .precomputeXX <- function(X, pattern, pattern.ntime, pattern.cluster, index.cluster){
 
     p <- NCOL(X)
@@ -58,7 +59,8 @@
 }
 
 ## * .precomputeXR
-## Precompute design matrix times residuals
+##' @description Precompute design matrix times residuals
+##' @noRd
 .precomputeXR <- function(X, residuals, pattern, pattern.ntime, pattern.cluster, index.cluster){
 
     p <- NCOL(X)
@@ -91,7 +93,8 @@
 }
 
 ## * .precomputeRR
-## Precompute square of the residuals
+##' @description Precompute square of the residuals
+##' @noRd
 .precomputeRR <- function(residuals, pattern.ntime, pattern, pattern.cluster, index.cluster){
 
     n.pattern <- length(pattern)
@@ -107,9 +110,11 @@
 }
 
 ## * .precomputeOmega
-## Precompute product between the residual variance-covariance matrix and its derivative
+##' @description Precompute product between the residual variance-covariance matrix and its derivative
+##' @noRd
 .precomputeOmega <- function(object, Omega, precompute, multiplier, 
-                             param, transform.sigma, transform.k, transform.rho,
+                             param, pair.vcov, triplet.vcov,
+                             transform.sigma, transform.k, transform.rho,
                              effects, REML, type.information, logLik, score, information, vcov, df){
 
     ## ** extract information
@@ -118,8 +123,6 @@
     time.pattern <- stats::setNames(object$Upattern$n.time,object$Upattern$name)[precompute$weights$vcov]
     param.pattern <- stats::setNames(object$Upattern$param,object$Upattern$name)[precompute$weights$vcov]
     nparam.pattern <- sapply(param.pattern,length)
-    pair.vcov <- object$pair.vcov
-    triplet.vcov <- object$triplet.vcov
 
     ## ** special case 1: no parameter to take derivative 
     if(all(nparam.pattern==0) || (("variance" %in% effects == FALSE) && ("correlation" %in% effects == FALSE))){
@@ -160,7 +163,7 @@
             names(out$d2Trace) <- name.pattern
         }
     }
-    
+
     if(df){
         ntriplet.vcov <- colSums(triplet.vcov[,precompute$weights$vcov,drop=FALSE])
         nametriplet.vcov <- stats::setNames(lapply(precompute$weights$vcov, function(iPattern){triplet.vcov[triplet.vcov[[iPattern]],"name"]}),name.pattern)
@@ -249,6 +252,7 @@
         if(nparam.pattern[iPattern]>0 && (information || vcov || df)){
             if(grid.pattern$update.derivative[iP]){
                 d2Omega.tempo <- .calc_d2Omega(object = object, param = param, Omega = Omega, 
+                                               pair = pair.vcov,
                                                transform.sigma = transform.sigma,
                                                transform.k = transform.k,
                                                transform.rho = transform.rho,
@@ -285,7 +289,7 @@
             iTriplet.vcov <- triplet.vcov[triplet.vcov[,iPattern.vcov],c("name","param1","param2","param3")]
 
             if(grid.pattern$update.derivative[iP]){
-                d3Omega.tempo <- .calc_d3Omega(object = object, param = param, Omega = Omega,
+                d3Omega.tempo <- .calc_d3Omega(object = object, param = param, Omega = Omega, 
                                                triplet = triplet.vcov,
                                                transform.sigma = transform.sigma,
                                                transform.k = transform.k,
@@ -336,8 +340,9 @@
 }
 
 ## * .precomputeREML
-## Precompute REML terms
-## Note: possible weights are already included in precompute$XX
+##' @description Precompute REML terms.
+##' Likelihood and replicate weights are already included in precompute$XX
+##' @noRd
 .precomputeREML <- function(precompute, effects, param.vcov, pair.vcov, triplet.vcov, 
                             logLik, score, information, vcov, df){
 
@@ -471,6 +476,142 @@
     return(out)
 }
 
+## * .precomputeWeights
+##' @description Precompute constant terms in the log-likelihood.
+##' @noRd
+.precomputeWeights <- function(weights, index.clusterPattern, pattern2param){
+
+    ## ** prepare output
+    if("replicate.num" %in% names(pattern)){
+        out <- data.frame(pattern = as.character(index.clusterPattern[!duplicated(index.clusterPattern$all),"all"]),
+                          vcov = index.clusterPattern[!duplicated(index.clusterPattern$all),"vcov"],
+                          replicate.num = index.clusterPattern[!duplicated(index.clusterPattern$all),"replicate.num"],
+                          sum_w = NA, sum_wmlog2pi = NA)
+        pattern <- factor(index.clusterPattern$all, levels = unique(index.clusterPattern$all[order(index.clusterPattern$vcov,index.clusterPattern$replicate.num)]))
+        out <- out[order(factor(out$pattern, levels = levels(pattern))),,drop=FALSE]
+    }else{
+        out <- data.frame(pattern = pattern2param$name,
+                          vcov = pattern2param$name,
+                          replicate.num = 1,
+                          sum_w = NA, sum_wmlog2pi = NA)        
+        pattern <- factor(index.clusterPattern$vcov, levels = pattern2param$name)
+    }
+
+    ## ** number of timepoints per pattern
+    nTime.cluster1 <- stats::setNames(pattern2param$n.time,pattern2param$name)[index.clusterPattern$vcov]
+
+    ## ** summary terms
+    out$sum_w <- tapply(weights$likelihood, INDEX = pattern, FUN = sum)
+    out$sum_wmlog2pi <- -0.5*tapply(nTime.cluster1 * weights$likelihood * log(2 * pi/weights$Omega), INDEX = pattern, FUN = sum)
+
+    ## ** export
+    return(out)
+}
+
+## * .precomputeXXY
+.precomputeXXY <- function(X, Y, index.cluster, index.clusterPattern, pattern2param, weights, precompute.weights){ ## pre-compute kronecker product XX, XY
+    
+    out <- list(XX = NULL,
+                XY = NULL)
+    
+    ## ** normal case
+    if(NCOL(X)>0){
+        
+        ## prepare patterns
+        if(is.null(weights$multiplier)){ ## usual covariance pattern
+            pattern.ntime <- stats::setNames(pattern2param$n.time, pattern2param$name)            
+        }else{ ## combinations of covariance pattern and replicates pattern
+            pattern.ntime <- stats::setNames(pattern2param$n.time, pattern2param$name)[precompute.weights$vcov]
+            names(pattern.ntime) <- precompute.weights$pattern
+            
+        }
+        pattern.cluster <- tapply(1:NROW(index.clusterPattern),factor(index.clusterPattern$all, levels = precompute.weights$pattern), FUN = identity)
+        names(pattern.cluster) <- precompute.weights$pattern
+
+        ## ** re-weight
+        if(is.null(weights$XYR)){
+            wX <- X
+            wY <- cbind(Y)
+        }else{
+            wX <- sweep(X, FUN = "*", MARGIN = 1, STATS = sqrt(weights$XYR))
+            wY <- cbind(Y*sqrt(weights$XYR))
+        }
+        out$XX <-  .precomputeXX(X = wX, pattern = precompute.weights$pattern, 
+                                 pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = index.cluster)
+        ## XY: for the numerator of the GLS estimator
+        out$XY <-  .precomputeXR(X = wX, residuals = wY, precompute.weights$pattern, 
+                                            pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = index.cluster)
+
+    }
+
+    ## ** export
+    return(out)
+}
+
+## * .precomputeXXY
+.precomputePairVcov <- function(pattern2param, Xpattern.var, Xpattern.cor,
+                                activeparam.vcov, activeparam.all){ ## pre-compute kronecker product XX, XY
+
+    ## ** collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
+    name.pattern <- pattern2param$name
+    ls.Mparam.vcovvcov <- lapply(name.pattern, function(iName){## iName <- name.pattern[1]
+        
+        iName.var <- pattern2param[name.pattern == iName,"var"]
+        iNtime <- pattern2param[name.pattern == iName,"n.time"]
+
+        if(is.null(Xpattern.cor)){
+            iM.param <- Xpattern.var[[iName.var]]
+        }else{
+            iName.cor <- pattern2param[name.pattern == iName,"cor"]
+            iM.param <- cbind(apply(Xpattern.var[[iName.var]], MARGIN = 2, FUN = rep, times = iNtime), ## sigma, k1
+                              apply(Xpattern.var[[iName.var]], MARGIN = 2, FUN = rep, each = iNtime), ## sigma, k2
+                              do.call(cbind, apply(Xpattern.cor[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE))
+                              )
+        }
+        
+        return(unique(iM.param))
+    })
+    names(ls.Mparam.vcovvcov) <- name.pattern
+
+    ## ** unique combinations of variance-covariance parameters across patterns
+    Mparam.vcovvcov <- unique(do.call(rbind,ls.Mparam.vcovvcov))
+    
+    ## ** find all pairs of observed combinations
+    ls.pair.vcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){ ## iParam <- Mparam.vcovvcov[7,]
+        unorderedPairs(intersect(activeparam.all,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
+    }, simplify = FALSE)
+    Upairs.vcovvcov <- unique(t(do.call(cbind,ls.pair.vcov)))
+
+    out <- data.frame(paste(Upairs.vcovvcov[,1],Upairs.vcovvcov[,2],sep = "_"),
+                      Upairs.vcovvcov,
+                      matrix(NA, nrow = NROW(Upairs.vcovvcov), ncol = length(name.pattern)))
+    names(out) <- c("name","param1","param2",name.pattern)
+
+    ## ** find which pairs appears in which pattern
+    for(iPattern in name.pattern){ ## iP <- 1
+        out[,iPattern] <- apply(out[c("param1","param2")], MARGIN = 1, function(iRow){
+            (iRow[1] %in% ls.Mparam.vcovvcov[[iPattern]]) & (iRow[2] %in% ls.Mparam.vcovvcov[[iPattern]])
+        })         
+    }
+
+    ## ** from vector to matrix format
+    activeindex.all <- stats::setNames(1:length(activeparam.all),activeparam.all)
+    out$key1.all <- activeindex.all[out$param1] + length(activeparam.all)*(activeindex.all[out$param2]-1)
+    out$key2.all <- ifelse(out$param1!=out$param2,
+                           activeindex.all[out$param2] + length(activeparam.all)*(activeindex.all[out$param1]-1),
+                           NA_integer_)
+    activeindex.vcov <- stats::setNames(1:length(activeparam.vcov),activeparam.vcov)
+    out$key1.vcov <- activeindex.vcov[out$param1] + length(activeparam.vcov)*(activeindex.vcov[out$param2]-1)
+    out$key2.vcov <- ifelse(out$param1!=out$param2,
+                            activeindex.vcov[out$param2] + length(activeparam.vcov)*(activeindex.vcov[out$param1]-1),
+                            NA_integer_)
+
+    ## ** export
+    return(out)
+}
+
+
 
 ##----------------------------------------------------------------------
 ### precompute.R ends here
+    

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt  8 2026 (13:30) 
+## Last-Updated: okt 19 2026 (16:54) 
 ##           By: Brice Ozenne
-##     Update #: 545
+##     Update #: 548
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -245,9 +245,6 @@
 
 ## * calc_d3Omega.UN
 .calc_d3Omega.UN <- .calc_d3Omega.ID
-
-
-## * helper
 
 ##----------------------------------------------------------------------
 ### calc_d3Omega.R ends here

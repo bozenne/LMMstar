@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 23 2021 (09:41) 
 ## Version: 
-## Last-Updated: okt  2 2026 (16:56) 
+## Last-Updated: okt 20 2026 (17:09) 
 ##           By: Brice Ozenne
-##     Update #: 401
+##     Update #: 403
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -543,8 +543,7 @@ unorderedPairs <- function(x, distinct = FALSE){
 }
 
 
-##' @examples
-##' @title Form All Triplets
+p##' @title Form All Triplets
 ##' @description Form all triplets of values
 ##' @noRd
 ##'
@@ -577,7 +576,6 @@ unorderedTriplet <- function(x, distinct = FALSE){
     out[] <- x[as.vector(out)]
     return(out)
 }
-
 ## * sdiag (copied from the mgcv package)
 ##' @title Index of Diagonals of a Matrix
 ##' @description index of the diagonal, sub-diagonal, or super diagonal.

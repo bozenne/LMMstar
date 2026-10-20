@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar 22 2021 (22:13) 
 ## Version: 
-## Last-Updated: okt 15 2026 (14:21) 
+## Last-Updated: okt 19 2026 (11:29) 
 ##           By: Brice Ozenne
-##     Update #: 1411
+##     Update #: 1416
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -282,15 +282,15 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
             if(REML && test.vcov){
                 ## APPROXIMATION: the REML score w.r.t. variance parameter is not linear in the individual contribution
                 REML.denom <- precompute$REML$X.OmegaM1.X_M1
-                Key <- c(stats::setNames(pair.vcov$key1,pair.vcov$name),
-                         stats::setNames(pair.vcov$key2,pair.vcov$name)[which(!is.na(pair.vcov$key2))])
+                REML.key <- c(stats::setNames(pair.vcov$key1,pair.vcov$name),
+                              stats::setNames(pair.vcov$key2,pair.vcov$name)[which(!is.na(pair.vcov$key2))])
                 
                 iREML.trace1a <- colSums((kronecker(iX,iX) %*% idOmegaM1[,pair.vcov$param1,drop=FALSE]) * REML.num1[,pair.vcov$param2,drop=FALSE])
                 iREML.trace1b <- colSums(REML.num1[,pair.vcov$param1,drop=FALSE] * (kronecker(iX,iX) %*% idOmegaM1[,pair.vcov$param2,drop=FALSE]))
                 iREML.trace2 <- colSums(sweep(kronecker(iX,iX) %*% id2OmegaM1, FUN = "*", MARGIN = 1, STATS = REML.denom))
                 
                 iStore.vcov[] <- 0
-                iStore.vcov[iKey] <- - 0.5 * stats::setNames(iREML.trace1a + 0.5*iREML.trace1b + 0.5*iREML.trace2, pair.vcov$name)[names(Key)]
+                iStore.vcov[REML.key] <- - 0.5 * stats::setNames(iREML.trace1a + 0.5*iREML.trace1b + 0.5*iREML.trace2, pair.vcov$name)[names(REML.key)]
                 info[iId,,] <- info[iId,,] + iStore.vcov
 
             }
@@ -340,12 +340,12 @@ information.lmm <- function(x, effects = NULL, newdata = NULL, p = NULL, indiv =
 
             REML.denom <- precompute$REML$X.OmegaM1.X_M1
             REML.num2 <- precompute$REML$X.d2OmegaM1.X[,pair.vcov$name,drop=FALSE]
-            Key <- c(stats::setNames(pair.vcov$key1,pair.vcov$name),
-                     stats::setNames(pair.vcov$key2,pair.vcov$name)[which(!is.na(pair.vcov$key2))])
+            REML.key <- c(stats::setNames(pair.vcov$key1,pair.vcov$name),
+                          stats::setNames(pair.vcov$key2,pair.vcov$name)[which(!is.na(pair.vcov$key2))])
 
             REML.trace1 <- colSums(REML.num1[,pair.vcov$param1,drop=FALSE] * REML.num1[,pair.vcov$param2,drop=FALSE])
             REML.trace2 <- colSums(sweep(REML.num2, FUN = "*", MARGIN = 1, STATS = REML.denom))
-            info[iKey] <- info[iKey] - 0.5 * stats::setNames(REML.trace1 + REML.trace2, pair.vcov$name)[names(Key)]
+            info[REML.key] <- info[REML.key] - 0.5 * stats::setNames(REML.trace1 + REML.trace2, pair.vcov$name)[names(REML.key)]
             
             ## tr(M.REML.denom %*% matrix(precompute$REML$X.dOmegaM1.X[,1],n.time,n.time) %*% M.REML.denom %*% matrix(precompute$REML$X.dOmegaM1.X[,1],n.time,n.time))
             ## colSums(REML.num1[,pair.vcov$param1,drop=FALSE] * REML.num1[,pair.vcov$param2,drop=FALSE])[1]

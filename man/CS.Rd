@@ -4,23 +4,20 @@
 \alias{CS}
 \title{Compound Symmetry Structure}
 \usage{
-CS(formula, var.cluster, twin = TRUE, cross = "CS", var.time, add.time)
+CS(formula = ~1, heterogeneous = FALSE, cross = "CS", twin = TRUE, time)
 }
 \arguments{
-\item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-and variables influencing the residual variance and correlation (right hand side).}
+\item{formula}{[formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).}
 
-\item{var.cluster}{[character] cluster variable.}
+\item{heterogeneous}{[logical] should the variance be repetition-specific?}
 
-\item{twin}{[logical] in presence of a covariate varying within-cluster, should block \eqn{A} and \eqn{B} be identical?
-\code{TRUE} is analogous to nested random effects.}
+\item{cross}{[character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, or \code{"UN"}.}
 
-\item{cross}{[character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"TOEPLITZ"}, or \code{"UN"}.
-\code{"ID"} is analogous to cross random effects.}
+\item{twin}{[logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+Otherwise only depends on whether the pair of observations have the same covariate value (identical blocks \eqn{A} and \eqn{B}).}
 
-\item{var.time}{[character] time variable.}
-
-\item{add.time}{not used.}
+\item{time}{[character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.
@@ -40,7 +37,7 @@ A typical formula would be \code{~1}. It will model: \itemize{
 }
 With 4 repetitions (\eqn{(j,j') \in \{1,2,3,4\}^2} and \eqn{j\neq j'}) this leads to the following residuals variance-covariance matrix:
 \deqn{ \begin{bmatrix} \sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \sigma^2 & \rho\sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \sigma^2 & \rho\sigma^2 \\ \rho\sigma^2 & \rho\sigma^2 & \rho\sigma^2 & \sigma^2 \end{bmatrix}}
-With positive correlation, this is reparametrisation of a random intercept model. \cr
+With positive correlation, this is a reparametrisation of a random intercept model. \cr
 
 \bold{Covariate constant within-cluster}: it is possibly to stratify the covariance pattern on a categorical variable (e.g. sex) using a formula such as \code{sex~1}. This will lead to:
 \deqn{ \begin{bmatrix} \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 \\ \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \rho_{\text{female}}\sigma_{\text{female}}^2 & \sigma_{\text{female}}^2 \end{bmatrix}

@@ -2,7 +2,7 @@ Package: LMMstar
 Type: Package
 Title: Repeated Measurement Models for Discrete Times
 Version: 1.2.0
-Date: 2026-02-09
+Date: 2026-10-19
 Authors@R: c(
     person("Brice", "Ozenne", role = c("aut", "cre"), email = "brice.mh.ozenne@gmail.com", comment = c(ORCID = "0000-0001-9694-2956")),
     person("Julie", "Forman", role = "aut", email = "jufo@sund.ku.dk", comment = c(ORCID = "0000-0001-7368-0869"))
@@ -54,7 +54,7 @@ Suggests:
     scales,
     testthat
 VignetteBuilder: R.rsp
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Collate: 
     '0-onload.R'
     'BuyseTest_discreteRoot.R'
@@ -82,7 +82,9 @@ Collate:
     'findPatterns.R'
     'fitted.R'
     'formula.R'
+    'getGroups.R'
     'iid.R'
+    'index.R'
     'influence.R'
     'information.R'
     'levels.R'
@@ -96,6 +98,7 @@ Collate:
     'moments.R'
     'mt.test.R'
     'multcomp.R'
+    'na.omit.R'
     'namePatterns.R'
     'nesting.R'
     'nobs.R'
@@ -122,8 +125,9 @@ Collate:
     'sigma.R'
     'structure-calc_Omega.R'
     'structure-calc_d2Omega.R'
+    'structure-calc_d3Omega.R'
     'structure-calc_dOmega.R'
-    'structure-initialization.R'
+    'structure-initialize.R'
     'structure-skeleton.R'
     'structure-skeletonK.R'
     'structure-skeletonRho.R'
@@ -134,6 +138,7 @@ Collate:
     'summary.R'
     'terms.R'
     'time.R'
+    'transform.R'
     'update.R'
     'utils.R'
     'variable.names.R'

@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt 16 2026 (09:59) 
+## Last-Updated: okt 19 2026 (15:01) 
 ##           By: Brice Ozenne
-##     Update #: 423
+##     Update #: 424
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -260,6 +260,8 @@
 ##' @param Omega.sd [numeric vector] square root of the diagonal of the residual variance-covariance matrix.
 ##' @param transformation [character] transformation for the sigma parameter: \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
 ##' @param power [positive integer] order of the derivative.
+##'
+##' @noRd
 .dsigma_transform <- function(value, Omega.sd, transform, power = 1){
 
     ## d sigma k / d sigma = k = sigma k / sigma
@@ -292,6 +294,8 @@
 ##' @param Omega.sd [numeric vector] square root of the diagonal of the residual variance-covariance matrix.
 ##' @param transformation [character] transformation for the k parameter: \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}, \code{"sd"}, \code{"logsd"}, \code{"var"}, \code{"logvar"}.
 ##' @param power [positive integer] order of the derivative.
+##'
+##' @noRd
 .dk_transform <- function(value, indicator, Omega.sd, transform, power = 1){
     
     if(transform == "none"){
@@ -341,6 +345,8 @@
 ##' @param Omega [numeric matrix] residual variance-covariance matrix.
 ##' @param transformation [character] transformation for the rho parameter: \code{"none"}, \code{"atanh"}, \code{"cov"}.
 ##' @param power [positive integer] order of the derivative.
+##'
+##' @noRd
 .drho_transform <- function(value, indicator, Omega = NULL, transform, power = 1){
 
     if(transform == "none"){

@@ -27,11 +27,18 @@
 
 \item{level}{[numeric,0-1] the confidence level of the confidence intervals.}
 
-\item{effects}{[character] Should the CIs/p-values for all coefficients be output (\code{"all"}),
-or only for mean coefficients (\code{"mean"} or \code{"fixed"}),
-or only for variance coefficients (\code{"variance"}),
-or only for correlation coefficients (\code{"correlation"}).
-Alternatively can be \code{"param"} to output the name and characteristics of each parameter (type, strata, ...).}
+\item{effects}{[character] Main use: output estimates, CIs, and p-values for \itemize{
+\item \code{"all"}: all parameters
+\item \code{"mean"} or \code{"fixed"}: mean parameters
+\item \code{"variance"}: variance parameters
+\item \code{"correlation"}: correlation parameters
+}  
+Side use: output \itemize{
+\item \code{"param"}: name and characteristics of each parameter.
+\item \code{"args"}: argument with which the optimization procedure was run. 
+\item \code{"opt"}: output of the optimization procedure.
+\item \code{"variables"}: characteristics of the outcome, strata, time, cluster, and weight variables.
+}}
 
 \item{robust}{[logical] Should robust standard errors (aka sandwich estimator) be output instead of the model-based standard errors.
 Can also be \code{2} compute the degrees-of-freedom w.r.t. robust standard errors instead of w.r.t. model-based standard errors.}
@@ -53,13 +60,13 @@ Not relevant when the argument \code{effects="param"},}
 \item{...}{Not used. For compatibility with the generic method.}
 }
 \value{
-A \code{data.frame} object.
+Main use: \code{data.frame} object.
 }
 \description{
-Export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model
-or a table describing each parameter (type, associated sigma or k parameter, ...).
+Main use: export estimated parameters with their uncertainty (standard errors, degrees-of-freedom, confidence intervals and p-values) from a linear mixed model. \cr
+Side use: access details about the parametrization or the optimisation procedure.
 }
 \details{
-When \code{effects} differs from \code{"param"}, this function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
+Main use: the function is a wrapper for \code{\link{confint}} with different default value for the argument \code{column}.
 }
 \keyword{methods}

@@ -2,28 +2,38 @@
 % Please edit documentation in R/structure.R
 \name{UN}
 \alias{UN}
-\title{Unstructured Structure}
+\title{Unstructured}
 \usage{
-UN(formula, var.cluster, var.time, add.time)
+UN(formula = ~1, heterogeneous = TRUE, cross = "DUN", twin = FALSE, time)
 }
 \arguments{
-\item{formula}{formula indicating on which variable to stratify the covariance structure.}
+\item{formula}{[formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).}
 
-\item{var.cluster}{[character] cluster variable.}
+\item{heterogeneous}{[logical] should the variance be repetition-specific?}
 
-\item{var.time}{[character] time variable.}
+\item{cross}{[character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}.}
 
-\item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
+\item{twin}{[logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+Otherwise only depends on whether the pair of observations have the same covariate value.}
+
+\item{time}{[character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}.}
 }
 \value{
 An object of class \code{UN} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
 Variance-covariance structure where the residuals have time-specific variance and correlation.
-Can be stratified on a categorical variable.
+In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+\item \eqn{A}: pairs of observations both at level 0. 
+\item \eqn{B}: pairs of observations both at level 1. 
+\item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+}
 }
 \details{
-A typical formula would be \code{~1}, indicating a time-specific variance parameter and a correlation parameter specific to each pair of times.
+When setting the argument \code{twin} equal to \code{TRUE}, blocks \code{A} and \code{B} will typically use different parameters
+because the correspond to distinct time values.
+The user has to specify redondant time variable (e.g. 1,2,3,1,2,3 instead of 1,2,3,4,5,6) to obtain equal blocks on the diagonal.
 }
 \examples{
 UN(NULL, var.cluster = "id", var.time = "time", add.time = TRUE)

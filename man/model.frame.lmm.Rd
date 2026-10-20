@@ -7,8 +7,8 @@
 \method{model.frame}{lmm}(
   formula,
   newdata = NULL,
-  type = NULL,
-  add.index = FALSE,
+  type = "processed",
+  add.index = type \%in\% c("processed", "extended"),
   na.rm = TRUE,
   ...
 )
@@ -18,9 +18,12 @@
 
 \item{newdata}{[data.frame] dataset relative to which the model frame should be constructed.}
 
-\item{type}{[character] by default returns the processed dataset used to fit the Linear Mixed Model (\code{NULL}).
-Can be used to add rows relative to missing repetitions (\code{"add.NA"})
-or obtain a dataset with unique sets of covariates (\code{"unique"}) with respect to the mean structure.}
+\item{type}{[character] dataset to be output: \itemize{
+\item \code{"processed"}: dataset used to fit the Linear Mixed Model
+\item \code{"original"}: original dataset provided by the user
+\item \code{"unique"}: unique sets of covariates with respect to the mean structure.
+\item \code{"extended"}: \code{"processed"} dataset where rows relative to missing repetitions have been added.
+}.}
 
 \item{add.index}{[logical] should columns indexing the row number from the original dataset, time variable, cluster variable, strata variable
 be added to the output?}

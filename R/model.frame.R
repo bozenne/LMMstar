@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  7 2021 (14:57) 
 ## Version: 
-## Last-Updated: okt 16 2026 (16:03) 
+## Last-Updated: okt 19 2026 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 277
+##     Update #: 278
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -109,7 +109,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = "processed", add.ind
     ## ** retrieve original data.frame
     if(is.null(newdata)){
         test.newdata <- FALSE
-        newdata <- formula$data.original
+        newdata <- formula$data
         index.na <- NULL
     }else{
         test.newdata <- TRUE
@@ -163,7 +163,7 @@ model.frame.lmm <- function(formula, newdata = NULL, type = "processed", add.ind
         }else{ ## new data or obtain model frame without removing the row with missing values
             
             if(is.null(newdata)){
-                newdata <- formula$data.original
+                newdata <- formula$data
             }else if(any(setdiff(var.manifest,var.outcome) %in% names(newdata) == FALSE)){
                 missing.col <- setdiff(var.manifest,var.outcome)[setdiff(var.manifest,var.outcome) %in% names(newdata)]
                 stop("Incorrect argument \'newdata\' due to missing column(s): \"",paste(missing.col, collapse = "\", \""),"\". \n")

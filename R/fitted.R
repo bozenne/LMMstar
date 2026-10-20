@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jul  8 2021 (17:09) 
 ## Version: 
-## Last-Updated: sep 29 2025 (13:23) 
+## Last-Updated: okt 19 2026 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 438
+##     Update #: 440
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -162,8 +162,8 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
     outcome.var <- object$outcome$var
     cluster.var <- object$cluster$var
     time.var <- object$time$var
-    object.data <- object$data ## with columns XXindexXX, XXclusterXX, ... and all observations (including NAs)
-    object.data.original <- object$data.original 
+    ## object.data <- object$data ## with columns XXindexXX, XXclusterXX, ... and all observations (including NAs)
+    object.data.original <- object$data 
 
     ## ** normalize user input
     ## *** dots
@@ -201,7 +201,7 @@ fitted.lmm <- function(object, newdata = NULL, type = "mean", se = NULL, df = NU
         }
         newdata <- stats::model.frame(object, type = c("unique","mean"), options = options)
     }else if(is.null(newdata)){
-        newdata <- object$data.original
+        newdata <- object$data
         index.na <- object$index.na
         newdata.index.cluster <- attr(object$design$index.cluster,"vectorwise")
         newdata.index.time <- attr(object$design$index.clusterTime,"vectorwise")                    

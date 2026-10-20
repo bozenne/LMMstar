@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: sep 16 2021 (13:18) 
 ## Version: 
-## Last-Updated: okt 16 2026 (10:02) 
+## Last-Updated: okt 19 2026 (17:00) 
 ##           By: Brice Ozenne
-##     Update #: 492
+##     Update #: 499
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -65,11 +65,12 @@
 ##' .calc_d2Omega(Sun4, param = param4)
 ##' .calc_d2Omega(Sun24, param = param24)
 `.calc_d2Omega` <-
-    function(object, param, Omega, transform.sigma, transform.k, transform.rho,
+    function(object, param, Omega, pair, transform.sigma, transform.k, transform.rho,
              Upattern) UseMethod(".calc_d2Omega")
 
 ## * calc_d2Omega.ID
-.calc_d2Omega.ID <- function(object, param, Omega = NULL, transform.sigma, transform.k, transform.rho,
+.calc_d2Omega.ID <- function(object, param, Omega = NULL,
+                             pair, transform.sigma, transform.k, transform.rho,
                              Upattern = NULL){
 
     ## ** prepare
@@ -113,7 +114,7 @@
         if(is.null(iName.param)){
             return(NULL)
         }else{
-            iPair <- object$pair.vcov[which(object$pair.vcov[[Upattern[iPattern,"name"]]]),c("name","param1","param2"),drop=FALSE]
+            iPair <- pair[which(pair[[Upattern[iPattern,"name"]]]),c("name","param1","param2"),drop=FALSE]
             n.iPair <- NROW(iPair)
             iHess <- replicate(n = n.iPair, matrix(0, nrow = iNtime, ncol = iNtime), simplify = FALSE)
             names(iHess) <- iPair$name
@@ -217,7 +218,6 @@
     d2FCT.rho <- object$d2FCT.rho
     name.sigma <- object$param[object$param$type=="sigma","name"]
     name.rho <- object$param[object$param$type=="rho","name"]
-    pair.varcoef <- object$pair.vcov
 
     if(!is.null(FCT.sigma) && is.null(d2FCT.sigma) || !is.null(FCT.rho) && is.null(d2FCT.rho) ){
 
@@ -338,6 +338,8 @@
 ##' @param Omega.sd [numeric vector] square root of the diagonal of the residual variance-covariance matrix.
 ##' @param transformation [character] transformation for the sigma parameter: \code{"none"}, \code{"log"}, \code{"square"}, \code{"logsquare"}.
 ##' @param power [positive integer vector] order of each of the two derivative.
+##'
+##' @noRd
 .dsigmak_transform <- function(value, indicator, Omega.sd, transform, power = c(1,1)){
 
     if(transform[2] == "none"){

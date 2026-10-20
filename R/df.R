@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun 18 2021 (10:34) 
 ## Version: 
-## Last-Updated: okt 16 2026 (11:51) 
+## Last-Updated: okt 19 2026 (16:39) 
 ##           By: Brice Ozenne
-##     Update #: 504
+##     Update #: 505
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -257,7 +257,8 @@ df.residual.mlmm <- function(object, ...){
     return(df)    
 }
 ## * .df_numDeriv
-.df_numDeriv <- function(param, design, method.fit, type.information,
+.df_numDeriv <- function(param, Y, design, method.fit, type.information,
+                         precompute.weights, precompute.XX, precompute.XY, pair.vcov,
                          transform.sigma, transform.k, transform.rho,
                          effects, robust, vcov, method.numDeriv){  ## if robust is 1 then robust s.e. are computed but df are relative to model-based s.e.
 
@@ -271,7 +272,8 @@ df.residual.mlmm <- function(object, ...){
     get.element <- ifelse(robust,"vcov","information")
     FUN_element <- function(p, as.double){
         
-        iMoment <- .moments.lmm(value = p, design = design, method.fit = method.fit, type.information = type.information,
+        iMoment <- .moments.lmm(value = p, Y = Y, design = design, method.fit = method.fit, type.information = type.information,
+                                precompute.weights = precompute.weights, precompute.XX = precompute.XX, precompute.XY = precompute.XY, pair.vcov = pair.vcov,
                                 transform.sigma = transform.sigma, transform.k = transform.k, transform.rho = transform.rho,
                                 updateGLS = FALSE, logLik = FALSE, score = FALSE, information = (robust!=2), vcov = (robust==2), df = FALSE, indiv = FALSE, effects = effects, robust = robust,
                                 trace = FALSE, method.numDeriv = method.numDeriv, transform.names = FALSE)

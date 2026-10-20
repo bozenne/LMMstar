@@ -49,7 +49,7 @@ When \code{simplify} is \code{TRUE}, this list will be simplified into a list wi
 \item \code{variance}: design matrix for the variance model
 \item \code{correlation}: design matrix for the correlation model
 }
-or a single design matrixx.
+or a single design matrix.
 }
 \description{
 Extract or construct design matrices for a linear mixed model.

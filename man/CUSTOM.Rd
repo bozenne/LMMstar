@@ -5,8 +5,7 @@
 \title{Custom Structure}
 \usage{
 CUSTOM(
-  formula,
-  var.cluster,
+  formula = ~1,
   var.time,
   FCT.sigma,
   dFCT.sigma = NULL,
@@ -20,11 +19,9 @@ CUSTOM(
 )
 }
 \arguments{
-\item{formula}{formula indicating variables influencing the residual variance and correlation (right hand side).}
+\item{formula}{[formula] variables to stratify the residual variance (left hand side, like sex~1).}
 
-\item{var.cluster}{[character] cluster variable.}
-
-\item{var.time}{[character] time variable.}
+\item{var.time}{not used.}
 
 \item{FCT.sigma}{[function] take as argument the model parameters, time, and design matrix.
 Output the vector of residuals standard deviations.}
@@ -43,8 +40,6 @@ Output the matrix of residuals correlation.}
 \item{d2FCT.rho}{[list of matrices] list whose elements are the second derivative of argument \code{FCT.rho} (no cross-terms).}
 
 \item{init.rho}{[numeric vector] initial value for the correlation parameters.}
-
-\item{add.time}{not used.}
 }
 \value{
 An object of class \code{CUSTOM} that can be passed to the argument \code{structure} of the \code{lmm} function.

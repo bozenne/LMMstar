@@ -4,37 +4,40 @@
 \alias{TOEPLITZ}
 \title{Toeplitz Structure}
 \usage{
-TOEPLITZ(formula, var.cluster, type = "LAG", var.time, add.time)
+TOEPLITZ(
+  formula = ~1,
+  heterogeneous = TRUE,
+  cross = "TOEPLITZ",
+  twin = FALSE,
+  time
+)
 }
 \arguments{
-\item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
-and variables influencing the residual variance and correlation (right hand side).}
+\item{formula}{[formula or list of 2 formula] left hand side: strata variable for the variance and correlation structure. 
+right hand side: covariate for the variance structure (multiplicative effect) and correlation structure (blocks).}
 
-\item{var.cluster}{[character] cluster variable.}
+\item{heterogeneous}{[logical] should the variance be repetition-specific?}
 
-\item{type}{[character] degree of flexibility of the covariance structure within covariate.
-For a binary covariate the correlation structure can be decomposed into 4 blocks: within level 0 of the covariate (\eqn{A}),
-C within level 1 (\eqn{A}), and B between level 0 and 1 (\eqn{A}). The following parametrisations are available:
-\itemize{ 
-\item \code{"UN"}: unstructured matrix except for the diagonal elements of C which are constrained to be equal.
-\item \code{"LAG"}: Toeplitz structure within A, B, and C, i.e. correlation specific to each time lag and covariate level.
-\item \code{"CS"}: block-specific value except for C which has a different value for its diagonal elements.
-}}
+\item{cross}{[character] in presence of a covariate varying within-cluster, structure for block \eqn{C}: \code{"ID"}, \code{"CS"}, \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, or \code{"UN"}.}
 
-\item{var.time}{[character] time variable.}
+\item{twin}{[logical] in presence of a covariate varying within-cluster, should the correlation depends on the covariate value.
+Otherwise only depends on whether the pair of observations have the same covariate value (identical blocks \eqn{A} and \eqn{B}).}
 
-\item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
+\item{time}{[character] time variable relative to which the correlation structure is constructed when \code{cross} is \code{"AR1"}, \code{"EXP"}, \code{"TOEPLITZ"}, \code{"DUN"}, or \code{"UN"}.}
 }
 \value{
 An object of class \code{TOEPLITZ} that can be passed to the argument \code{structure} of the \code{lmm} function.
 }
 \description{
 Variance-covariance structure where the correlation depends on time elapsed between two repetitions.
-Can be stratified on a categorical variable.
+In presence of a categorical covariate varying within cluster, the correlation structure is structured in blocks. For instance with 2 categories: \itemize{
+\item \eqn{A}: pairs of observations both at level 0. 
+\item \eqn{B}: pairs of observations both at level 1. 
+\item \eqn{C}: pairs of observations, one with level 0 and the other with level 1.
+}
 }
 \details{
-\bold{formula}: there can only be at most one covariate for the correlation structure.
-A typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
+\bold{formula}: a typical formula would be \code{~1}, indicating a variance constant over time and a correlation specific to each gap time.
 
 A typical formula would be \code{~1}. It will model: \itemize{
 \item \eqn{\sigma^2_{j}=\sigma^2 k^2_j}: a variance specific to each repetition. This is achieved using a baseline standard deviation parameter (\eqn{\sigma}) and a multiplier parameter (\eqn{k_j}) for each repetition \eqn{j}, with \eqn{k_1=1}.

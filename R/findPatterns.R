@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 13 2022 (10:06) 
 ## Version: 
-## Last-Updated: okt 16 2026 (10:01) 
+## Last-Updated: okt 19 2026 (17:24) 
 ##           By: Brice Ozenne
-##     Update #: 1031
+##     Update #: 1036
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -87,9 +87,11 @@
 
     ## ** export
     structure$pattern <- data.frame(all = as.character(pattern.var), vcov = as.character(pattern.var))
-    attr(structure$pattern,"list") <- tapply(1:n.cluster, structure$pattern, base::identity)
     structure$Upattern <- Upattern
     structure$var$Xpattern <- Xpattern.var
+    structure$var$X <- NULL
+    structure$var$pattern <- NULL
+    structure$var$lp <- NULL
     return(structure)
 }
 
@@ -213,8 +215,13 @@
     structure$pattern <- data.frame(all = vec.pattern, vcov = vec.pattern)
     structure$Upattern <- Upattern
     attr(structure$Upattern,"sep") <- sep["pattern"]
+    structure$var$X <- NULL
     structure$var$Xpattern <- Xpattern.var
+    structure$var$pattern <- NULL
+    structure$var$lp <- NULL
     structure$cor$Xpattern <- Xpattern.cor
+    structure$cor$pattern <- NULL
+    structure$cor$lp <- NULL
     return(structure)
 }
 

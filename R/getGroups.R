@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: apr 14 2026 (15:55) 
 ## Version: 
-## Last-Updated: apr 15 2026 (15:24) 
+## Last-Updated: okt 19 2026 (14:57) 
 ##           By: Brice Ozenne
-##     Update #: 49
+##     Update #: 50
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -30,6 +30,7 @@
 ##' \item \code{"strata"}: index of the strata for the pattern
 ##' \item \code{"X"}: design matrix relative to the pattern (number of rows: number of repetitions for a specific cluster with the pattern)
 ##' \item \code{"Xpattern"}: array with the name of the variance-covariance parameters to be multiplied to obtain the residual variance-covariance matrix.
+##' }
 ##' @param sep Not used, only for compatibilty with the generic method.
 ##' 
 

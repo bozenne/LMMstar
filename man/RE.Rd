@@ -4,19 +4,15 @@
 \alias{RE}
 \title{Random Effect Structure}
 \usage{
-RE(formula, var.cluster, ranef = NULL, var.time, add.time)
+RE(formula, time, ranef = NULL)
 }
 \arguments{
 \item{formula}{formula indicating on which variable to stratify the residual variance and correlation (left hand side)
 and variables influencing the residual variance and correlation (right hand side).##'}
 
-\item{var.cluster}{[character] cluster variable.}
+\item{time}{[character] time variable.}
 
 \item{ranef}{[list] characteristics of the random effects}
-
-\item{var.time}{[character] time variable.}
-
-\item{add.time}{not used.}
 }
 \value{
 An object of class \code{CS} that can be passed to the argument \code{structure} of the \code{lmm} function.

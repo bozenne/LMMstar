@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: jul 17 2025 (11:39) 
 ## Version: 
-## Last-Updated: okt 16 2026 (17:24) 
+## Last-Updated: okt 19 2026 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 241
+##     Update #: 242
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -293,7 +293,7 @@ update.lmm <- function(object, ...){
     out <- try(stats::update.default(object, ...), silent = TRUE)
     if(inherits(out,"try-error")){ ## try to handle not finding the dataset by using what is stored in the object
         if(inherits(object$call$data,"name") && inherits(try(get(object$call$data), silent = TRUE), "try-error")){
-            object$call$data <- object$data.original
+            object$call$data <- object$data
             out <- stats::update.default(object, ...)
         }else{
             stop(out)

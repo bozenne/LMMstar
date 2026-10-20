@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:50) 
 ## Version: 
-## Last-Updated: okt 16 2026 (17:15) 
+## Last-Updated: okt 20 2026 (16:37) 
 ##           By: Brice Ozenne
-##     Update #: 3971
+##     Update #: 4155
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -115,7 +115,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
         ## *** normalized data
         if(is.null(newdata)){
-            newdata <- as.data.frame(object$data.original)
+            newdata <- as.data.frame(object$data)
         }else{
             newdata <- as.data.frame(newdata)
         }
@@ -521,69 +521,15 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 
     ## ** mean
     ## use stats::model.frame to handle splines
-    ## data.mf <- stats::model.frame(stats::update(formula.mean,~.+XXindexXX+XXtimeXX+XXclusterXX+XXstrataXX),data)
-    ## X.mean <- .model.matrix_regularize(formula.mean, data = data.mf, type = "mean", drop.X = drop.X)
-    ## attr(X.mean,"term.labels") <- setdiff(attr(attr(data.mf,"terms"),"term.labels"),c("XXindexXX","XXtimeXX","XXclusterXX","XXstrataXX"))
-    ## attr(X.mean,"terms") <- attr(data.mf,"terms")
-    
     data.mf <- stats::model.frame(formula.mean,data)
-    X.mean <- .model.matrix_regularize(formula.mean, data = data.mf, type = "mean", drop.X = drop.X)
-    attr(X.mean,"terms") <- attr(data.mf,"terms")
-
-    if(NCOL(X.mean)>0){
-        ## gather all terms
-        all.terms <- c("(Intercept)",attr(stats::terms(formula.mean),"term.labels"))[attr(X.mean,"assign")+1]
-        ## identify level
-        ls.sub <- sapply(all.terms, function(iSub){ ## iSub <- "X1:X2"
-            if(grepl("::",iSub,fixed = TRUE)){ ## wraper from a package, e.g. stats::poly()
-                return(unlist(strsplit(iSub,"::",fixed = TRUE))[-1])
-            }else if(grepl(":",iSub,fixed = TRUE)){ ## interaction
-                return(unlist(strsplit(iSub,":",fixed = TRUE)))
-            }else{
-                return(iSub)
-            }
-        }, simplify = FALSE)
-        mu.level <- mapply(sub = ls.sub,
-                           name = colnames(X.mean),
-                           FUN = function(sub,name){
-                               for(iSub in sub){
-                                   name <- gsub(iSub,"",name, fixed = TRUE)
-                               }
-                               return(name)
-                           })
-        ## skeleton
-        skeleton.mu <- data.frame(name = colnames(X.mean),
-                                  index.strata = NA,
-                                  type = "mu",
-                                  constraint = NA,
-                                  level = gsub("^:","",gsub(":$","",mu.level)),
-                                  code = NA,
-                                  sigma = NA,
-                                  k.x = NA,
-                                  k.y = NA)
-
-        if(n.strata==1){
-            skeleton.mu$index.strata <- n.strata
-        }else if(structure$name$strata %in% attr(X.mean,"variable")){
-            ## identify when stratifying the mean structure 
-            X.mean2 <- .augmodel.matrix(stats::delete.response(stats::terms(formula.mean)),data.mf)
-            M.factors <- attr(attr(X.mean2,"formula"),"factors")
-            term.strata <- names(which(M.factors[structure$name$strata,]>0))
-            col.strata <- intersect(colnames(X.mean2)[attr(X.mean2,"term.labels") %in% term.strata],
-                                    colnames(X.mean))
-            skeleton.mu$index.strata[match(col.strata,skeleton.mu$name)] <- match(attr(X.mean2,"M.level")[col.strata,structure$name$strata], U.strata)
-        }
-        attr(X.mean,"strata") <- stats::setNames(skeleton.mu$index.strata, skeleton.mu$name)
-    }else{
-        skeleton.mu <- NULL
-    }
+    outMean <- .model.matrix_regularize(formula.mean, data = data.mf, augmodel = TRUE, type = "mean", drop.X = drop.X)
 
     ## ** variance
     ## *** design matrix
     outDesign <- .vcov.matrix.lmm(structure = structure, data = data, index.cluster = index.cluster, drop.X = drop.X, sep = options$sep["lp"])
     structure$xfactor <- outDesign$xfactor
-    structure$var <- outDesign$var
-    structure$cor <- outDesign$cor
+    structure$var <- outDesign$variance
+    structure$cor <- outDesign$correlation
 
     ## *** parametrization and patterns
     structure <- .skeleton(structure = structure, data = data, indexData = outInit, options = options)
@@ -658,41 +604,9 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         test.unique <- rep(1, length(index.cluster))
     }
 
-    ## *** pre-compute constant and store weights to be applied to X,Y,residual 
-    ## sum_w: log det Omega term in the likelihood 
-    ## sum_wmlog2pi: constant term in the likelihood
-    ## weights: REML and residual term in the likelihood
+    ## *** store
     index.cluster1 <- sapply(index.cluster,"[",1)        
-    nTime.cluster1 <- stats::setNames(structure$Upattern$n.time,structure$Upattern$name)[structure$pattern$vcov]
-    if(all(test.unique==1)){
-        pattern <- factor(structure$pattern$vcov, levels = structure$Upattern$name)
-        precompute.weights <- data.frame(pattern = structure$Upattern$name,
-                                         vcov = structure$Upattern$name,
-                                         replicate.num = 1,
-                                         sum_w = NA, sum_wmlog2pi = NA)
-    }else{
-        pattern <- factor(structure$pattern$all, levels = unique(structure$pattern$all[order(structure$pattern$vcov,structure$pattern$replicate.num)]))
-        precompute.weights <- data.frame(pattern = as.character(structure$pattern[!duplicated(structure$pattern$all),"all"]),
-                                         vcov = structure$pattern[!duplicated(structure$pattern$all),"vcov"],
-                                         replicate.num = structure$pattern[!duplicated(structure$pattern$all),"replicate.num"],
-                                         sum_w = NA, sum_wmlog2pi = NA)
-        precompute.weights <- precompute.weights[order(factor(precompute.weights$pattern, levels = levels(pattern))),,drop=FALSE]
-    }
-    
-    if(is.na(var.weights["likelihood"])){
-        weight.likelihood <- rep(1, length(index.cluster))
-    }else{
-        weight.likelihood <- data[[var.weights["likelihood"]]][index.cluster1]
-    }
-    if(is.na(var.weights["Omega"]) || any(test.unique!=1)){
-        n.replicate <- rep(1, length(index.cluster))
-    }else{
-        n.replicate <- data[[var.weights["Omega"]]][index.cluster1]
-    }
 
-    precompute.weights$sum_w <- tapply(weight.likelihood, INDEX = pattern, FUN = sum)
-    precompute.weights$sum_wmlog2pi <- -0.5*tapply(nTime.cluster1 * weight.likelihood * log(2 * pi/n.replicate), INDEX = pattern, FUN = sum)
-    
     if(is.na(var.weights["likelihood"]) && (is.na(var.weights["Omega"]) || any(test.unique!=1))){
 
         weights <- list(XYR = NULL,
@@ -721,85 +635,13 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         weights$multiplier <- multiplier
     }
 
-    ## ** pre-compute
-    ## *** kronecher product
-    if(NCOL(X.mean)>0){ ## pre-compute kronecker product XX, XY
-
-        if(is.null(weights$multiplier)){
-            pattern.ntime <- stats::setNames(structure$Upattern$n.time, structure$Upattern$name)
-            pattern.cluster <- stats::setNames(structure$Upattern$index.cluster, structure$Upattern$name)
-        }else{
-            pattern.ntime <- stats::setNames(structure$Upattern$n.time, structure$Upattern$name)[precompute.weights$vcov]
-            names(pattern.ntime) <- precompute.weights$pattern
-            pattern.cluster <- tapply(1:NROW(structure$pattern),factor(structure$pattern$all, levels = precompute.weights$pattern), FUN = identity)
-            names(pattern.cluster) <- precompute.weights$pattern
-        }
-
-        if(is.null(weights$XYR)){
-            wX.mean <- X.mean
-            wY <- cbind(data[[var.outcome]])
-        }else{
-            wX.mean <- sweep(X.mean, FUN = "*", MARGIN = 1, STATS = sqrt(weights$XYR))
-            wY <- cbind(data[[var.outcome]]*sqrt(weights$XYR))
-        }
-        precompute.XX <-  .precomputeXX(X = wX.mean, pattern = precompute.weights$pattern, 
-                                        pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = index.cluster)
-        ## XY: for the numerator of the GLS estimator
-        precompute.XY <-  .precomputeXR(X = wX.mean, residuals = wY, precompute.weights$pattern, 
-                                        pattern.ntime = pattern.ntime, pattern.cluster = pattern.cluster, index.cluster = index.cluster)
-
-    }else{
-
-        precompute.XX <- NULL
-        precompute.XY <- NULL
-
-    }
-
-    ## *** find all (active) pairs of covariance-covariance coefficients
-    ## unconstrained set of parameters
-    activeparam.vcov <- structure$param[is.na(structure$param$constraint),"name"]
-    activeparam.all <- c(skeleton.mu$name,activeparam.vcov)
-
-    ## collect for each pattern the vector of parameters for a given cell in the residual variance-covariance matrix
-    ls.Mparam.vcovvcov <- pairParamVcovVcov(structure)
-    
-    ## unique combinations of variance-covariance parameters across patterns
-    Mparam.vcovvcov <- unique(do.call(rbind,ls.Mparam.vcovvcov))
-    
-    ## find all pairs of observed combinations
-    ls.pair.vcov <- apply(Mparam.vcovvcov, MARGIN = 1, FUN = function(iParam){ ## iParam <- Mparam.vcovvcov[7,]
-        unorderedPairs(intersect(activeparam.all,iParam)) ## intersect will remove duplicates (e.g. sigma, one, sigma --> sigma, one) and keep a constant ordering
-    }, simplify = FALSE)
-    Upairs.vcovvcov <- unique(t(do.call(cbind,ls.pair.vcov)))
-    structure$pair.vcov <- data.frame(paste(Upairs.vcovvcov[,1],Upairs.vcovvcov[,2],sep = "_"),
-                                          Upairs.vcovvcov,
-                                          matrix(NA, nrow = NROW(Upairs.vcovvcov), ncol = n.pattern))
-    names(structure$pair.vcov) <- c("name","param1","param2",name.pattern)
-
-    ## find which pairs appears in which pattern
-    for(iPattern in name.pattern){ ## iP <- 1
-        structure$pair.vcov[,iPattern] <- apply(structure$pair.vcov[c("param1","param2")], MARGIN = 1, function(iRow){
-            (iRow[1] %in% ls.Mparam.vcovvcov[[iPattern]]) & (iRow[2] %in% ls.Mparam.vcovvcov[[iPattern]])
-        })         
-    }
-
-    ## from vector to matrix format
-    activeindex.all <- stats::setNames(1:length(activeparam.all),activeparam.all)
-    structure$pair.vcov$key1.all <- activeindex.all[structure$pair.vcov$param1] + length(activeparam.all)*(activeindex.all[structure$pair.vcov$param2]-1)
-    structure$pair.vcov$key2.all <- ifelse(structure$pair.vcov$param1!=structure$pair.vcov$param2,
-                                               activeindex.all[structure$pair.vcov$param2] + length(activeparam.all)*(activeindex.all[structure$pair.vcov$param1]-1),
-                                               NA_integer_)
-    activeindex.vcov <- stats::setNames(1:length(activeparam.vcov),activeparam.vcov)
-    structure$pair.vcov$key1.vcov <- activeindex.vcov[structure$pair.vcov$param1] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcov$param2]-1)
-    structure$pair.vcov$key2.vcov <- ifelse(structure$pair.vcov$param1!=structure$pair.vcov$param2,
-                                                activeindex.vcov[structure$pair.vcov$param2] + length(activeparam.vcov)*(activeindex.vcov[structure$pair.vcov$param1]-1),
-                                                NA_integer_)
-
     ## ** param
+    browser()
     skeleton.param <- rbind(skeleton.mu,                            
-                            structure$param[is.na(structure$param$constraint),names(skeleton.mu),drop=FALSE] ## only keep free parameters
-                            )
+                            structure$param[,names(skeleton.mu),drop=FALSE]
+                            )    
     rownames(skeleton.param) <- NULL
+    structure$param <- NULL
 
     order.type <- factor(skeleton.param$type, c("mu", "sigma", "k", "rho"))
     if(is.unsorted(order.type)){ ## in presence of strata, typically need to reorder by type
@@ -807,17 +649,17 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     }
 
     ## ** gather and export
-    out <- list(mean = X.mean,
-                vcov = structure,
-                Y = data[[var.outcome]],
-                precompute.XX = precompute.XX,
-                precompute.XY = precompute.XY,
-                precompute.weights = precompute.weights,
-                index.cluster = index.cluster,
-                index.clusterTime = index.clusterTime,
+    structure$pattern2param <- structure$Upattern[c("name","var","cor","index.strata","n.time")]
+    structure$pattern2param$index.cluster1 <- sapply(structure$Upattern$index.cluster,"[",1)
+    out <- list(param = skeleton.param,
+                index.cluster = attr(index.cluster,"vectorwise"),
+                index.clusterPattern = structure$pattern,
+                index.clusterTime = attr(index.clusterTime,"vectorwise"),
                 index.clusterStrata = index.clusterStrata,
-                param = skeleton.param,
-                drop.X = drop.X,
+                mean = X.mean, drop.X = drop.X,
+                structure = structure[c("call","name","formula","twin","class","pattern2param")],
+                variance = structure$var[c("Xpattern","pattern2lp","lp2data","lp2X")],
+                correlation = structure$cor[c("Xpattern","pattern2lp","lp2data","lp2X")],                                
                 weights = weights
                 )
 
@@ -830,187 +672,152 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 ##' @noRd
 .model.matrix_regularize <- function(formula, data, augmodel = FALSE, type, drop.X){
 
-    ## ## ** test 0: remove variable(s) with single level in the formula
-    test.1value <- sapply(all.vars(formula),function(iVar){length(unique(data[[iVar]]))})
-    if(any(test.1value==1)){
-        ## no warning because this is normal behavior when stratifying
-        formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(names(test.1value)[test.1value==1],collapse="-"))))
-    }
-
-    ## ** identify if there is an identifiability problem
+    ## ** initial check: is there is an identifiability problem?
     X <- stats::model.matrix(formula, data)
-    attr(X,"variable") <- all.vars(formula)
     X.qr <- qr(X)
-
     if(X.qr$rank==NCOL(X)){
         if(NCOL(X)==0){
             return(X)
         }else if(augmodel){
-            return(.augmodel.matrix(stats::delete.response(stats::terms(formula)),data))
+            return(.augmodel.matrix(formula,data))
         }else{
             return(X)
         }
-    }else{
-        if(drop.X==FALSE){
-            type <- switch(type, "var" = "variance", "cor" = "correlation", type)
-            stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
+    }else if(drop.X==FALSE){
+        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
+        stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
+    }
+    regularize <- list()
+    
+    ## ** remedy 1: remove empty levels in factor or character/factor variable with a single level
+    term.rhs <- stats::delete.response(stats::terms(formula))
+    name.var <- all.vars(term.rhs)
+    ## character ---> factor
+    var.character <- name.var[sapply(data[name.var], is.character)]
+    if(length(var.character)>0){
+        for(iVar in name.character){
+            data[name.character] <- as.factor(data[name.character])
         }
     }
+    var.factor <- name.var[sapply(data[name.var], is.factor)]
+    
+    if(length(var.factor)>0){
 
-    ## ** prepare
-    tt <- stats::delete.response(stats::terms(formula))
-    tt.factors <- attr(tt,"factors")
-    tt.term.labels <- attr(tt,"term.labels")
-    tt.order <- attr(tt,"order")
-
-    name.var <- all.vars(tt)
-    test.factor <- sapply(name.var, function(iVar){is.character(data[[iVar]]) || is.factor(data[[iVar]])})
-    var.factor <- name.var[test.factor]
-    var.numeric <- name.var[!test.factor]
-    name.factor <- name.var[sapply(name.var,function(iVar){is.factor(data[[iVar]])})]
-
-    ## ** test 1: remove factor with empty level
-    if(length(name.factor)>0){
-        test.factor <- sapply(name.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
+        ## *** drop factor
+        test.factor <- sapply(var.factor, function(iVar){all(levels(data[[iVar]]) %in% data[[iVar]])})
         if(any(test.factor==FALSE)){
             type <- switch(type, "var" = "variance", "cor" = "correlation", type)
             message("Factor variable(s) with empty level: \"",paste(name.factor[test.factor==FALSE], collapse = "\" \""),"\"\n ",
                     "The empty level(s) will be remove internally for the ",type," structure.\n",
                     "Consider applying droplevels to avoid this warning. \n",
                     sep = "")
-            factor.drop <- name.factor[test.factor==FALSE]
-            for(iFactor in factor.drop){
+            regularize$factor.drop <- var.factor[test.factor==FALSE]
+            for(iFactor in regularize$factor.drop){
                 data[[iFactor]] <- droplevels(data[[iFactor]])
             }
         }
+
+        ## *** remove variable with single level
+        test.1value <- sapply(var.factor, function(iVar){length(levels(data[[iVar]]))})
+        if(any(test.1value==1)){
+            ## no warning because this is normal behavior when stratifying
+            regularize$var.drop <- names(test.1value)[test.1value==1]
+            formula <- stats::update(formula, stats::as.formula(paste0("~.-",paste(regularize$var.drop,collapse="-"))))
+        }
     }
 
-    ## ** create "naive" design matrix
-    X <- .augmodel.matrix(tt,data)
+    ## ** second check: is there still is an identifiability problem?
+    X <- stats::model.matrix(formula, data)
+    X.qr <- qr(X)
+    if(X.qr$rank==NCOL(X)){
+        if(augmodel){
+            X <- .augmodel.matrix(formula, data)            
+        }
+        attr(X,"regularize") <- regularize
+        return(X)        
+    }else{ ## get information about the full design matrix
+        outAug <- .augmodel.matrix(term.rhs, data)
+    }
 
-    ## ** test 2: remove column(s) corresponding to the same level
-    index.keep <- which(!duplicated(attr(X,"M.level")))
-    Xsave <- X
-    X <- Xsave[,index.keep,drop=FALSE]
-    attrX <- attributes(Xsave)[setdiff(names(attributes(Xsave)),names(attributes(X)))]
-    attrX$assign <- attrX$assign[index.keep]
-    attrX$variable <- attrX$variable
-    attrX$term.labels <- attrX$term.labels[index.keep]
-    attrX$order <- attrX$order[index.keep]
-    attrX$ls.level <- attrX$ls.level[index.keep]
-    attrX$M.level <- attrX$M.level[index.keep,,drop=FALSE]
-    attributes(X) <- c(attributes(X),attrX)
+    ## ** intermediate check: linear dependencies order 1
+    if(any(outAug$param$order==1)){
+        X1 <- X[,rownames(outAug$param)[outAug$param$order==1],drop=FALSE]
+        qr.order1 <- qr(X1)
+        if(qr.order1$rank < NCOL(qr.order1$qr)){
+            colnames(X1) <- paste0("X",1:NCOL(X1))
+            lmDiag <- stats::lm(stats::reformulate(response = "Y", termlabels = colnames(X1), intercept = TRUE), data = data.frame(Y = 1:NROW(X1), X1))            
+            stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "",
+                 "Some variables are linearly dependent: \n", paste(capture.output(print(alias(lmDiag)$Complete)), collapse = "\n"),"\n")
+        }
+    }
 
-    X.Mlevel <- attr(X,"M.level")
-    X.reference <- attr(X,"reference")
+    var.order1 <- unlist(outAug$param[outAug$param$order==1,"variable"])
+    if(any(name.var %in% var.order1 ==  FALSE)){
+        X1bis <- stats::model.matrix(reformulate(termlabels = name.var), data = data)
+        qr.order1bis <- qr(X1bis)
+        if(qr.order1bis$rank < NCOL(qr.order1bis$qr)){
+            colnames(X1bis) <- paste0("X",1:NCOL(X1bis))
+            lmDiag <- stats::lm(stats::reformulate(response = "Y", termlabels = colnames(X1bis), intercept = TRUE), data = data.frame(Y = 1:NROW(X1bis), X1bis))
+            warning("Some variables are linearly dependent: \n", paste(capture.output(print(alias(lmDiag)$Complete)), collapse = "\n"),"\n")
+        }
+    }
 
-    ## ** test 3: form interaction and identify columns of the design matrix that are constant
-    ls.rmX <- stats::setNames(lapply(which(tt.order>1), function(iInteraction){ ## iInteraction <- 2 
+    ## ** remedy 2: linear dependencies order 2 (or more)
+    ## *** remove empty levels in factor or character/factor variable with a single level
+    var.numeric <- name.var[sapply(data[name.var], is.numeric)]
+
+    ls.rmX <- stats::setNames(lapply(which(outAug$param$order>1), function(iRow){ ## iRow <- 6
         ## variables involved in the interactions
-        iVar <- names(which(tt.factors[,iInteraction]>0)) 
+        iVar <- outAug$param[iRow,"variable"][[1]]
         ## identify coefficient relative to this interaction 
         iNoVar <- setdiff(name.var,iVar)
-        if(length(iNoVar)>0){ ## remove coefficients relative to other covariates
-            iMlevel <- X.Mlevel[apply(X.Mlevel[,iNoVar,drop=FALSE],1,function(iParam){all(iParam==X.reference[iNoVar])}),iVar,drop=FALSE]
+        if(length(iNoVar)>0){ ## covariate combination relative to reference level for the 'other' covariates
+            iSubset <- rowSums(outAug$param[,iNoVar,drop=FALSE] != do.call(rbind,replicate(outAug$param[which(outAug$param$reference),iNoVar,drop=FALSE], n = NROW(outAug$param))))
         }else{
-            iMlevel <- X.Mlevel
+            iSubset <- rep(0,NROW(outAug$param))
         }
+        iM.level <- outAug$param[which(iSubset==0),,drop=FALSE]
 
-        ## create all possible values for the interaction and check if it is constant
-        test.constant <- sapply(1:NROW(iMlevel), FUN = function(iParam){ ## iParam <- 1
-            iValue <- do.call(cbind,lapply(var.factor, function(iFactor){data[[iFactor]]==iMlevel[iParam,iFactor]}))
-            iNumeric <- intersect(iVar, var.numeric)
-            if(length(iNumeric)>0){
-                iLs.ValueNum <- lapply(iNumeric, function(iN){if(iMlevel[iParam,iN]){data[[iN]]*iMlevel[iParam,iN]}else{rep(1,NROW(data))}})
-                iValue <- cbind(iValue,do.call(cbind,iLs.ValueNum))
-            }
-            return(length(unique(apply(iValue, MARGIN = 1, prod)))<2)
-        })
-        return(rownames(iMlevel)[which(test.constant)])
-    }), tt.term.labels[which(tt.order>1)])
-
-    rmX <- unlist(ls.rmX)
-
-    if(length(rmX)>0){        
-        X.old <- X
-        test.keep <- colnames(X.old) %in% setdiff(colnames(X.old),rmX)
-        X <- X.old[,test.keep,drop=FALSE]
-        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
-        txt <- paste0("Constant values in the design matrix for the ",type," structure.\n")
-        if(length(unique(rmX))==1){
-            txt <- paste0(txt, "Coefficient \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interaction \"",paste(names(ls.rmX), collapse = "\" \""),"\" has been removed. \n")
+        if(all(iVar %in% var.numeric == FALSE)){ ## all factor
+            iTest.constant <- table(interaction(data[iVar]))
+            iOut <- rownames(iM.level)[iTest.constant==0]
+        }else if(all(iVar %in% var.numeric)){ ## all numeric
+            ## no check needed
         }else{
-            txt <- paste0(txt, "Coefficients \"",paste(unique(rmX), collapse = "\" \""),"\" relative to interactions \"",paste(names(ls.rmX), collapse = "\" \""),"\" have been removed. \n")
+            ## all combination of factor/character variables
+            ## use as.numeric, as.factor, as.character to be robust against different ordering of the levels and special characters
+            iM.level$group <- interaction(lapply(iM.level[,setdiff(iVar,var.numeric),drop=FALSE], FUN = function(iCol){as.numeric(as.factor(as.character(iCol)))}))
+            ## find the term with the largest order 
+            iM.level$group.highestOrder <- unlist(tapply(iM.level$order, iM.level$group, function(iOrder){iOrder == max(iOrder)}, simplify = FALSE))[order(order(iM.level$group))]
+            ## split the data into groups according to the combination of factor/character variables
+            iGroup <- factor(interaction(lapply(data[setdiff(iVar,var.numeric)], FUN = function(iCol){as.numeric(as.factor(as.character(iCol)))}), drop = TRUE),
+                             levels = levels(iM.level$group))
+            ## are all the numeric variables constant within groups?
+            iTest.constant <- do.call(cbind,by(data[intersect(iVar,var.numeric)], iGroup, function(iDF){apply(iDF, MARGIN = 2, FUN = sd)}, simplify = FALSE))
+            iGroup.constant <- which(colSums(iTest.constant==0)==(length(intersect(iVar,var.numeric))))
+            ##
+            iOut <- rownames(iM.level)[(iM.level$group %in% iGroup.constant) & iM.level$group.highestOrder]
         }
-        if(qr(X)$rank==X.qr$rank){
-            message(txt)
-        }else{
-            warning(txt)
-        }
-        attr(X,"assign") <- attr(X.old,"assign")[test.keep] ## as.numeric(as.factor(attr(X.old,"assign")[test.keep])) - "(Intercept)" %in% colnames(X)
-        attr(X,"contrasts") <- attr(X.old,"contrasts")
-        attr(X,"variable") <- attr(X.old,"variable")
-        if(augmodel || X.qr$rank!=NCOL(X.qr$qr)){
-            attr(X,"original.colnames") <- colnames(X.old)
-            attr(X,"formula") <- attr(X.old,"formula")
-            attr(X,"term.labels") <- attr(X.old,"term.labels")[test.keep]
-            attr(X,"order") <- attr(X.old,"order")[test.keep]
-            attr(X,"ls.level") <- attr(X.old,"ls.level")[test.keep]
-            attr(X,"M.level") <- attr(X.old,"M.level")[test.keep,,drop=FALSE]
-            attr(X,"reference.level") <- attr(X.old,"reference.level")
-        }
-    }
+        return(iOut)
+    }), outAug$param$term[outAug$param$order>1])
 
-    ## ** identify if there is still an identifiability problem
-    if(X.qr$rank==NCOL(X)){
-        return(X)
-    }
-    if(any(attr(X,"order")>2)){
-        stop("Cannot handle interaction involving more than two variables. \n")
-    }
-
-    ## ** test 4: remove columns one at a time, starting from the higher order term (i.e. the last columns)
-    score.ref <- apply(attr(X,"M.level"),1,function(iRow){sum(iRow==attr(X,"reference"))})
-    test.name <- colnames(X)[order(attr(X,"order")+score.ref/(length(attr(X,"reference"))+1), decreasing = TRUE)]
-    
-    rmX <- NULL
-    for(iCol in test.name){
-        iIndex <- colnames(X)!=iCol
-        X.test <- X[,iIndex,drop=FALSE]
-        if(X.qr$rank == qr(X.test)$rank){
-            rmX <- c(rmX, iCol)
-            keep.attr <- attributes(X)
-            X <- X.test
-            attr(X,"assign") <- keep.attr$assign[iIndex]
-            attr(X,"contrast") <- keep.attr$contrasts
-            attr(X,"variable") <- keep.attr$variable
-            if(augmodel){
-                attr(X,"original.colnames") <- keep.attr$original.colnames
-                attr(X,"formula") <- keep.attr$formula
-                attr(X,"term.labels") <- keep.attr$term.labels[iIndex]
-                attr(X,"order") <- keep.attr$order[iIndex]
-                attr(X,"M.level") <- keep.attr$M.level[iIndex,,drop=FALSE]
-                attr(X,"reference.level") <- keep.attr$reference.level
-            }
-        }
-        if(NCOL(X)==X.qr$rank){break}
-    }
-    if(drop.X>=1 & length(rmX)>0){        
-        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
-        message("Design matrix for the ",type," structure is singular. \n",
-                "Coefficient",if(length(rmX)>1){"s"}," \"",paste(rmX, collapse = "\" \""),"\" has been removed. \n")
-    } else if(length(rmX)==0 & !augmodel){
-        attr(X,"original.colnames") <- NULL
-        attr(X,"formula") <- NULL
-        attr(X,"term.labels") <- NULL
-        attr(X,"order") <- NULL
-        attr(X,"ls.level") <- NULL
-        attr(X,"M.level") <- NULL
-        attr(X,"reference.level") <- NULL
+    regularize$drop.X <- unlist(unique(ls.rmX))
+    if(length(regularize$drop.X)>0){
+        attrAssign <- attr(outAug$X,"assign")[which(colnames(X) != regularize$drop.X)]
+        attrContrast <- attr(outAug$X,"contrasts")[intersect(names(attr(outAug$X,"contrasts")),unlist(outAug$param[which(colnames(X) != regularize$drop.X),"variable"]))]
+        outAug$X <- outAug$X[,which(colnames(X) != regularize$drop.X),drop=FALSE]
+        attr(outAug$X,"assign") <- attrAssign
+        attr(outAug$X,"contrasts") <- attrContrast
     }
 
     ## ** export
-    return(X)
+    X.qr <- qr(outAug$X)
+    if(X.qr$rank==NCOL(outAug$X)){
+        return(c(outAug, regularize))
+    }else if(drop.X==FALSE){
+        type <- switch(type, "var" = "variance", "cor" = "correlation", type)
+        stop("The design matrix for the ",type," structure does not have full rank according to the QR decomposition. \n", sep = "")
+    }    
 }
 
 ## ** .augmodel.matrix_match
@@ -1128,17 +935,19 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
         }
     }
 
-    ## ** add attributes
-    attr(X,"formula") <- formula
-    attr(X,"variable") <- colnames(reference2)
-    attr(X,"term.labels") <- X.term
-    attr(X,"order") <- X.order
-    attr(X,"ls.level") <- X.level
-    attr(X,"M.level") <- do.call(rbind,X.level2)
-    attr(X,"reference.level") <- reference2
-
     ## ** export
-    return(X)
+    M.level <- cbind(term = X.term,
+                     order = X.order,
+                     reference = NA,
+                     variable = NA,
+                     constraint = NA,
+                     do.call(rbind,X.level2))
+    M.level$reference <- rowSums(M.level[names(reference2)] != do.call(rbind, replicate(reference2, n = NROW(M.level), simplify = FALSE)))==0
+    M.level$variable <- lapply(X.level, function(iDf){setdiff(names(iDf),"reference")})
+
+    ## reference2
+    return(list(X = X,
+                param = M.level))
 }
 
 ## ** .extractIndexData
@@ -1193,7 +1002,7 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
 ##' @param xnumeric [character vector] name of the variable(s) to be converted to numeric format.
 ##' @noRd
 ##'
-##' @example
+##' @examples
 ##' df <- data.frame(age = 1:10, ageGroup = 1:10, sexInd = as.factor(c("F","M")))
 ##' str(.updateFactor(df, xfactor = list(ageGroup=1:10), xnumeric = "sexInd"))
 .updateFactor <- function(data, xfactor = NULL, xnumeric = NULL){
@@ -1235,33 +1044,6 @@ model.matrix.lmm <- function(object, newdata = NULL, effects = "mean", simplify 
     return(data)
 }
 
-## ** pairParamVcovVcov
-##' @description Form all (unordered) pairs of variance-covariance parameters
-pairParamVcovVcov <- function(structure){
-
-    name.pattern <- structure$Upattern$name
-
-    out <- lapply(name.pattern, function(iName){## iName <- name.pattern[1]
-        
-        iName.var <- structure$Upattern[name.pattern == iName,"var"]
-        iNtime <- structure$Upattern[name.pattern == iName,"n.time"]
-
-        if(is.null(structure$cor)){
-            iM.param <- structure$var$Xpattern[[iName.var]]
-        }else{
-            iName.cor <- structure$Upattern[name.pattern == iName,"cor"]
-            iM.param <- cbind(apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, times = iNtime), ## sigma, k1
-                              apply(structure$var$Xpattern[[iName.var]], MARGIN = 2, FUN = rep, each = iNtime), ## sigma, k2
-                              do.call(cbind, apply(structure$cor$Xpattern[[iName.cor]], MARGIN = 3, FUN = as.vector, simplify = FALSE))
-                              )
-        }
-        
-        return(unique(iM.param))
-    })
-    names(out) <- name.pattern
-
-    return(out)
-}
 
 ##----------------------------------------------------------------------
 ### model.matrix.R ends here

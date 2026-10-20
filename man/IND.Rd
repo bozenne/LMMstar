@@ -4,17 +4,13 @@
 \alias{IND}
 \title{Independence Structure}
 \usage{
-IND(formula, var.cluster, var.time, add.time)
+IND(formula = ~1, heterogeneous = TRUE)
 }
 \arguments{
-\item{formula}{formula indicating variables influencing the residual variance,
+\item{formula}{[formula] variables influencing the residual variance,
 using either as a multiplicative factor (right hand side) or stratification (left hand side) to model their effect.}
 
-\item{var.cluster}{[character] cluster variable.}
-
-\item{var.time}{[character] time variable.}
-
-\item{add.time}{Should the default formula (i.e. when \code{NULL}) contain a time effect.}
+\item{heterogeneous}{[logical] should a repetition-specific variance model be considered?}
 }
 \value{
 An object of class \code{IND} that can be passed to the argument \code{structure} of the \code{lmm} function.
@@ -41,7 +37,7 @@ Instead of stratifying one can also make the multiplier parameter specific to ar
 \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & k_{\text{male}:2}^2\sigma^2 & 0 & 0 \\ 0 & 0 & k_{\text{male}:3}^2\sigma^2 & 0 \\ 0 & 0 & 0 & k^2_{\text{male}:4}\sigma^2 \end{bmatrix}
 }
 which is just a re-parametrisation the stratified structure since, by default, the variance is taken dependent of a time effect.
-Removing the time effect by setting \code{add.time} to \code{FALSE}) leads to:
+Removing the time effect by setting \code{var.time} to \code{NULL}) leads to:
 \deqn{ \begin{bmatrix} \sigma^2 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & \sigma^2 & 0 \\ 0 & 0 & 0 & \sigma^2 \end{bmatrix}
 \text{and}
 \begin{bmatrix} \sigma^2 k_{\text{male}}^2 & 0 & 0 & 0 \\ 0 & \sigma^2 k_{\text{male}}^2 & 0 & 0 \\ 0 & 0 & \sigma^2 k_{\text{male}}^2 & 0 \\ 0 & 0 & 0 & \sigma^2 k_{\text{male}}^2 \end{bmatrix}
@@ -75,7 +71,7 @@ model.tables(eIND.reg, effects = "variance")
 
 ## to not only use sex dependent variance
 eIND.reg0 <- lmm(glucagonAUC ~ visit, repetition = ~visit|id,
-                 structure = IND(~sex, add.time = FALSE), data = gastricbypassL)
+                 structure = IND(~sex, var.time = NULL), data = gastricbypassL)
 sigma(eIND.reg0)
 model.tables(eIND.reg0, effects = "variance") 
 }

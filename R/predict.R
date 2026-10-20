@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:39) 
 ## Version: 
-## Last-Updated: okt 15 2026 (10:50) 
+## Last-Updated: okt 19 2026 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 1557
+##     Update #: 1558
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -650,7 +650,7 @@ predict.lmm <- function(object, newdata, type = "static", p = NULL,
     ## ** export
     if(is.null(newdata) && keep.data){
         ## even when no NA, use the initial dataset instead of the augmented one
-        newdata <- object$data.original
+        newdata <- object$data
     }
     if(format == "wide"){            
         newdata.design <- stats::model.matrix(object, newdata = newdata, effects = "index", na.rm = FALSE, options = options)

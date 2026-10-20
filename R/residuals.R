@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: mar  5 2021 (21:40) 
 ## Version: 
-## Last-Updated: okt 15 2026 (10:52) 
+## Last-Updated: okt 19 2026 (11:32) 
 ##           By: Brice Ozenne
-##     Update #: 1554
+##     Update #: 1556
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -266,7 +266,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
         }    
         
     }else{
-        df.newdata <- object$data.original ## with NAs
+        df.newdata <- object$data ## with NAs
         if(("partial" %in% type.residual == FALSE) && ("partial-center" %in% type.residual == FALSE)){
             design <- stats::model.matrix(object, simplify = FALSE, na.rm = TRUE, options = options) ## without NAs
             index.na <- object$index.na
@@ -683,7 +683,7 @@ residuals.lmm <- function(object, type = "response", variable = NULL, at = NULL,
 ##' @rdname residuals
 residuals.clmm <- function(object, ...){
 
-    object$residuals <- object$design$Y - stats::predict(object, newdata = object$data.original, se = FALSE)$estimate
+    object$residuals <- object$design$Y - stats::predict(object, newdata = object$data, se = FALSE)$estimate
     object$Omega <- .calc_Omega(object$design$vcov, param = object$param, simplify = TRUE)
     object$OmegaM1 <- lapply(object$Omega, solve)
     out <- residuals.lmm(object, ...)

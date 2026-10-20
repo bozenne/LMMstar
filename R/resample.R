@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt 31 2022 (10:09) 
 ## Version: 
-## Last-Updated: okt 16 2026 (09:50) 
+## Last-Updated: okt 19 2026 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 826
+##     Update #: 827
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -331,7 +331,7 @@ resample.lmm <- function(object, type, effects, n.sample = 1e3, studentized = TR
         call0 <- object$call
         call0$formula <- stats::update(eval(call0$formula), paste0("~.-",effects))
         if(!is.null(object$index.na)){
-            call0$data <- object$data.original[-object$index.na,,drop=FALSE]
+            call0$data <- object$data[-object$index.na,,drop=FALSE]
         }
         object0 <- eval(call0)
         Xbeta0 <- stats::predict(object0, newdata = data[var.mean], se = FALSE, df = FALSE, simplify = TRUE, options = options)

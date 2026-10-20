@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: okt  7 2020 (11:12) 
 ## Version: 
-## Last-Updated: okt 16 2026 (17:23) 
+## Last-Updated: okt 19 2026 (17:44) 
 ##           By: Brice Ozenne
-##     Update #: 3477
+##     Update #: 3498
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -176,16 +176,16 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
                         method.fit = NULL, df = NULL, type.information = NULL, trace = NULL, control = NULL){
 
     name.out <- c("call", "args",
-                  "data.original", "variables",
+                  "data", "variables",
                   "index.na", "xfactor", "design", 
                   "opt",
-                  "param", "logLik", "score", "vcov", "information", "dVcov", "df",
-                  "Omega", "OmegaM1", "residuals", "fitted")
+                  "param", "logLik", "score", "vcov", "dVcov", "df",
+                  "Omega", "residuals", "fitted")
     out <- stats::setNames(vector(mode = "list", length = length(name.out)), name.out)
 
     ## ** 0. extract call and default from package
     out$call <- match.call()
-    out$data.original <- data
+    out$data <- data
 
     options <- LMMstar.options()
     if(is.null(trace)){
@@ -322,7 +322,7 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
     if(trace>=1){cat("\n")}
 
     ## ** 2. Design matrix and precomputation
-    if(trace>=1){cat("2. Design matrix and precomputations \n")}
+    if(trace>=1){cat("2. Design matrix \n")}
 
     ## *** update transformation and precompute moments
     if(inherits(structure,"CUSTOM")){
@@ -382,19 +382,20 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
         if(outArgs$control$trace>1){cat("\n")}
     }
     ## [[""]] instead of $ to avoid partial matching, i.e., confusion between init and init.cor
-    outEstimate <- .optim.lmm(design = out$design, n.time = length(U.time), method.fit = outArgs$method.fit, ## use expected information
+    outOptim <- .optim.lmm(Y = data[[var.outcome]], design = out$design, n.time = length(U.time), method.fit = outArgs$method.fit, ## use expected information
                               transform.sigma = outArgs$control$transform.sigma, transform.k = outArgs$control$transform.k, transform.rho = outArgs$control$transform.rho,
                               optimizer = outArgs$control[["optimizer"]], init = outArgs$control[["init"]], n.iter = outArgs$control[["n.iter"]], n.backtracking = outArgs$control[["n.backtracking"]],
                               tol.score = outArgs$control[["tol.score"]], tol.param = outArgs$control[["tol.param"]], init.cor = outArgs$control[["init.cor"]], trace = outArgs$control[["trace"]])
 
-    out$opt <- outEstimate[setdiff(names(outEstimate),c("estimate.originalScale"))] ## NOTE: estimate and previous.estimate are on the transformed scale
+    ## NOTE: estimate and previous.estimate are on the transformed scale
+    out$opt <- outOptim[c("estimate","previous.estimate","logLik","previous.logLik","score","n.iter","cv")] 
     if((trace==0 && outArgs$control$trace>0)){
         cat("\n")
     }
     if(out$opt$cv<=0){
         warning("Convergence issue: no stable solution has been found. \n")
     }
-    out$param <- outEstimate$estimate.originalScale
+    out$param <- outOptim$estimate.originalScale
     out$args <- cbind(data.frame(method.fit = outArgs$method.fit,
                                  type.information = outArgs$type.information,
                                  df = outArgs$df),
@@ -403,11 +404,13 @@ lmm.formula <- function(object, data, repetition, structure, weights = NULL,
 
     ## ** 4. Compute likelihood derivatives
     if(trace>=1){cat("4. Compute likelihood derivatives \n")}
-
-    outMoments <- .moments.lmm(value = stats::setNames(out$opt$estimate, names(out$param)),
-                               design = out$design, method.fit = outArgs$method.fit, type.information = outArgs$type.information, 
+    
+    outMoments <- .moments.lmm(value = stats::setNames(out$opt$estimate, names(out$param)), Y = data[[var.outcome]], design = out$design,
+                               precompute.weights = outOptim$precompute.weights, precompute.XX = outOptim$precompute.XX, precompute.XY = outOptim$precompute.XY, pair.vcov = outOptim$pair.vcov,
+                               method.fit = outArgs$method.fit, type.information = outArgs$type.information, 
                                transform.sigma = outArgs$control$transform.sigma, transform.k = outArgs$control$transform.k, transform.rho = outArgs$control$transform.rho,
-                               updateGLS = FALSE, logLik = TRUE, score = TRUE, information = TRUE, vcov = TRUE, df = outArgs$df, indiv = FALSE, effects = c("mean","variance","correlation"), robust = FALSE,
+                               updateGLS = FALSE, logLik = TRUE, score = TRUE, information = FALSE, vcov = TRUE, df = outArgs$df, indiv = FALSE,
+                               effects = c("mean","variance","correlation"), robust = FALSE,
                                trace = trace>=2, method.numDeriv = options$method.numDeriv, transform.names = FALSE)
 
     out[names(outMoments)] <- outMoments

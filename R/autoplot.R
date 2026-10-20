@@ -3,9 +3,9 @@
 ## Author: Brice Ozenne
 ## Created: Jun  8 2021 (00:01) 
 ## Version: 
-## Last-Updated: okt 30 2025 (10:46) 
+## Last-Updated: okt 19 2026 (11:33) 
 ##           By: Brice Ozenne
-##     Update #: 1751
+##     Update #: 1752
 ##----------------------------------------------------------------------
 ## 
 ### Commentary: 
@@ -1880,16 +1880,16 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
             }else{
                 sep.time.var <- ", "
             }
-            if(all(time.var %in% names(object$data.original))){
-                object.data$XXtimeXX <- nlme::collapse(object$data.original[time.var], sep = sep.time.var)[object.data$XXindexXX]
+            if(all(time.var %in% names(object$data))){
+                object.data$XXtimeXX <- nlme::collapse(object$data[time.var], sep = sep.time.var)[object.data$XXindexXX]
                 time.var <- "XXtimeXX"
             }else{
                 stop("Incorrect value for argument \'time.var\'. \n",
                      "No column ",time.var," found in the dataset used to fit the lmm. \n")
             }
         }else if(length(time.var)==1 && time.var %in% names(data) == FALSE){
-            if(time.var %in% names(object$data.original)){
-                object.data[[time.var]] <- object$data.original[[time.var]][object.data$XXindexXX]
+            if(time.var %in% names(object$data)){
+                object.data[[time.var]] <- object$data[[time.var]][object.data$XXindexXX]
             }else{
                 stop("Incorrect value for argument \'time.var\'. \n",
                      "No column ",time.var," found in the dataset used to fit the lmm. \n")
@@ -1913,8 +1913,8 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
              "        or have length 1 and be TRUE or a variable name in the data used to fit the lmm. \n")
     }else if(length(color) == 1 && is.character(color)){
         if(color %in% names(object.data) == FALSE){
-            if(color %in% names(object$data.original)){
-                object.data[[color]] <- object$data.original[[color]][object.data$XXindexXX]
+            if(color %in% names(object$data)){
+                object.data[[color]] <- object$data[[color]][object.data$XXindexXX]
             }else{
                 stop("Incorrect value for argument \'color\'. \n",
                      "No column ",color," found in the dataset used to fit the lmm. \n")
@@ -2153,7 +2153,7 @@ autoplot.Wald_lmm <- function(object, type = "forest", size.text = 16, add.args 
     gg  <- gg + ggplot2::ylab(outcome.var) + ggplot2::theme(text = ggplot2::element_text(size=size.text))
     if(!is.null(time.var.plot) && any(!is.na(time.var.plot))){
         if(length(xlabel.plot)==1){
-            if(xlabel.plot %in% names(object$data.original)){ ## single observed variable 
+            if(xlabel.plot %in% names(object$data)){ ## single observed variable 
                 gg  <- gg + ggplot2::xlab(xlabel.plot)
             }else if(time.var.plot=="XXtimeXX"){ ## internally made time variable
                 gg  <- gg + ggplot2::xlab(NULL)
